@@ -106,7 +106,9 @@ kernel is only approximately coherent.
 
 \paragraph{Task.} Prompts are all $(a,b)$ with $a,b\in\{2,\dots,9\}$ ($N=64$); the correct response
 is the two-digit decimal string of $ab$ (all products lie in $[4,81]$). The response space is all
-$100$ two-digit strings. Note the correct answers are not perfectly prompt-specific ($2\times6$ and
+$100$ two-digit strings. Reducing the operand set to $\{2,\dots,5\}$ gives $N=16$ for the
+prompt-set-size sweep, which uses three seeds and the learning-rate grid
+$\{3\times10^{-4},10^{-3},3\times10^{-3}\}$ shared by both arms. Note the correct answers are not perfectly prompt-specific ($2\times6$ and
 $3\times4$ both give $12$), so they carry a universality of their own, $u_g=\NGoldU{}$. Under
 Definition~\ref{def:coherent} what matters is measured coherence rather than string identity, and
 we find the correct responses to be near-incoherent across prompts (\CohGold{}) while the leak is
@@ -205,7 +207,8 @@ E3 & universality $\times$ error rate & 3 & 1 pair ($10^{-3}$ / $3\!\times\!10^{
 E4 & sampled GRPO                     & 3 & 3, shared by both arms & $G=\NGrpoG{}$, std normalisation \\
 E5 & KL sweep                         & 3 & 1 ($10^{-3}$) & 6 values of $\beta$ \\
 E6 & verifier hardening               & 3 & 2 & strict argmax on verifier reward \\
-E7 & plain SGD                        & 5 & 3, shared by both arms & robustness \\
+E7 & prompt-set size $N\in\{16,64\}$   & 3 & 3, shared by both arms & tests $u$ versus $m$ \\
+E8 & plain SGD                        & 5 & 3, shared by both arms & robustness \\
 \bottomrule
 \end{tabular}
 \caption{What was run in each experiment. Where a grid is shared by both arms the operating point
@@ -221,9 +224,10 @@ for each arm.}
 \centering
 \includegraphics[width=\linewidth]{../figures/fig5_appendix.pdf}
 \caption{\textbf{Left:} the universality effect across the whole Adam learning-rate grid, rather
-than at the reward-selected operating point. \textbf{Centre:} hack-fraction trajectories for the
-extreme universality conditions, both policy classes. \textbf{Right:} the same universality sweep
-under plain SGD.}
+than at the reward-selected operating point. \textbf{Centre left:} hack-fraction trajectories for
+the extreme universality conditions, both policy classes. \textbf{Centre right:} the sweep repeated
+at two prompt-set sizes, plotted against $u$. \textbf{Right:} the same universality sweep under
+plain SGD.}
 \label{fig:appendix}
 \end{figure}
 

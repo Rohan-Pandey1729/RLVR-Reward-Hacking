@@ -40,7 +40,7 @@ python3 theory.py                                     # propositions + mechanism
 python3 exp5_practice.py --part a                     # sampled GRPO
 python3 exp5_practice.py --part b                     # KL sweep
 python3 exp5_practice.py --part c                     # verifier-hardening budget
-python3 exp4_scaling.py                               # prompt-set size
+python3 exp4_scaling.py                               # prompt-set size (u versus m)
 python3 exp2_universality.py --opt sgd                # SGD robustness
 python3 figures.py                                    # figures + numbers.tex
 ```

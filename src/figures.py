@@ -562,7 +562,7 @@ def fig5():
     if not rows:
         return
     N = rows[0]["config"]["N"]
-    fig, axes = plt.subplots(1, 3, figsize=(6.7, 1.80))
+    fig, axes = plt.subplots(1, 4, figsize=(6.7, 1.72))
 
     ax = axes[0]
     lrs = sorted({r["config"]["lr_neural"] for r in rows})
@@ -593,7 +593,38 @@ def fig5():
     ax.set_xlabel("RL step"); ax.set_ylabel(r"hack fraction $\rho$")
     ax.set_title("trajectories"); ax.legend(loc="upper left", fontsize=5.5)
 
+    # prompt-set-size sweep: does the effect track u or m?
     ax = axes[2]
+    rows4 = load("exp4_shard*.jsonl")
+    if rows4:
+        b4 = best_by_reward(rows4, ["N", "m"], "neural")
+        by = defaultdict(dict); sem = defaultdict(dict)
+        for (Nn, m), dd in b4.items():
+            v = [val(r, "neural", "d_rho") for r in dd.values()]
+            by[Nn][m / Nn] = float(np.mean(v))
+            sem[Nn][m / Nn] = (float(np.std(v, ddof=1) / np.sqrt(len(v))) if len(v) > 1 else 0.0)
+        cols = {16.0: C_ALT, 64.0: C_SHARED}
+        for Nn in sorted(by):
+            us = np.array(sorted(by[Nn]))
+            mu = np.array([by[Nn][x] for x in us]); se = np.array([sem[Nn][x] for x in us])
+            band(ax, us, mu, se, cols.get(Nn, C_TAB), f"$N={int(Nn)}$",
+                 marker="o" if Nn == 64 else "^")
+        ax.axhline(0, color=C_NULL, ls=":", lw=1.0)
+        ax.set_xscale("log", base=2); ax.set_xlabel(r"universality $u$")
+        ax.set_ylabel(r"drift $\Delta\rho$"); ax.set_title("prompt-set size")
+        ax.legend(loc="upper left", fontsize=6)
+        small, big = min(by), max(by)
+        num("NuFourNSmall", f"{int(small)}"); num("NuFourNBig", f"{int(big)}")
+        num("NuFourUOneSmall", f"{by[small][1.0]:+.3f}"); num("NuFourUOneSmallSem", f"{sem[small][1.0]:.3f}")
+        num("NuFourUOneBig", f"{by[big][1.0]:+.3f}"); num("NuFourUOneBigSem", f"{sem[big][1.0]:.3f}")
+        mm = int(small)   # same block size m = N_small, different u
+        num("NuFourSameM", f"{mm}")
+        num("NuFourSameMBig", f"{by[big][mm / big]:+.3f}")
+        shared_u = sorted(set(by[small]) & set(by[big]))
+        num("NuFourMatchedGap", f"{max(abs(by[small][x] - by[big][x]) for x in shared_u):.3f}")
+        num("NuFourNShared", f"{len(shared_u)}")
+
+    ax = axes[3]
     rs = load("exp2_sgd_shard*.jsonl")
     if rs:
         b1 = best_by_reward(rs, ["m"], "neural"); b2 = best_by_reward(rs, ["m"], "tabular")

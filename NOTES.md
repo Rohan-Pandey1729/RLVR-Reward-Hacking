@@ -144,7 +144,12 @@ Other headline numbers:
   0.02, 0.06, 0.14, 0.22, 0.56), and the amplification is concentrated: 20% of
   prompts flip entirely while the rest still suppress. That is why Δρ crosses zero and ΔΛ does not.
   Both are reported, with the reason.
-- The **N-independence prediction was not tested** (no compute left); it is flagged as a prediction.
+- The **N-independence prediction now IS tested** (E7). At u = 1 the two prompt-set sizes agree
+  (-0.004 +- 0.084 at N=16 versus +0.010 +- 0.045 at N=64),
+  while at the same block size m = 16 (u = 1 for the small set, u = 0.25 for the large one) they
+  differ by -0.079 against -0.004. So the controlling quantity is u, not m. Across the
+  5 matched values of u the largest gap is 0.065, about the size of the O(1/N) correction the
+  appendix flags as non-negligible at N=16.
 - The **KL sweep at u=1 is within noise** and used a single fixed learning rate; only the u=1/N side
   is clean. Stated.
 

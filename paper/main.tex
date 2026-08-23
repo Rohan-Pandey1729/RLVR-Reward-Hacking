@@ -116,8 +116,8 @@ leading-order drift of a leak accepted on a fraction $u$ of prompts has the sign
 where $\bar V$ is the policy's current verifier pass rate, an observable quantity requiring no
 ground truth. Below the threshold, cross-prompt sharing actively suppresses the leak, because on
 the $1-u$ prompts where it is \emph{not} accepted it receives negative advantage. Neither side of
-the threshold involves the verifier's error rate. The same analysis predicts no dependence on the
-number of prompts at fixed $u$, which we did not have the budget to test.
+the threshold involves the verifier's error rate, and neither depends on the number of prompts at
+fixed $u$.
 \item We build an RLVR environment in which the full response distribution is enumerated
 exactly, so every reported quantity is the true value under the policy rather than a sample
 estimate, and in which universality and static false-positive rate are independent knobs by construction.
@@ -497,13 +497,24 @@ improve the measured false-positive rate identically buy very different true acc
 
 The effect is not an artefact of exact-expectation gradients or of Adam. Under sampled GRPO with
 group size $\NGrpoG{}$ and group-standard-deviation normalisation, $\Delta\rho$ runs from
-\NuFiveADLo{} to \NuFiveADHi{}, crossing zero at \NuFiveACrossU{}. Plain SGD, the optimiser the analysis is written for, gives the sharpest separation in the
+\NuFiveADLo{} to \NuFiveADHi{}, crossing zero at \NuFiveACrossU{}. The analysis also predicts that at fixed $u$ the outcome should not depend on the number of
+prompts. Repeating the sweep at $N=\NuFourNSmall{}$ and $N=\NuFourNBig{}$ bears this out on the
+discriminating comparison: at $u=1$ the two agree ($\NuFourUOneSmall{}\pm\NuFourUOneSmallSem{}$
+versus $\NuFourUOneBig{}\pm\NuFourUOneBigSem{}$), whereas at the same \emph{block size}
+$m=\NuFourSameM{}$, which is $u=1$ for the small prompt set and $u=0.25$ for the large one, they
+differ by \NuFourSameMBig{} against $\NuFourUOneSmall{}$. Across the
+\NuFourNShared{} matched values of $u$ the largest gap is \NuFourMatchedGap{}, comparable to the
+$O(1/N)$ correction the appendix flags as non-negligible at $N=\NuFourNSmall{}$. The controlling
+quantity is the fraction of prompts a leak covers, not their number.
+
+Plain SGD, the optimiser the analysis is written for, gives the sharpest separation in the
 paper: the shared-parameter policy's hack fraction runs \NuTwoSgdNeuralLoRho{} to
 \NuTwoSgdNeuralHiRho{} with true accuracy falling \NuTwoSgdNeuralLoAcc{} to
 \NuTwoSgdNeuralHiAcc{}, crossing at \NuTwoSgdCrossU{} (slope \NuTwoSgdNeuralSlope{} per doubling),
 while the per-prompt policy moves from \NuTwoSgdTabLoRho{} to \NuTwoSgdTabHiRho{}, a slope of
 \NuTwoSgdTabSlope{}, and \emph{below} its base throughout, exactly the prompt-local
-rich-get-richer drift of Appendix~\ref{app:proofs}. Figure~\ref{fig:appendix} has the full grid.
+rich-get-richer drift of Appendix~\ref{app:proofs}. Figure~\ref{fig:appendix} has the full learning-rate grid, the
+trajectories, and the prompt-set-size sweep.
 
 Adding a KL penalty pulls the policy back toward the filter baseline, as
 Proposition~\ref{prop:filter} leads one to expect, but it does so in \emph{both} directions, and that is

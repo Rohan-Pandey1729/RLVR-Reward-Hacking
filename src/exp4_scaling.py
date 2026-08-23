@@ -17,6 +17,7 @@ os.makedirs(OUT, exist_ok=True)
 
 GRID = {4: [1, 2, 4, 8, 16], 8: [1, 2, 4, 8, 16, 32, 64]}
 SEEDS = [0, 1, 2]
+LRS = [3e-4, 1e-3, 3e-3]
 
 
 def main():
@@ -28,26 +29,26 @@ def main():
     a = ap.parse_args()
     torch.set_num_threads(a.threads)
 
-    jobs = [(no, m, s) for no, ms in GRID.items() for m in ms for s in SEEDS]
-    jobs = jobs[a.shard::a.nshards]
+    bases = [(no, m, s) for no, ms in GRID.items() for m in ms for s in SEEDS][a.shard::a.nshards]
+    jobs = [(no, m, s, lr) for (no, m, s) in bases for lr in LRS]
     path = os.path.join(OUT, f"exp4_shard{a.shard}.jsonl")
     done = set()
     if os.path.exists(path):
         for line in open(path):
             c = json.loads(line)["config"]
-            done.add((c["n_operands"], c["m"], c["seed"]))
+            done.add((c["n_operands"], c["m"], c["seed"], c["lr_neural"]))
     f = open(path, "a"); t0 = time.time()
-    for i, (no, m, s) in enumerate(jobs):
-        if (no, m, s) in done:
+    for i, (no, m, s, lr) in enumerate(jobs):
+        if (no, m, s, lr) in done:
             continue
         r = run_cell(m=m, k=1, seed=s, n_operands=no, algo="pg", norm="mean",
-                     steps=a.steps, lr_neural=1e-3, lr_tabular=3e-2,
+                     steps=a.steps, lr_neural=lr, lr_tabular=lr,
                      opt_name="adam", log_every=25)
         f.write(json.dumps(r) + "\n"); f.flush()
         print(f"[{i+1}/{len(jobs)}] N={r['config']['N']} m={m} u={r['config']['u']:.3f} "
-              f"seed={s} base_hf={r['base']['hack_frac']:.4f} "
-              f"neural_hf={r['neural'][-1]['hack_frac']:.4f} "
-              f"tab_hf={r['tabular'][-1]['hack_frac']:.4f} ({time.time()-t0:.0f}s)", flush=True)
+              f"seed={s} lr={lr:g} base={r['base']['mean_hack_frac']:.4f} "
+              f"N_rho={r['neural'][-1]['mean_hack_frac']:.4f} "
+              f"T_rho={r['tabular'][-1]['mean_hack_frac']:.4f} ({time.time()-t0:.0f}s)", flush=True)
     f.close()
 
 
