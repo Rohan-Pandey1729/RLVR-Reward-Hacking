@@ -39,7 +39,8 @@ def main():
     if os.path.exists(path):
         for line in open(path):
             c = json.loads(line)["config"]
-            done.add((c["m"], c["seed"], c["lr_neural"]))
+            if c.get("steps") == a.steps:  # a cell run at another budget is not this cell
+                done.add((c["m"], c["seed"], c["lr_neural"]))
     f = open(path, "a"); t0 = time.time()
     for i, (m, s, lr) in enumerate(jobs):
         if (m, s, lr) in done:

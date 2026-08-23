@@ -68,14 +68,21 @@ $\Kk((x,h),(x',y'))$ that does not depend on $y'$ contributes zero covariance in
 and any component that does not depend on $h$ is common to the leak and to the correct answer and
 cancels in the within-prompt log-odds. Substituting the definition, the covariance at $x'$ is
 \[
-\Cov_{y'}[r(x',y'),\Kk((x,h),(x',y'))] = \kappa\Big(\pth(h\mid x')r(x',h) - \pth(h\mid x')V(x')\Big)
-= \kappa\,\pth(h\mid x')\big(r(x',h)-V(x')\big),
+\begin{aligned}
+\Cov_{y'}[r(x',y'),\Kk((x,h),(x',y'))]
+&= \kappa\Big(\pth(h\mid x')r(x',h) - \pth(h\mid x')V(x')\Big) \\
+&= \kappa\,\pth(h\mid x')\big(r(x',h)-V(x')\big),
+\end{aligned}
 \]
 using $\mathbb{E}_{y'}[r]=V(x')$, with $\kappa$ replaced by $\kappa_s$ in the $x'=x$ term. Since
 $r(x',h)=\mathbf{1}[x'\in U]$, for $x\in U$,
 \[
-\frac{d}{dt}\log\pth(h\mid x)=\frac{\kappa}{N}\Big[\sum_{x'\in U\setminus\{x\}}\!\!\pth(h\mid x')(1-V(x'))
--\sum_{x'\notin U}\pth(h\mid x')V(x')\Big] + \frac{\kappa_s}{N}\pth(h\mid x)(1-V(x)).
+\begin{aligned}
+\frac{d}{dt}\log\pth(h\mid x)
+&=\frac{\kappa}{N}\Big[\sum_{x'\in U\setminus\{x\}}\!\!\pth(h\mid x')(1-V(x'))
+-\sum_{x'\notin U}\pth(h\mid x')V(x')\Big] \\
+&\quad + \frac{\kappa_s}{N}\pth(h\mid x)(1-V(x)).
+\end{aligned}
 \]
 With $\pth(h\mid\cdot)\equiv p_h$ and $V\equiv\bar V$ the bracket is
 $p_h[(m-1)(1-\bar V)-(N-m)\bar V] = p_h[N(u-\bar V)-(1-\bar V)]$, giving
@@ -88,11 +95,11 @@ $\kappa_g p_g(u_g-\bar V) + \frac{p_g(1-\bar V)}{N}(\kappa_{s,g}-\kappa_g)$; sub
 $N\kappa/\kappa_s \gg 1$. We measure $\kappa/\kappa_s$ as the mean cross-prompt gradient cosine for
 the leak, and it is not constant: \CohHackHi{} at $u=1$ gives
 $N\kappa/\kappa_s \approx \NThreshValidity{}$, but \CohHackLo{} at $u=\NuTwoLoU{}$ gives
-$N\kappa/\kappa_s \approx 1.3$, at which point the correction is of the same order as the leading
+$N\kappa/\kappa_s \approx 1.1$, at which point the correction is of the same order as the leading
 term. The leading-order threshold is therefore an argument about the high-universality end only;
 the suppression we observe at low $u$ is an empirical finding, not a prediction of
 \eqref{eq:threshold}. Proposition~\ref{prop:threshold} also treats $\kappa$ as a constant while we
-measure it growing roughly fourteenfold with $u$, so the observed growth of the cross-prompt drift
+measure it growing roughly seventeenfold with $u$, so the observed growth of the cross-prompt drift
 is jointly attributable to $\kappa(u)$ and to $(u-\bar V)$ and the proposition does not separate
 them. Both are reasons we do not read a numerical boundary off the experiments.
 
@@ -127,7 +134,7 @@ a contiguous block of size $m\geq8$ is exactly ``first operand $=a$'', a propert
 can read off a single input token. That would confound universality with how simple the
 prompt-to-leak map is to represent, so we run the whole sweep a second time with block membership
 given by a random permutation of prompts and leak strings drawn independently per $(m,k,\text{seed})$
-rather than nested across $m$. Both versions appear in every figure.
+rather than nested across $m$. Both versions appear in Figures~\ref{fig:universality} and~\ref{fig:mechanism}.
 
 \paragraph{What the base model does and does not control.} The SFT target puts identical hack mass
 on every prompt in every condition, but the realised base model is a shared-weight transformer that
@@ -141,8 +148,10 @@ In the universality$\times$error-rate factorial an additional correction is need
 component of the SFT target would otherwise place mass on each of the $k$ leak strings, so base
 hack mass would grow with $k$ and the two factors would not be separable. For that experiment the
 uniform component is spread only over responses that are neither the correct answer nor a leak,
-which makes total base hack mass exactly $\varepsilon$ for every $k$: measured base
-$\rho = \NuThreeBaseRhoLoK{}$ in every cell. This is the one place where the SFT target differs
+which makes total base hack mass exactly $\varepsilon$ for every $k$. The measured base
+\emph{fraction} still varies, mean $\rho = \NuThreeBaseRhoLoK{}$ with spread
+\NuThreeBaseRhoSpreadK{} across runs, because diverting the uniform floor also changes the mass
+on the correct answer; it is the mass, not the fraction, that the design holds fixed. This is the one place where the SFT target differs
 between experiments, and it is the version the factorial requires.
 
 \paragraph{Base model.} A decoder-only transformer with $2$ layers, model dimension $64$,
@@ -172,9 +181,11 @@ RLOO and Dr.\ GRPO and removes sampling noise from the
 comparison. The sampled-GRPO experiment uses group size $8$, group-standard-deviation
 normalisation and one inner epoch. Optimiser Adam (default) or SGD, $400$ steps, learning-rate grid
 $\{3\times10^{-4},10^{-3},3\times10^{-3},10^{-2},3\times10^{-2}\}$ for Adam and
-$\{0.3,1,3\}$ for SGD, applied identically to both policy classes. The reported operating point
-is, for each policy class and cell, the learning rate maximising the final verifier reward, which
-is what a practitioner without ground truth would select.
+$\{0.3,1,3\}$ for SGD, applied identically to both policy classes in the sweeps where a grid is
+shared (Table~\ref{tab:protocol}; E3, E5 and E6 use a fixed neural/tabular pair instead). The reported operating point
+is, for each policy class and cell, the smallest learning rate whose final verifier reward is
+within $10^{-3}$ of the best, which is what a practitioner without ground truth would select
+(strict argmax in E6).
 
 \paragraph{Measurement.} $\rho$, $\Lambda$ and true accuracy are computed from the exact
 enumerated distribution $\pth(\cdot\mid x)$ over all $100$ responses at all $N$ prompts, at every
@@ -184,9 +195,11 @@ probes are exceptions: the gradient decomposition and the coherence measurement 
 fixed random subsample of $24$ and $12$ prompts respectively, for cost.
 
 Per-prompt log-odds are clipped to $\pm20$ before averaging, so a prompt whose leak mass has
-collapsed cannot dominate $\Lambda$. At the reported operating points this binds on a median of
-$1.6\%$ of prompts (worst case $18.8\%$) and it does not change the ordering of any reported
-series. The final metric of every run is recomputed in float64 from stored per-prompt masses, so
+collapsed cannot dominate $\Lambda$. In the headline Adam sweep this binds on a median of
+$1.6\%$ of prompts (worst case $18.8\%$). It binds far harder where the policy collapses
+outright, up to $81\%$ under SGD at $u=1$, but neither the SGD nor the GRPO sweep contributes a
+reported $\Lambda$, and on the sweeps that do the ordering of every reported series is unchanged
+at clipping thresholds of $20$, $40$, $60$ and $200$. The final metric of every run is recomputed in float64 from stored per-prompt masses, so
 the $10^{-8}$ floor used during online logging does not enter any reported number.
 
 The two null-model checks in Section~\ref{sec:results} agree to the last bit by construction:
@@ -199,18 +212,18 @@ between experiments; Table~\ref{tab:protocol} records what was actually run.
 
 \begin{table}[h]
 \centering\small
-\begin{tabular}{llccl}
+\begin{tabular}{llcc@{\hspace{6pt}}l}
 \toprule
  & sweep & seeds & learning rates & notes \\
 \midrule
-E1 & universality, contiguous blocks & 5 & 5, shared by both arms & headline sweep \\
-E2 & universality, permuted blocks   & 3 & 4, shared by both arms & base matched to $10^{-3}$ \\
+E1 & universality, contiguous blocks & 10 & 5, shared by both arms & headline sweep \\
+E2 & universality, permuted blocks   & 3 & 4, shared by both arms & base spread \NuSixBaseSpread{} \\
 E3 & universality $\times$ error rate & 3 & 1 pair ($10^{-3}$ / $3\!\times\!10^{-2}$) & clean SFT floor \\
-E4 & sampled GRPO                     & 3 & 3, shared by both arms & $G=\NGrpoG{}$, std normalisation \\
-E5 & KL sweep                         & 3 & 1 ($10^{-3}$) & 6 values of $\beta$ \\
+E4 & sampled GRPO                     & 10 & 3, shared by both arms & $G=\NGrpoG{}$, std normalisation \\
+E5 & KL sweep                         & 3 & 1 pair ($10^{-3}$ / $3\!\times\!10^{-2}$) & 6 values of $\beta$ \\
 E6 & verifier hardening               & 3 & 2 & strict argmax on verifier reward \\
 E7 & prompt-set size $N\in\{16,64\}$   & 3 & 3, shared by both arms & tests $u$ versus $m$ \\
-E8 & plain SGD                        & 5 & 3, shared by both arms & robustness \\
+E8 & plain SGD                        & 10 & 3, shared by both arms & robustness \\
 \bottomrule
 \end{tabular}
 \caption{What was run in each experiment. Where a grid is shared by both arms the operating point
@@ -239,7 +252,14 @@ with two CPU cores reproduces every experiment in the paper; no GPU is used. \te
 defines the task and verifier, \texttt{src/policies.py} the two policy classes,
 \texttt{src/rlvr.py} the objectives and exact measurement, \texttt{src/theory.py} the numerical
 verification of Proposition~\ref{prop:filter} and Lemma~\ref{lem:drift}, and
-\texttt{src/exp*.py} the experiments. \texttt{src/figures.py} regenerates every figure and the
-macro file holding every measured number quoted in the text; the only hand-entered constants are
-the step count, the contamination rate and the GRPO group size, which are settings rather than
-results.
+\texttt{src/exp*.py} the experiments. Seeds $0$--$4$ of E1 and E8 were produced by an earlier revision whose configuration records carry
+fewer fields. Re-running a cell from that half under the current revision reproduces it to
+$10^{-8}$ and the stored base models are bit-identical, so the halves are pooled. One cell of E1
+(the $m=1$ condition) was run beyond the reported seed budget while a larger budget was being
+attempted; \texttt{src/figures.py} caps every E1 and E8 load at the first ten seeds, so the
+reported design is balanced at ten seeds for every universality condition rather than giving a
+few conditions more seeds than the rest. \texttt{src/figures.py} regenerates every figure and the
+macro file holding every measured number quoted in the text; the hand-entered constants are the step count, the
+contamination rate and the GRPO group size, which are settings rather than results, together with
+the four appendix figures quoted elsewhere in this appendix (the clipping rates, $N\kappa/\kappa_s$, and the
+seventeenfold growth of $\kappa$), which are recomputed from the same result files.

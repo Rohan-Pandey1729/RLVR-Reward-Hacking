@@ -1,12 +1,1 @@
-__pycache__/
-*.pyc
-cache/
-logs/
-paper/*.aux
-paper/*.log
-paper/*.out
-paper/*.blg
-paper/*.bbl
-paper/*.fdb_latexmk
-paper/*.fls
-paper/*.synctex.gz
+results/_quarantine/

@@ -30,7 +30,7 @@ def main():
     ap.add_argument("--shard", type=int, default=0)
     ap.add_argument("--nshards", type=int, default=1)
     ap.add_argument("--threads", type=int, default=1)
-    ap.add_argument("--steps", type=int, default=600)
+    ap.add_argument("--steps", type=int, default=400)
     a = ap.parse_args()
     torch.set_num_threads(a.threads)
 
@@ -40,7 +40,8 @@ def main():
     if os.path.exists(path):
         for line in open(path):
             c = json.loads(line)["config"]
-            done.add((c["m"], c["k"], c["seed"]))
+            if c.get("steps") == a.steps:  # a cell run at another budget is not this cell
+                done.add((c["m"], c["k"], c["seed"]))
     f = open(path, "a"); t0 = time.time()
     for i, (m, k, s) in enumerate(jobs):
         if (m, k, s) in done:

@@ -107,10 +107,18 @@ permuted and leak strings drawn independently per (m, k, seed).
 
 | sweep | shared-parameter policy | per-prompt policy |
 |---|---|---|
-| exact PG, Adam, contiguous blocks (5 seeds) | rho 0.019 -> 0.200, acc 0.980 -> 0.799 | rho 0.304 -> 0.304 |
-| exact PG, Adam, permuted blocks (3 seeds)   | rho 0.021 -> 0.302, acc 0.979 -> 0.697 | rho 0.301 -> 0.288 |
-| **plain SGD** (5 seeds)                     | **rho 0.056 -> 1.000, acc 0.924 -> 0.000** | rho 0.052 -> 0.054 |
-| sampled GRPO, G=8 (3 seeds)                 | drho -0.103 -> +0.543, crossing u=0.24 | flat |
+| exact PG, Adam, contiguous blocks (10 seeds) | rho 0.025 -> 0.160 +- 0.050, acc 0.974 -> 0.840 | flat |
+| exact PG, Adam, permuted blocks (3 seeds)    | drho -0.110 -> +0.172 +- 0.225 | flat |
+| **sampled GRPO, G=8 (10 seeds)**             | **drho -0.103 -> +0.663 +- 0.079, crossing u=0.27** | flat |
+| **plain SGD (10 seeds)**                     | **rho 0.051 -> 1.000, acc 0.926 -> 0.000** | rho 0.053 -> 0.055 |
+
+**The seed expansion changed the story, and the paper now says so.** At 5 seeds the Adam sweep
+looked like it crossed into amplification (drho +0.069 +- 0.097). At 10 seeds it is
++0.028 +- 0.050, not significant, and the mean is carried by a single
+collapsing seed: drop that seed and the u=1 drift is -0.017, still suppression. The decisive sign
+change is now carried by GRPO (+0.663 +- 0.079, t ~ 8) and SGD
+(1.000 hack fraction, 0 accuracy, every seed). Adam resolves the suppression
+and the monotone rise; it does not resolve the crossing.
 
 (left column = u = 1/64, right = u = 1, at an identical verifier false-positive rate throughout.)
 
@@ -177,6 +185,10 @@ strings); an inconsistent treatment of the diagonal kernel term in Prop. 2; and 
 - [x] **Page limit checked.** Content ends on page 9 and References begin on page 9, inside the
       9-page long-paper limit. For a 4-page venue (e.g. MATH-AI), cut Sections 5.4 and 5.5 and the
       related-work paragraph on reward-hacking theory, and move Figures 3 and 4 to the appendix.
+- [x] **Headline sweeps re-run at 10 seeds** (E1 Adam, E4 GRPO, E8 SGD; was 5, 3, 5). All three are
+      balanced at ten seeds across every universality condition, all at 400 steps.
+      `src/figures.py` caps those loads at seed 10 so a partially-run larger budget cannot
+      unbalance the design.
 - [x] **Citations re-verified** a second time (2026-08-23), every entry against the arXiv abstract
       page plus, where a published version exists, the ACL Anthology, PMLR or the NeurIPS
       proceedings. Three changes: `ahmadian2024rloo` now cites the ACL 2024 version of record

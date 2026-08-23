@@ -61,7 +61,11 @@ in an RLVR environment small enough to compute the entire response distribution 
 constructed so that the verifier's static false-positive rate is held fixed. Sweeping universality
 at constant false-positive rate moves a shared-parameter policy's hack fraction from
 \NuTwoNeuralLoRho{} at $u=\NuTwoLoU{}$ to $\NuTwoNeuralHiRho{}\pm\NuTwoNeuralHiRhoSem{}$ at $u=1$,
-against a base model value of \NuTwoBaseRhoMean{}. Under plain SGD the same sweep runs
+against a base model value of \NuTwoBaseRhoMean{}: strong suppression at low universality, and a
+drift that is indistinguishable from zero at $u=1$ under Adam
+($\NuTwoNeuralHiDR{}\pm\NuTwoNeuralHiDRSem{}$) and changes sign decisively under
+sampled GRPO ($\NuFiveADHi{}\pm\NuFiveADHiSem{}$) and plain SGD.
+Under plain SGD the same sweep runs
 \NuTwoSgdNeuralLoRho{} to \NuTwoSgdNeuralHiRho{} with true accuracy falling
 \NuTwoSgdNeuralLoAcc{} to \NuTwoSgdNeuralHiAcc{}, while an identically initialised per-prompt
 policy moves only \NuTwoSgdTabLoRho{} to \NuTwoSgdTabHiRho{}. A crossed factorial attributes
@@ -123,9 +127,9 @@ which universality and static false-positive rate are independent knobs by const
 tabular and transformer policies start from the \emph{identical} distribution and differ only in
 parameter sharing.
 \item The shared-parameter policy's hack fraction is monotone in universality and crosses from
-suppression to amplification, while the per-prompt policy is flat in $u$, though not pinned to the
-filter baseline. A crossed factorial confirms the effect tracks universality and not false-positive
-rate. The coherence the analysis assumes is measured rather than posited. The result survives
+suppression toward amplification, crossing zero decisively under both sampled GRPO and plain SGD,
+while the per-prompt policy is flat in $u$, though not pinned to the filter baseline. A crossed factorial confirms the effect tracks universality and not false-positive
+rate. The coherence the analysis assumes is measured rather than posited. The universality slope survives
 randomising which prompts share a leak, sampled GRPO, and both optimisers. A fixed
 verifier-hardening budget buys far more true accuracy spent on universality than on error count.
 \end{itemize}
@@ -271,9 +275,11 @@ $(\kappa_g,\kappa_{s,g})$. Write $V(x')=\pth(\Acc(x')\mid x')$ and $\bar V = J(\
 $x\in U$, with $\pth(h\mid\cdot)\equiv p_h$, $\pth(g_\cdot\mid\cdot)\equiv p_g$ and
 $V(\cdot)\equiv\bar V$,
 \begin{equation}
+\begin{split}
 \frac{d}{dt}\Big[\log\pth(h\mid x) - \log\pth(g_x\mid x)\Big]
-= \kappa\,p_h\,(u-\bar V) \;-\; \kappa_g\,p_g\,(u_g-\bar V) \;+\; \frac{1-\bar V}{N}\,
-\Big[p_h(\kappa_s-\kappa) - p_g(\kappa_{s,g}-\kappa_g)\Big],
+= {}& \kappa\,p_h\,(u-\bar V) \;-\; \kappa_g\,p_g\,(u_g-\bar V) \\
+&+ \frac{1-\bar V}{N}\,\Big[p_h(\kappa_s-\kappa) - p_g(\kappa_{s,g}-\kappa_g)\Big],
+\end{split}
 \label{eq:threshold}
 \end{equation}
 where $u_g$ is the universality of $g_x$. If the correct answer is incoherent
@@ -330,17 +336,18 @@ conditions. We therefore report drifts from each run's own base.
 \paragraph{Matched policies.} The tabular policy has free per-prompt parameters in the same
 autoregressive factorisation, which parameterises the whole simplex over responses, and is
 initialised to reproduce the base transformer's distribution to $10^{-4}$. Both are then trained
-with identical objectives and learning-rate grids, differing only in parameter sharing.
+with identical objectives, and with identical learning-rate grids wherever a grid is shared
+(Table~\ref{tab:protocol}), differing only in parameter sharing.
 
 \paragraph{Protocol.} Unless stated otherwise we run exact-expectation policy gradient with the
 exact mean baseline, the expectation-limit of RLOO and Dr.\ GRPO
 \citep{ahmadian2024rloo, liu2025drgrpo}; group-relative variants such as \citet{yu2025dapo} share
-this structure. Runs are \NSteps{} steps with Adam, with three to five seeds per
+this structure. Runs are \NSteps{} steps with Adam, with three to ten seeds per
 cell (Appendix~\ref{app:details}, Table~\ref{tab:protocol}). We report the operating point selected by
 the criterion a practitioner would use: the smallest learning rate in the grid whose final
 \emph{verifier} reward is within $10^{-3}$ of the best. That tie-break is conservative for our
 hypothesis, since smaller steps drift less, and it matters, because several learning rates saturate
-the verifier at reward $1$ with very different true accuracy. Section~\ref{sec:results} also
+the verifier at reward $1$ with very different true accuracy. Section~\ref{sec:practice} also
 reports sampled GRPO with group-standard-deviation normalisation and plain SGD.
 
 \section{Results}
@@ -366,8 +373,8 @@ Corollary~\ref{cor:tabular} in numbers.
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{../figures/fig1_universality.pdf}
-\caption{Universality, at a fixed verifier error rate, decides whether RLVR suppresses or amplifies
-a leak. Every verifier accepts exactly one wrong response per prompt, so the static false-positive
+\caption{Universality, at a fixed verifier error rate, decides whether RLVR suppresses a leak or
+lets it through. Every verifier accepts exactly one wrong response per prompt, so the static false-positive
 rate is identical and only the number of prompts sharing it varies. Left: hack fraction after
 training, with the base model. Centre: drift from the base model, zero under the filter baseline;
 the dashed line is $u=\bar V$. Right: true accuracy. Purple repeats the sweep with randomised block
@@ -383,29 +390,42 @@ shared-parameter policy's hack fraction from $\NuTwoNeuralLoRho{}\pm\NuTwoNeural
 $u=\NuTwoLoU{}$ to $\NuTwoNeuralHiRho{}\pm\NuTwoNeuralHiRhoSem{}$ at $u=1$ (\NuTwoNSeeds{} seeds),
 against a base model value of \NuTwoBaseRhoMean{}. As a drift, $\Delta\rho$ runs from
 $\NuTwoNeuralLoDR{}\pm\NuTwoNeuralLoDRSem{}$ to $\NuTwoNeuralHiDR{}\pm\NuTwoNeuralHiDRSem{}$, and
-true accuracy falls from \NuTwoNeuralLoAcc{} to \NuTwoNeuralHiAcc{}. Both directions are predicted.
-Below the threshold, sharing suppresses the leak far below the base rate; above it, sharing
-manufactures hacking that the filter baseline forbids.
+true accuracy falls from \NuTwoNeuralLoAcc{} to \NuTwoNeuralHiAcc{}. The two directions are not equally well resolved. The
+suppression at low $u$ is large and unambiguous. The amplification at $u=1$ is positive but,
+under Adam at the reward-selected operating point, within its own error bar: the honest reading of
+Figure~\ref{fig:universality} is that the drift rises monotonically, up to one reversal well
+inside its error bars, from strong suppression to approximately zero. The clear sign change appears under
+sampled GRPO and under plain SGD (Section~\ref{sec:practice}, Figures~\ref{fig:practice}
+and~\ref{fig:appendix}) rather than here. Both use the same ten seeds, the same base models and the same
+step budget as this sweep; what differs is the gradient estimator for GRPO and the optimiser for
+SGD.
 
-The $u=1$ endpoint is heterogeneous across seeds rather than merely noisy: the five final hack
-fractions are \NuTwoHiSeedList{}, so the mean is carried by the seeds that collapse. The
-amplification is also concentrated across prompts. At $u=1$ a mean of \NuTwoFlipHi{}\% of prompts
+The $u=1$ endpoint is heterogeneous across seeds rather than merely noisy: the ten final hack
+fractions are \NuTwoHiSeedList{}, so the mean is carried by a single collapsing seed.
+Dropping that one seed leaves the $u=1$ drift at $-0.017$, still suppression. The heterogeneity is
+also concentrated across prompts. At $u=1$ a mean of \NuTwoFlipHi{}\% of prompts
 end with the leak more likely than the correct answer, against \NuTwoFlipLo{}\% at
-$u=\NuTwoLoU{}$. That concentration is why $\Delta\rho$ crosses zero while $\Delta\Lambda$, which
+$u=\NuTwoLoU{}$. That concentration is why $\Delta\rho$ reaches zero while $\Delta\Lambda$, which
 averages logs and is dominated by the suppressed majority, rises monotonically from
-\NuTwoNeuralLoDL{} to \NuTwoNeuralHiDL{} and stays negative: the two statistics agree on direction
-and disagree on ``amplified overall''. The worst case is starker than the operating point. Among
+\NuTwoNeuralLoDL{} to \NuTwoNeuralHiDL{} and stays clearly negative: the two statistics agree on
+direction and differ in how close to ``amplified overall'' they come. The worst case is starker than the operating point. Among
 the \NuTwoCollapseNHi{} runs at $u=1$ reaching verifier reward $\geq0.99$, one reaches reward
 \NuTwoCollapseLkyHi{} with hack fraction \NuTwoCollapseRhoHi{} and true accuracy
 \NuTwoCollapseAccHi{}, whereas the worst of the \NuTwoCollapseNLo{} reward-saturated runs at
-$u=\NuTwoLoU{}$ still has accuracy \NuTwoCollapseAccLo{}. The sign change is bracketed by our grid
-between $u=0.5$ and $u=1$ and we do not resolve its location; it lies above the base-model
-$\bar V=\NuTwoBaseLky{}$ as the theory requires, but that is a weak test.
+$u=\NuTwoLoU{}$ still has accuracy \NuTwoCollapseAccLo{}. Under Adam we do not resolve a sign change at all:
+the fitted crossing sits at \NuTwoCrossU{}, but $\Delta\rho$ at $u=1$ is
+$\NuTwoNeuralHiDR{}\pm\NuTwoNeuralHiDRSem{}$, so the data are equally consistent with the drift
+saturating at zero. What Adam resolves is the monotone rise and the suppression; the crossing is
+resolved under GRPO and SGD in Section~\ref{sec:practice}. The crossings we estimate under Adam lie above
+the base-model $\bar V=\NuTwoBaseLky{}$, as Proposition~\ref{prop:threshold} would have it, but
+those under GRPO and SGD lie below it, so the threshold's numerical location is not supported by
+our data in either direction.
 
-Randomising which prompts share a leak reproduces the sweep closely (\NuSixNeuralLoRho{} to
-\NuSixNeuralHiRho{}, drift \NuSixLoDR{} to \NuSixHiDR{}, crossing at \NuSixCrossU{}, accuracy
-falling to \NuSixNeuralHiAcc{}), so the effect is not an artefact of contiguous blocks coinciding
-with a single prompt token. That design also equalises the base model: base $\rho$ is
+Randomising which prompts share a leak reproduces the suppression and the slope
+(\NuSixNeuralLoRho{} to \NuSixNeuralHiRho{}, drift \NuSixLoDR{} to
+$\NuSixHiDR{}\pm\NuSixHiDRSem{}$, accuracy falling to \NuSixNeuralHiAcc{}), so the effect is not
+an artefact of contiguous blocks coinciding with a single prompt token. Its $u=1$ endpoint is
+carried by one of three seeds and is no better resolved than the contiguous one. That design also equalises the base model: base $\rho$ is
 \NuSixBaseRho{} in every condition, varying by only \NuSixBaseSpread{} against
 \NuTwoBaseRhoSpread{} with contiguous blocks. Its per-prompt arm is flat as well
 (\NuSixTabLoDR{} to \NuSixTabHiDR{}, slope \NuSixTabSlope{} versus \NuSixSlope{} for the
@@ -437,7 +457,7 @@ and mildly \emph{reduces} hacking; universality moves the drift monotonically an
 Figure~\ref{fig:factorial} crosses universality against the static false-positive rate. Here the
 SFT target keeps its uniform component off the leak strings, so total base hack \emph{mass} is
 exactly $\varepsilon$ for every $k$. The base hack \emph{fraction} still rises mildly with $k$
-(mean \NuThreeBaseRhoLoK{}, spread \NuThreeBaseRhoSpreadK{} across cells) because diverting the
+(mean \NuThreeBaseRhoLoK{}, spread \NuThreeBaseRhoSpreadK{} across runs) because diverting the
 uniform floor also changes the mass on the correct answer, which is one more reason to analyse
 drifts. We use the log-odds drift $\Delta\Lambda$ here rather than $\Delta\rho$, because it
 measures the multiplicative change in total leak mass and is therefore invariant to how a fixed
@@ -484,28 +504,32 @@ essentially $1$ and the cross-prompt log-odds drift is small and negative everyw
 change. The observable window is narrow; what survives is the directional content.
 
 \subsection{Under GRPO, under SGD, and with a KL penalty}
+\label{sec:practice}
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{../figures/fig4_practice.pdf}
 \caption{Practice. Left: sampled GRPO reproduces the pattern. Centre: a KL penalty pulls the policy
-back toward the filter baseline from both sides. Right: two verifier patches that improve the
+back toward the filter baseline; the low-$u$ side is resolved, the $u=1$ side is within noise. Right: two verifier patches that improve the
 measured false-positive rate identically buy very different true accuracy.}
 \label{fig:practice}
 \end{figure}
 
 The effect is not an artefact of exact-expectation gradients or of Adam. Under sampled GRPO with
 group size $\NGrpoG{}$ and group-standard-deviation normalisation, $\Delta\rho$ runs from
-\NuFiveADLo{} to \NuFiveADHi{}, crossing zero at \NuFiveACrossU{}.
+$\NuFiveADLo{}\pm\NuFiveADLoSem{}$ to $\NuFiveADHi{}\pm\NuFiveADHiSem{}$ over
+\NuFiveANSeeds{} seeds, crossing zero at \NuFiveACrossU{}.
 
 The analysis predicts that at fixed $u$ the outcome should not depend on the number of prompts.
 Repeating the sweep at $N=\NuFourNSmall{}$ and $N=\NuFourNBig{}$ bears this out on the
 discriminating comparison: at $u=1$ the two agree ($\NuFourUOneSmall{}\pm\NuFourUOneSmallSem{}$
 versus $\NuFourUOneBig{}\pm\NuFourUOneBigSem{}$), whereas at the same \emph{block size}
 $m=\NuFourSameM{}$, which is $u=1$ for the small prompt set and $u=0.25$ for the large one, they
-differ by \NuFourSameMBig{} against $\NuFourUOneSmall{}$. Across the \NuFourNShared{} matched values
+sit at \NuFourSameMBig{} against
+$\NuFourUOneSmall{}\pm\NuFourUOneSmallSem{}$, a gap the three seeds of this sweep do not
+resolve. Across the \NuFourNShared{} matched values
 of $u$ the largest gap is \NuFourMatchedGap{}, comparable to the $O(1/N)$ correction the appendix
-flags as non-negligible at $N=\NuFourNSmall{}$. The controlling quantity is the fraction of prompts
+flags as non-negligible at low $u$. The controlling quantity is the fraction of prompts
 a leak covers, not their number.
 
 Plain SGD, the optimiser the analysis is written for, gives the sharpest separation in the paper.
@@ -518,15 +542,16 @@ rich-get-richer drift of Appendix~\ref{app:proofs}. Figure~\ref{fig:appendix} ha
 learning-rate grid, the trajectories, and the prompt-set-size sweep.
 
 Adding a KL penalty pulls the policy back toward the filter baseline, as
-Proposition~\ref{prop:filter} leads one to expect, and it does so in \emph{both} directions.
+Proposition~\ref{prop:filter} leads one to expect, and where it is resolved it does so in the
+direction that \emph{costs} accuracy.
 Raising $\beta$ from $0$ to \NuFiveBBeta{} takes $\Delta\rho$ from \NuFiveBDRNoKLLo{} to
 \NuFiveBDRKLLo{} at $u=\NuTwoLoU{}$, monotonically, in the direction of removing the
 \emph{beneficial} suppression that parameter sharing was providing, at a cost of
 \NuFiveBAccNoKLLo{} to \NuFiveBAccKLLo{} in true accuracy. At $u=1$ the picture is within noise:
 $\Delta\rho$ over $\beta\in\{0,\dots,\NuFiveBBeta{}\}$ is \NuFiveBDRSeriesHi{}, with the best
 accuracy at a small non-zero $\beta$ rather than at either end. These runs use a single fixed
-learning rate rather than the reward-selected operating point, which is why their $u=1$ drift is
-smaller than in Figure~\ref{fig:universality}. The defensible reading is that KL is not a free defence: it is a
+learning rate rather than the reward-selected operating point, which is one reason not to compare
+their $u=1$ drift directly with Figure~\ref{fig:universality}; the two in fact agree within error. The defensible reading is that KL is not a free defence: it is a
 commitment to the base model's composition of the accepted set, which helps only when that
 composition is better than what training would otherwise reach.
 
@@ -587,11 +612,11 @@ which verifier hardening should be budgeted.
 
 \paragraph{Limitations.} Proposition~\ref{prop:threshold} assumes a behaviour-aligned tangent
 kernel and an approximately constant pass rate. We measure the former and find it varies
-fourteenfold over the sweep, so the threshold is a first-order prediction rather than a boundary,
+seventeenfold over the sweep, so the threshold is a first-order prediction rather than a boundary,
 and Section~\ref{sec:results} says where we could not verify it. The environment is small by
 design: a two-token response space is what makes exact enumeration possible, and the leak is a
 designated string rather than a strategy. We study one leak family per condition where real
-verifiers leak through many. Our seed counts are three to five with a heterogeneous $u=1$ outcome.
+verifiers leak through many. Our seed counts are three to ten with a heterogeneous $u=1$ outcome.
 Our policies start from an SFT base with injected contamination \citep{khalifa2026countdown}, so
 leaks a model finds on its own may differ in universality. A stronger control than ours, masking
 the cross-prompt gradient contribution inside one shared-parameter model, would isolate sharing

@@ -66,4 +66,6 @@ Build with `bash build.sh`, which regenerates every figure and `paper/numbers.te
 results and then runs pdflatex/bibtex. The paper is set with
 `\usepackage[dblblindworkshop]{neurips_2026}` and
 `\workshoptitle{Transitioning from Pre-Training to Post-Training}`, the NeurIPS 2026 workshop it
-targets. Content ends on page 9, inside that workshop's 9-page long-paper limit.
+targets. Content ends on page 9, inside that workshop's 9-page long-paper limit, which excludes
+references and appendices. The headline sweeps (E1, E4, E8) run at ten seeds; `src/figures.py`
+caps those loads at seed 10 so the reported design stays balanced.

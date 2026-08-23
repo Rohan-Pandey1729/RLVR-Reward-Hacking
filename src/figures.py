@@ -23,6 +23,17 @@ import matplotlib.pyplot as plt
 
 from analysis import RES, FIG, load, C_SHARED, C_TAB, C_NULL, C_ALT
 
+# The headline sweep (E1/E8) is reported at a fixed, balanced seed budget.  Some cells were
+# run beyond it while a larger budget was being attempted; including those partial cells
+# would give a handful of m values more seeds than the rest and bias the endpoints.  Every
+# exp2 load goes through load_capped so the reported design is provably balanced.
+SEED_CAP = 10
+
+
+def load_capped(pattern, cap=SEED_CAP):
+    return [r for r in load(pattern) if r["config"]["seed"] < cap]
+
+
 PAPER = os.path.join(os.path.dirname(__file__), "..", "paper")
 C_PERM = "#8a5cc4"           # shared parameters, randomised block membership
 FLOOR = 1e-30
@@ -158,7 +169,7 @@ def fmt_cross(c):
 
 # ======================================================================================
 def fig1():
-    rows = load("exp2_adam_shard*.jsonl")
+    rows = load_capped("exp2_adam_shard*.jsonl")
     if not rows:
         print("fig1: no data"); return
     N = rows[0]["config"]["N"]
@@ -275,8 +286,9 @@ def fig1():
         _, b6r, _ = series(b6, "neural", "base_rho")
         num("NuSixBaseSpread", f"{b6r.max() - b6r.min():.4f}")
         num("NuSixBaseRho", f"{b6r.mean():.3f}")
-        _, d6r, _ = series(b6, "neural", "d_rho")
+        _, d6r, sd6r = series(b6, "neural", "d_rho")
         num("NuSixLoDR", f"{d6r[0]:+.3f}"); num("NuSixHiDR", f"{d6r[-1]:+.3f}")
+        num("NuSixHiDRSem", f"{sd6r[-1]:.3f}")
         b6t = best_by_reward(rows6, ["m"], "tabular")
         x6t, d6t, _ = series(b6t, "tabular", "d_rho")
         num("NuSixTabSlope", f"{slope_per_doubling(x6t, d6t):+.4f}")
@@ -398,7 +410,7 @@ def fig3():
 
     # ---- panel 3: block-structure control, or the prompt-set-size sweep
     ax = axes[2]
-    rows6 = load("exp6_shard*.jsonl"); rows2 = load("exp2_adam_shard*.jsonl")
+    rows6 = load("exp6_shard*.jsonl"); rows2 = load_capped("exp2_adam_shard*.jsonl")
     rows4 = load("exp4_shard*.jsonl")
     if rows6 and rows2:
         b6 = best_by_reward(rows6, ["m"], "neural"); b2 = best_by_reward(rows2, ["m"], "neural")
@@ -454,7 +466,7 @@ def fig3():
 
 def fig4():
     fig, axes = plt.subplots(1, 3, figsize=(6.7, 2.05))
-    r5a = load("exp5a_shard*.jsonl")
+    r5a = load_capped("exp5a_shard*.jsonl")
     if r5a:
         N = r5a[0]["config"]["N"]
         bn = best_by_reward(r5a, ["m"], "neural")
@@ -471,6 +483,8 @@ def fig4():
         ax.legend(loc="upper left", fontsize=6)
         num("NuFiveALo", f"{rn[0]:.3f}"); num("NuFiveAHi", f"{rn[-1]:.3f}")
         num("NuFiveADLo", f"{dn[0]:+.3f}"); num("NuFiveADHi", f"{dn[-1]:+.3f}")
+        num("NuFiveADLoSem", f"{sn[0]:.3f}"); num("NuFiveADHiSem", f"{sn[-1]:.3f}")
+        num("NuFiveANSeeds", f"{len({r['config']['seed'] for r in r5a})}")
         num("NuFiveACrossU", fmt_cross(crossing(xm / N, dn, 0.0)))
 
     r5b = load("exp5b_shard*.jsonl")
@@ -558,7 +572,7 @@ def fig4():
 
 
 def fig5():
-    rows = load("exp2_adam_shard*.jsonl")
+    rows = load_capped("exp2_adam_shard*.jsonl")
     if not rows:
         return
     N = rows[0]["config"]["N"]
@@ -625,7 +639,7 @@ def fig5():
         num("NuFourNShared", f"{len(shared_u)}")
 
     ax = axes[3]
-    rs = load("exp2_sgd_shard*.jsonl")
+    rs = load_capped("exp2_sgd_shard*.jsonl")
     if rs:
         b1 = best_by_reward(rs, ["m"], "neural"); b2 = best_by_reward(rs, ["m"], "tabular")
         xm, dn, sn = series(b1, "neural", "d_rho")

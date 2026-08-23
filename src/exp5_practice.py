@@ -117,19 +117,26 @@ def main():
     ap.add_argument("--shard", type=int, default=0)
     ap.add_argument("--nshards", type=int, default=1)
     ap.add_argument("--threads", type=int, default=1)
-    ap.add_argument("--steps", type=int, default=600)
+    ap.add_argument("--steps", type=int, default=400)
+    ap.add_argument("--seeds", type=str, default="0,1,2")
     a = ap.parse_args()
     torch.set_num_threads(a.threads)
 
     if a.part == "a":
-        bases = [(m, s) for m in [1, 2, 4, 8, 16, 32, 64] for s in [0, 1, 2]][a.shard::a.nshards]
+        _sd = [int(x) for x in a.seeds.split(",")]
+        bases = [(m, s) for m in [1, 2, 4, 8, 16, 32, 64] for s in _sd][a.shard::a.nshards]
         jobs = [(m, s, lr) for (m, s) in bases for lr in [3e-4, 1e-3, 3e-3]]
         path = os.path.join(OUT, f"exp5a_shard{a.shard}.jsonl")
+        # Read every shard: shard assignment depends on the seed list.
         done = set()
-        if os.path.exists(path):
-            for line in open(path):
+        import glob as _glob
+        for q in _glob.glob(os.path.join(OUT, "exp5a_shard*.jsonl")):
+            for line in open(q):
                 c = json.loads(line)["config"]
-                done.add((c["m"], c["seed"], c["lr_neural"]))
+                # Include the step budget: a cell run at a different budget is not the same cell.
+                if c.get("steps") == a.steps:
+                    if c.get("steps") == a.steps:  # a cell run at another budget is not this cell
+                        done.add((c["m"], c["seed"], c["lr_neural"]))
         f = open(path, "a"); t0 = time.time()
         for i, (m, s, lr) in enumerate(jobs):
             if (m, s, lr) in done:

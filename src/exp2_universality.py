@@ -34,19 +34,25 @@ def main():
     ap.add_argument("--threads", type=int, default=1)
     ap.add_argument("--steps", type=int, default=400)
     ap.add_argument("--opt", type=str, default="adam")
+    ap.add_argument("--seeds", type=str, default="0,1,2,3,4")
     a = ap.parse_args()
     torch.set_num_threads(a.threads)
 
     # Shard by (m, seed) so every learning rate for a given base model lands on the same
     # worker; the expensive SFT is then built exactly once.
-    bases = [(m, s) for m in MS for s in SEEDS][a.shard::a.nshards]
+    seeds = [int(x) for x in a.seeds.split(",")]
+    bases = [(m, s) for m in MS for s in seeds][a.shard::a.nshards]
     jobs = [(m, s, lr) for (m, s) in bases for lr in GRIDS[a.opt]]
     path = os.path.join(OUT, f"exp2_{a.opt}_shard{a.shard}.jsonl")
+    # Read every shard for this optimiser, not just our own: the shard assignment depends on
+    # the seed list, so a cell finished under a different --seeds run may live in another file.
     done = set()
-    if os.path.exists(path):
-        for line in open(path):
+    import glob as _glob
+    for q in _glob.glob(os.path.join(OUT, f"exp2_{a.opt}_shard*.jsonl")):
+        for line in open(q):
             c = json.loads(line)["config"]
-            done.add((c["m"], c["seed"], c["lr_neural"]))
+            if c.get("steps") == a.steps:  # a cell run at another budget is not this cell
+                done.add((c["m"], c["seed"], c["lr_neural"]))
     f = open(path, "a"); t0 = time.time()
     for i, (m, s, lr) in enumerate(jobs):
         if (m, s, lr) in done:
