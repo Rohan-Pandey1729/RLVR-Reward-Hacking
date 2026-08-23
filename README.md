@@ -64,5 +64,6 @@ in case the target workshop requires the checklist; it is not currently `\input`
 
 Build with `bash build.sh`, which regenerates every figure and `paper/numbers.tex` from the raw
 results and then runs pdflatex/bibtex. The paper is set with
-`\usepackage[dblblindworkshop]{neurips_2026}`; set `\workshoptitle{...}` to the target workshop
-before submitting.
+`\usepackage[dblblindworkshop]{neurips_2026}` and
+`\workshoptitle{Transitioning from Pre-Training to Post-Training}`, the NeurIPS 2026 workshop it
+targets. Content ends on page 9, inside that workshop's 9-page long-paper limit.

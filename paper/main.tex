@@ -1,7 +1,7 @@
 \documentclass{article}
 
 \usepackage[dblblindworkshop]{neurips_2026}
-\workshoptitle{Workshop Submission}
+\workshoptitle{Transitioning from Pre-Training to Post-Training}
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -45,89 +45,88 @@
 \maketitle
 
 \begin{abstract}
-It is known that reinforcement learning with verifiable rewards (RLVR) is, at its KL-regularised
-optimum, a \emph{filter}: it reweights the set of verifier-accepted responses as a whole and leaves
-the composition of that set exactly at the base model's, so the post-RL rate of verifier false
-positives (reward hacking) should simply be inherited. Recent evidence both confirms this (a
-preregistered contrast finds inheritance, not learned exploitation) and contradicts it (RL
-amplifies hacking; systematic verifier errors cause collapse). We show the two are reconciled by a
-quantity that is not the verifier's error rate. Writing the exact drift of $\log\pth(y\mid x)$ off
-the filter baseline as a sum, over all prompts, of the covariance between reward and the empirical
-tangent kernel isolates the one channel through which universality can act: the cross-prompt term,
-which vanishes \emph{identically} for a policy whose parameters are not shared across prompts.
-Under an idealised kernel its sign is that of $u-\bar V$, where $u$ is the leak's
-\emph{universality} (the fraction of prompts on which the same wrong response is accepted) and
-$\bar V$ the policy's own verifier pass rate: sharing punishes a leak on every prompt that does not
-accept it. We test this in a fully enumerable RLVR environment where the entire response
-distribution is computed exactly and the verifier's static false-positive rate is held fixed by
-construction. Sweeping universality at constant false-positive rate moves the hack fraction of a
-shared-parameter policy from \NuTwoNeuralLoRho{} at $u=\NuTwoLoU{}$ to
-$\NuTwoNeuralHiRho{}\pm\NuTwoNeuralHiRhoSem{}$ at $u=1$ (base model \NuTwoBaseRhoMean{}); under
-plain SGD the same sweep runs \NuTwoSgdNeuralLoRho{} to \NuTwoSgdNeuralHiRho{} with true accuracy
-falling \NuTwoSgdNeuralLoAcc{} to \NuTwoSgdNeuralHiAcc{}, while the identically initialised
-per-prompt policy moves only \NuTwoSgdTabLoRho{} to \NuTwoSgdTabHiRho{}. A crossed factorial
-attributes \NuThreeEtaM{} of the variance in the log-odds drift to universality and
-\NuThreeEtaK{} to a static false-positive rate varied eightfold. Practically, verifier hardening
-should be budgeted against universality: patching one universal leak and patching every
-idiosyncratic leak improve the measured false-positive rate identically but differ by
-$\NuFiveCGap{}\pm\NuFiveCGapSem{}$ points of true accuracy.
+It is known that at its KL-regularised optimum, reinforcement learning with verifiable rewards
+(RLVR) is a \emph{filter}: it reweights the set of verifier-accepted responses as a whole and leaves the
+composition of that set at the base model's. The post-RL rate of verifier false positives, that is,
+of reward hacking, should therefore be inherited rather than learned. Recent evidence both confirms
+this and contradicts it. We show that the two are reconciled by a quantity that is not the
+verifier's error rate. We write the exact drift of $\log\pth(y\mid x)$ off the filter baseline as a
+sum, over all prompts, of the covariance between reward and the empirical tangent kernel. The
+cross-prompt term of that sum is the only channel through which universality can act, and it
+vanishes identically for a policy whose parameters are not shared across prompts. Under an
+idealised kernel its sign is that of $u-\bar V$, where $u$ is the leak's \emph{universality}, the
+fraction of prompts on which the same wrong response is accepted, and $\bar V$ is the policy's own
+verifier pass rate. Sharing punishes a leak on every prompt that does not accept it. We test this
+in an RLVR environment small enough to compute the entire response distribution exactly and
+constructed so that the verifier's static false-positive rate is held fixed. Sweeping universality
+at constant false-positive rate moves a shared-parameter policy's hack fraction from
+\NuTwoNeuralLoRho{} at $u=\NuTwoLoU{}$ to $\NuTwoNeuralHiRho{}\pm\NuTwoNeuralHiRhoSem{}$ at $u=1$,
+against a base model value of \NuTwoBaseRhoMean{}. Under plain SGD the same sweep runs
+\NuTwoSgdNeuralLoRho{} to \NuTwoSgdNeuralHiRho{} with true accuracy falling
+\NuTwoSgdNeuralLoAcc{} to \NuTwoSgdNeuralHiAcc{}, while an identically initialised per-prompt
+policy moves only \NuTwoSgdTabLoRho{} to \NuTwoSgdTabHiRho{}. A crossed factorial attributes
+\NuThreeEtaM{} of the variance in the log-odds drift to universality and \NuThreeEtaK{} to a static
+false-positive rate varied eightfold. Verifier hardening should therefore be budgeted against
+universality: patching one universal leak and patching every idiosyncratic leak improve the
+measured false-positive rate identically and differ by $\NuFiveCGap{}\pm\NuFiveCGapSem{}$ points of
+true accuracy.
 \end{abstract}
 
 \section{Introduction}
 
-RLVR trains a language model against a programmatic verifier: a response is rewarded if a
-checker accepts it \citep{shao2024deepseekmath}. Verifiers are imperfect. Rule-based matchers
-accept degenerate strings \citep{zhao2025onetoken}; test suites accept programs that pass the
-visible tests and nothing else \citep{khalifa2026countdown}; outcome-only checkers reward a
-correct final answer reached by invalid reasoning \citep{yuan2026miracle}. Every such false
-positive is a response the policy can be paid for without being right.
+RLVR trains a language model against a programmatic verifier: a response is rewarded if a checker
+accepts it \citep{shao2024deepseekmath}. Verifiers are imperfect. Rule-based matchers accept
+degenerate strings \citep{zhao2025onetoken}. Test suites accept programs that pass the visible
+tests and nothing else \citep{khalifa2026countdown}. Outcome-only checkers reward a correct final
+answer reached by invalid reasoning \citep{yuan2026miracle}. Each such false positive is a response
+the policy can be paid for without being right.
 
-How much does this matter? The literature gives two incompatible answers. On one side, RLVR looks
-remarkably robust to verifier error: flipping a large fraction of rewards barely moves final
-performance \citep{plesner2026imperfect}, noise slows learning without changing its destination
-\citep{rad2026rateorfate, wang2020perturbed}, and a preregistered leaky-versus-hardened test-suite
-contrast finds the wrong programs a trained model emits were already being emitted by the base
-model: ``selection of pre-existing error modes rather than learned exploitation''
-\citep{zhang2026leaky}. On the other, verifier exploitation is a first-order practical problem: RL
+The literature gives two incompatible accounts of what RLVR does with such false positives. In the first, RLVR is
+robust to verifier error: flipping a large fraction of rewards barely moves final performance
+\citep{plesner2026imperfect}, noise slows learning without changing its destination
+\citep{rad2026rateorfate, wang2020perturbed}, and a preregistered contrast between leaky and
+hardened test suites finds that the wrong programs a trained model emits were already being emitted
+by the base model: ``selection of pre-existing error modes rather than learned exploitation''
+\citep{zhang2026leaky}. In the second, verifier exploitation is a first-order practical problem: RL
 amplifies hacking seeded by a trace of contamination \citep{khalifa2026countdown}, systematic
 verification error produces delay, plateau or collapse \citep{egashira2026delay}, RLVR-trained
 models learn to game extensional verifiers \citep{helff2026gaming}, and production reward hacking
 generalises into broader misalignment \citep{macdiarmid2025natural}.
 
-There is a clean reason to expect the first answer. At the KL-regularised optimum the policy is
+Theory favours the first account. At the KL-regularised optimum the policy is
 $\pi^\star(y \mid x) \propto \pi_{\mathrm{ref}}(y\mid x)\,e^{r(x,y)/\beta}$, so within a reward
-level set the odds are exactly the reference model's \citep{korbak2022bayesian}: every accepted
+level set the odds are exactly the reference model's \citep{korbak2022bayesian}. Every accepted
 response, correct or exploiting, is multiplied by the same factor. RLVR is a filter on the accepted
-set, not a sculptor inside it, a fact noted repeatedly in the RLVR diversity literature
+set, not a sculptor inside it, a point made repeatedly in the RLVR diversity literature
 \citep{gai2025smoothing, kruszewski2026filtering, dymetman2026binary} and the reason RLVR sharpens
 rather than expands what a base model can do \citep{yue2025rlincentivize}. Applied to verifier
-false positives it says the post-RL hack rate is the base model's, whatever the algorithm does.
-Real training is not run at that optimum, and this paper asks what governs the departure.
+false positives it predicts that the post-RL hack rate is the base model's, whatever the algorithm
+does. Real training is not run at that optimum. This paper characterises the departure.
 
 \paragraph{Contributions.}
 \begin{itemize}\itemsep1pt
-\item We write the exact instantaneous drift of $\log \pth(y\mid x)$ under RLVR gradient flow as
-a sum over \emph{all} prompts of the covariance between reward and the empirical tangent kernel
-(Lemma~\ref{lem:drift}). For a policy whose parameters are not shared across prompts, this
-collapses to a single term and the dynamics provably cannot depend on how many prompts share a
-leak (Corollary~\ref{cor:tabular}).
-\item For a shared-parameter policy we obtain a threshold (Proposition~\ref{prop:threshold}): the
+\item We write the exact instantaneous drift of $\log \pth(y\mid x)$ under RLVR gradient flow as a
+sum over \emph{all} prompts of the covariance between reward and the empirical tangent kernel
+(Lemma~\ref{lem:drift}). For a policy whose parameters are not shared across prompts this collapses
+to a single term, and the dynamics provably cannot depend on how many prompts share a leak
+(Corollary~\ref{cor:tabular}).
+\item For a shared-parameter policy we obtain a threshold (Proposition~\ref{prop:threshold}). The
 leading-order drift of a leak accepted on a fraction $u$ of prompts has the sign of $u - \bar V$,
 where $\bar V$ is the policy's current verifier pass rate, an observable quantity requiring no
-ground truth. Below the threshold, cross-prompt sharing actively suppresses the leak, because on
-the $1-u$ prompts where it is \emph{not} accepted it receives negative advantage. Neither side of
-the threshold involves the verifier's error rate, and neither depends on the number of prompts at
+ground truth. Below the threshold, cross-prompt sharing suppresses the leak, because on the $1-u$
+prompts where it is \emph{not} accepted it receives negative advantage. Neither side of the
+threshold involves the verifier's error rate, and neither depends on the number of prompts at
 fixed $u$.
-\item We build an RLVR environment in which the full response distribution is enumerated
-exactly, so every reported quantity is the true value under the policy rather than a sample
-estimate, and in which universality and static false-positive rate are independent knobs by construction.
-Matched tabular and transformer policies start from the \emph{identical} distribution and differ
-only in parameter sharing.
-\item Empirically: the shared-parameter policy's hack fraction is monotone in universality and
-crosses from suppression to amplification, while the per-prompt policy is flat in $u$ (though not
-pinned to the filter baseline); a crossed factorial confirms the effect tracks universality and not
-false-positive rate; the coherence the analysis assumes is measured rather than posited; the result
-survives randomising which prompts share a leak, sampled GRPO, and both optimisers; and a fixed
+\item We build an RLVR environment in which the full response distribution is enumerated exactly,
+so every reported quantity is the true value under the policy rather than a sample estimate, and in
+which universality and static false-positive rate are independent knobs by construction. Matched
+tabular and transformer policies start from the \emph{identical} distribution and differ only in
+parameter sharing.
+\item The shared-parameter policy's hack fraction is monotone in universality and crosses from
+suppression to amplification, while the per-prompt policy is flat in $u$, though not pinned to the
+filter baseline. A crossed factorial confirms the effect tracks universality and not false-positive
+rate. The coherence the analysis assumes is measured rather than posited. The result survives
+randomising which prompts share a leak, sampled GRPO, and both optimisers. A fixed
 verifier-hardening budget buys far more true accuracy spent on universality than on error count.
 \end{itemize}
 
@@ -153,10 +152,10 @@ For a response $h$, let $m(h) = |\{x : h \in \Hset(x)\}|$ and $u(h) = m(h)/N$. A
 is accepted everywhere; a leak with $u = 1/N$ is idiosyncratic to one prompt.
 \end{definition}
 
-Universality is orthogonal to the verifier's error rate. A verifier that accepts exactly one
-wrong response per prompt has the same false-positive rate, on an audit that samples
-(prompt, wrong-response) pairs as verifier benchmarks do, whether that response is the same
-string everywhere or a different string for each prompt.
+Universality is orthogonal to the verifier's error rate. A verifier that accepts exactly one wrong
+response per prompt has the same false-positive rate, on an audit that samples
+(prompt, wrong-response) pairs as verifier benchmarks do, whether that response is the same string
+everywhere or a different string for each prompt.
 
 \subsection{The filter baseline}
 
@@ -173,13 +172,13 @@ $\pi_{t+1}(\cdot\mid x)\propto \pi_t(\cdot\mid x)\exp(\eta f(r(x,\cdot)))$.
 \end{proposition}
 
 The closed form is the Gibbs variational principle and is standard
-\citep{korbak2022bayesian, kruszewski2026filtering, dymetman2026binary}; we state it because it
-is the baseline everything else is measured against, and because its consequence for reward
-hacking, that the composition of the accepted set is frozen at the base model's, is the
-prediction we are testing. As $\beta\to0$, $\pi^\star_\beta \to \pi_{\mathrm{ref}}(\cdot\mid\Acc(x))$:
-the whole regularisation path is the reference model conditioned on acceptance, which is why
-nothing inside the accepted set can move. We verify the invariance numerically to
-floating-point precision (Section~\ref{sec:results}).
+\citep{korbak2022bayesian, kruszewski2026filtering, dymetman2026binary}. We state it because it is
+the baseline everything else is measured against, and because its consequence for reward hacking,
+that the composition of the accepted set is frozen at the base model's, is the prediction under
+test. As $\beta\to0$, $\pi^\star_\beta \to \pi_{\mathrm{ref}}(\cdot\mid\Acc(x))$: the whole
+regularisation path is the reference model conditioned on acceptance, which is why nothing inside
+the accepted set can move. We verify the invariance numerically to floating-point precision
+(Section~\ref{sec:results}).
 
 \paragraph{Why the per-prompt statistic.} The pooled quantity
 $\sum_x \pi(\Hset(x)\mid x)/\sum_x \pi(\Acc(x)\mid x)$ is the
@@ -187,17 +186,17 @@ $\pi(\Acc(x)\mid x)$-weighted average of the invariant per-prompt ratios, and RL
 weights toward $1$ at different rates. Its total excursion along the filtering path is exactly
 $-\Cov_x\!\big(\pi_{\mathrm{ref}}(\Acc(x)\mid x),\, \rho_x\big)\,/\,\mathbb{E}_x[\pi_{\mathrm{ref}}(\Acc(x)\mid x)]$
 (Appendix~\ref{app:proofs}), which is \emph{positive} whenever pass rate and hack fraction are
-negatively correlated across prompts. That is the usual case, since prompts a model can solve
-are prompts on which it needs the leak less. A practitioner watching pooled $P(\text{hack}\mid\text{rewarded})$
-therefore sees it climb under pure filtering, with nothing being exploited. In our environment
-it rises by \NullDriftMirrorPooled{} under exact mirror descent while $\rho$ and $\Lambda$ do not
-move at all. We report the per-prompt statistics throughout.
+negatively correlated across prompts. That is the usual case, since prompts a model can solve are
+prompts on which it needs the leak less. A practitioner tracking pooled
+$P(\text{hack}\mid\text{rewarded})$ therefore sees it climb under pure filtering, with nothing
+exploited. In our environment it rises by \NullDriftMirrorPooled{} under exact mirror descent while
+$\rho$ and $\Lambda$ do not move at all. We report the per-prompt statistics throughout.
 
 \section{What moves a policy off the filter baseline}
 \label{sec:theory}
 
-Real RLVR runs first-order updates on a shared-parameter model with a small or absent KL term.
-We characterise the resulting drift exactly.
+Real RLVR runs first-order updates on a shared-parameter model with a small or absent KL term. We
+characterise the resulting drift exactly.
 
 \begin{lemma}[Drift decomposition]
 \label{lem:drift}
@@ -220,14 +219,14 @@ inner product with the fixed vector $\nabla_\theta\log\pth(y\mid x)$ and using l
 covariance in its second argument gives \eqref{eq:drift}.
 \end{proof}
 
-Equation~\eqref{eq:drift} says the log-probability of a response on \emph{one} prompt is moved by
-what happens on \emph{every} prompt, in proportion to how strongly reward covaries with tangent
-similarity there. Two remarks. Equation~\eqref{eq:drift} is an instantaneous identity and we use it as such. And
-our experiments use Adam, not gradient flow: under any positive-definite
-preconditioner $P$, \eqref{eq:drift} holds verbatim with $\Kk$ replaced by
+Equation~\eqref{eq:drift} says that the log-probability of a response on \emph{one} prompt is moved
+by what happens on \emph{every} prompt, in proportion to how strongly reward covaries with tangent
+similarity there. It is an instantaneous identity and we use it as such. Our experiments use Adam
+rather than gradient flow. Under any positive-definite preconditioner $P$, \eqref{eq:drift} holds
+verbatim with $\Kk$ replaced by
 $\Kk^P((x,y),(x',y')) = \langle \nabla_\theta\log\pth(y\mid x),\, P\,\nabla_\theta\log\pth(y'\mid x')\rangle$,
-which is still zero whenever the two gradients have disjoint support, so everything below
-survives. Our kernel is the finite-width empirical one, not the constant infinite-width limit of
+which is still zero whenever the two gradients have disjoint support, so everything below survives.
+Our kernel is the finite-width empirical one, not the constant infinite-width limit of
 \citet{jacot2018ntk}.
 
 \begin{corollary}[Per-prompt parameters cannot see universality]
@@ -241,29 +240,27 @@ policy generates no $u$-dependence of its own, and can depend on $m$ only throug
 at initialisation.
 \end{corollary}
 
-This is what makes the tabular arm a control rather than merely a baseline. (The argument survives
-Adam, whose state is per-coordinate, and its momentum, which only takes linear combinations of
-gradients that are already block-supported; it would not survive a global gradient-norm clip,
-which we do not use.) Note carefully what the corollary does \emph{not} say. It does not say the per-prompt
-policy sits on the filter baseline. It does not: for a softmax policy and two equally rewarded
-responses, exact gradient flow gives
+This makes the tabular arm a control rather than merely a baseline. The argument survives Adam, whose
+state is per-coordinate, and its momentum, which only takes linear combinations of gradients that
+are already block-supported; it would not survive a global gradient-norm clip, which we do not use. The
+corollary does not say that the per-prompt policy sits on the filter baseline. It does not sit
+there: for a softmax policy and two equally rewarded responses, exact gradient flow gives
 $\frac{d}{dt}\log\frac{\pi_1}{\pi_2} = (\pi_1-\pi_2)(1-J)$, so the more probable of the two grows,
 the known rich-get-richer behaviour of softmax policy gradient
-\citep{mei2020global, lochab2026ucpo}. That drift is prompt-local and carries no information
-about $u$, which is exactly what makes it a control rather than a confound.
+\citep{mei2020global, lochab2026ucpo}. That drift is prompt-local and carries no information about
+$u$, which is what makes it a control rather than a confound.
 
-For the shared-parameter case we need one empirical property.
+The shared-parameter case needs one empirical property.
 
 \begin{definition}[Coherence]
 \label{def:coherent}
 A response $h$ is \emph{coherent at cross-scale $\kappa$ and self-scale $\kappa_s$} if the part
 of $\Kk((x,h),(x',y'))$ that depends jointly on $h$ and $y'$ is $\approx\kappa\,\mathbf{1}[y'=h]$
 for $x'\neq x$ and $\approx\kappa_s\,\mathbf{1}[y'=h]$ for $x'=x$; parts of the kernel that do not
-depend on $y'$ or on $h$ drop out (Appendix~\ref{app:proofs}). Coherence is a
-property of \emph{how a response is computed},
-not of string identity: a leak emitted by prompt-independent machinery is coherent, whereas
-correct answers that happen to coincide across prompts need not be. We measure $\kappa/\kappa_s$
-directly (Section~\ref{sec:results}).
+depend on $y'$ or on $h$ drop out (Appendix~\ref{app:proofs}). Coherence is a property of
+\emph{how a response is computed}, not of string identity: a leak emitted by prompt-independent
+machinery is coherent, whereas correct answers that happen to coincide across prompts need not be.
+We measure $\kappa/\kappa_s$ directly (Section~\ref{sec:results}).
 \end{definition}
 
 \begin{proposition}[Universality threshold]
@@ -287,48 +284,48 @@ an approximation and we treat the threshold as a directional prediction, not a n
 Section~\ref{sec:results} reports what we could and could not verify about it.
 \end{proposition}
 
-Three consequences are worth stating plainly. First, \textbf{the verifier's false-positive rate
-does not appear.} Accepting more distinct wrong responses per prompt raises every static audit
-metric but leaves \eqref{eq:threshold} unchanged. Second, \textbf{sharing is two-sided}: the same
-mechanism that amplifies a universal leak pushes an idiosyncratic one \emph{below} the base
-model's rate, because it is punished on every prompt where it is not accepted, something a
-per-prompt policy never does. Third, \textbf{the threshold rises during training}: $\bar V$ is
-literally $J(\theta)$, and $dJ/dt = \lVert\nabla J\rVert^2 \geq 0$ under gradient flow, so leaks
-of intermediate universality are amplified early and suppressed later, and only $u\approx1$ leaks
-survive. This is what a delay/plateau/collapse taxonomy \citep{egashira2026delay} looks like from
-the inside. Note also that \eqref{eq:threshold} has no leading-order dependence on $N$ at fixed
-$u$: the controlling quantity is the \emph{fraction} of prompts a leak covers, not their number.
+Equation~\eqref{eq:threshold} has three consequences. The verifier's false-positive rate does not
+appear: accepting more distinct wrong responses per prompt raises every static audit metric and
+leaves \eqref{eq:threshold} unchanged. Sharing is two-sided: the mechanism that amplifies a
+universal leak pushes an idiosyncratic one \emph{below} the base model's rate, because it is
+punished on every prompt where it is not accepted, a punishment a per-prompt policy never applies.
+The threshold also rises during training: $\bar V$ is literally $J(\theta)$, and
+$dJ/dt = \lVert\nabla J\rVert^2 \geq 0$ under gradient flow, so leaks of intermediate universality
+are amplified early and suppressed later, and only $u\approx1$ leaks survive. This is what a
+delay/plateau/collapse taxonomy \citep{egashira2026delay} looks like from the inside.
+Equation~\eqref{eq:threshold} also has no leading-order dependence on $N$ at fixed $u$: the
+controlling quantity is the \emph{fraction} of prompts a leak covers, not their number.
 
 \section{Experimental design}
 \label{sec:design}
 
-We want an environment in which (i) the full response distribution can be computed exactly, so
-that no measurement is a sample estimate; (ii) universality and false-positive rate are
-manipulable independently; and (iii) a shared-parameter policy and a per-prompt policy can be
-started from the \emph{identical} distribution.
+We want an environment in which (i) the full response distribution can be computed exactly, so that
+no measurement is a sample estimate; (ii) universality and false-positive rate are manipulable
+independently; and (iii) a shared-parameter policy and a per-prompt policy can be started from the
+\emph{identical} distribution.
 
 \paragraph{Task and response space.} Prompts are the $N=\NEnvN{}$ pairs $(a,b)$ with
 $a,b\in\{2,\dots,9\}$; the correct response is the two-digit string $ab$. The response space is
-all $\NEnvY{}$ two-digit strings, so $\pth(\cdot\mid x)$ can be enumerated exactly for every
-prompt at every step. Policies are autoregressive over the two digits.
+all $\NEnvY{}$ two-digit strings, so $\pth(\cdot\mid x)$ can be enumerated exactly for every prompt
+at every step. Policies are autoregressive over the two digits.
 
 \paragraph{Verifier.} The deployed verifier accepts the correct string plus $k$ designated wrong
-strings per prompt, none of which is the correct answer to any prompt (so every response is
-unambiguously correct, leak, or wrong). Prompts are partitioned into blocks of size $m$; all
-prompts in a block share the same leak strings. Varying $m$ varies universality $u=m/N$ with the
-static false-positive rate held \emph{exactly} fixed at $k/(|\Yset|-1)$; varying $k$ varies the
-static false-positive rate with universality fixed.
+strings per prompt, none of which is the correct answer to any prompt, so every response is
+unambiguously correct, leak, or wrong. Prompts are partitioned into blocks of size $m$; all prompts
+in a block share the same leak strings. Varying $m$ varies universality $u=m/N$ with the static
+false-positive rate held \emph{exactly} fixed at $k/(|\Yset|-1)$. Varying $k$ varies the static
+false-positive rate with universality fixed.
 
 \paragraph{Base model.} A $2$-layer, $64$-dimensional transformer (\NParams{} parameters) is
 supervised fine-tuned on a target that mixes the correct answer, a per-prompt competence level
 $\lambda_x$ spread over $[0,0.9]$, and a small contamination rate $\varepsilon=\NEps{}$ of leak
 demonstrations, in the spirit of \citet{khalifa2026countdown}, who find a trace of contamination
-enough to seed hacking. Competence is assigned by a fixed permutation independent of the
-block structure, so difficulty is uncorrelated with universality. The base model reaches accuracy
-\NuTwoBaseAcc{} and hack fraction \NuTwoBaseRhoMean{}. The SFT target is identical in every
-condition, but the realised base, itself a shared-parameter network, fits a universal leak map
-slightly better than an idiosyncratic one, so the measured base hack fraction still varies by
-\NuTwoBaseRhoSpread{} across conditions. We therefore report drifts from each run's own base.
+enough to seed hacking. Competence is assigned by a fixed permutation independent of the block structure, so
+difficulty is uncorrelated with universality. The base model reaches accuracy \NuTwoBaseAcc{} and
+hack fraction \NuTwoBaseRhoMean{}. The SFT target is identical in every condition, but the realised
+base, itself a shared-parameter network, fits a universal leak map slightly better than an
+idiosyncratic one, so the measured base hack fraction still varies by \NuTwoBaseRhoSpread{} across
+conditions. We therefore report drifts from each run's own base.
 
 \paragraph{Matched policies.} The tabular policy has free per-prompt parameters in the same
 autoregressive factorisation, which parameterises the whole simplex over responses, and is
@@ -336,78 +333,80 @@ initialised to reproduce the base transformer's distribution to $10^{-4}$. Both 
 with identical objectives and learning-rate grids, differing only in parameter sharing.
 
 \paragraph{Protocol.} Unless stated otherwise we run exact-expectation policy gradient with the
-exact mean baseline (the expectation-limit of RLOO / Dr.\ GRPO
-\citep{ahmadian2024rloo, liu2025drgrpo}; group-relative variants such as
-\citet{yu2025dapo} share this structure) for \NSteps{} steps with Adam, three to five seeds per
-cell (Appendix~\ref{app:details}, Table~\ref{tab:protocol}), and report the operating point
-selected by the criterion a practitioner would use: the smallest learning rate in the grid whose
-final \emph{verifier} reward is within $10^{-3}$ of the best. That tie-break is conservative for
-our hypothesis (smaller steps drift less) and it matters, because several learning rates
-saturate the verifier at reward $1$ with wildly different true accuracy. Section~\ref{sec:results}
-also reports sampled GRPO with group-standard-deviation normalisation and plain SGD.
+exact mean baseline, the expectation-limit of RLOO and Dr.\ GRPO
+\citep{ahmadian2024rloo, liu2025drgrpo}; group-relative variants such as \citet{yu2025dapo} share
+this structure. Runs are \NSteps{} steps with Adam, with three to five seeds per
+cell (Appendix~\ref{app:details}, Table~\ref{tab:protocol}). We report the operating point selected by
+the criterion a practitioner would use: the smallest learning rate in the grid whose final
+\emph{verifier} reward is within $10^{-3}$ of the best. That tie-break is conservative for our
+hypothesis, since smaller steps drift less, and it matters, because several learning rates saturate
+the verifier at reward $1$ with very different true accuracy. Section~\ref{sec:results} also
+reports sampled GRPO with group-standard-deviation normalisation and plain SGD.
 
 \section{Results}
 \label{sec:results}
 
-We report drifts from each run's own base model: $\Delta\rho$ (a probability difference) and
-$\Delta\Lambda$ (a log-odds difference), both of which Proposition~\ref{prop:filter} makes exactly
-zero under the filter baseline and both of which are therefore immune to the residual base-model
-mismatch described in Section~\ref{sec:design}. Absolute $\rho$ is plotted with the base curve.
+We report drifts from each run's own base model: $\Delta\rho$, a probability difference, and
+$\Delta\Lambda$, a log-odds difference. Proposition~\ref{prop:filter} makes both exactly zero under
+the filter baseline, so both are immune to the residual base-model mismatch of
+Section~\ref{sec:design}. Absolute $\rho$ is plotted with the base curve.
 
 \subsection{The filter baseline holds exactly, and gradient training leaves it}
 
 Exact mirror descent leaves $\rho$ invariant to \NullDriftMirror{} and $\Lambda$ to
 \NullDriftMirrorLam{} over \NullMirrorSteps{} steps, and the KL-regularised optimum leaves $\rho$
-invariant to \NullDriftKL{} across $\beta \in \NullBetaRange{}$, i.e.\ floating-point zero, as
+invariant to \NullDriftKL{} across $\beta \in \NullBetaRange{}$, that is, to floating-point zero, as
 Proposition~\ref{prop:filter} requires. Over the same trajectory the \emph{pooled} hack fraction
 moves by \NullDriftMirrorPooled{}: a practitioner tracking it would infer growing exploitation from
 pure filtering. Lemma~\ref{lem:drift} matches finite differences to \DriftRelErr{} for the
 transformer, and the per-prompt policy's cross-prompt tangent kernel is \KernelRatioTab{} against
-the transformer's \KernelRatioNeural{} of its own self-kernel: Corollary~\ref{cor:tabular} in
-numbers.
+the transformer's \KernelRatioNeural{} of its own self-kernel, which is
+Corollary~\ref{cor:tabular} in numbers.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{../figures/fig1_universality.pdf}
-\caption{\textbf{Universality, at a fixed verifier error rate, decides whether RLVR suppresses or
-amplifies a leak.} Every verifier accepts exactly one wrong response per prompt, so the static
-false-positive rate is identical, and only the number of prompts sharing it varies. Left: hack fraction after
+\caption{Universality, at a fixed verifier error rate, decides whether RLVR suppresses or amplifies
+a leak. Every verifier accepts exactly one wrong response per prompt, so the static false-positive
+rate is identical and only the number of prompts sharing it varies. Left: hack fraction after
 training, with the base model. Centre: drift from the base model, zero under the filter baseline;
-dashed line is $u=\bar V$. Right: true accuracy. Purple repeats the sweep with randomised block
+the dashed line is $u=\bar V$. Right: true accuracy. Purple repeats the sweep with randomised block
 membership. Bands are $\pm1$ s.e.m.\ over seeds.}
 \label{fig:universality}
 \end{figure}
 
 \subsection{Universality governs the outcome; the error rate does not}
 
-Figure~\ref{fig:universality} is the main result. Holding the verifier's static false-positive
-rate exactly constant and sweeping only how many prompts share the accepted wrong response moves
-the shared-parameter policy's hack fraction from $\NuTwoNeuralLoRho{}\pm\NuTwoNeuralLoRhoSem{}$ at
+Figure~\ref{fig:universality} is the main result. Holding the verifier's static false-positive rate
+exactly constant and sweeping only how many prompts share the accepted wrong response moves the
+shared-parameter policy's hack fraction from $\NuTwoNeuralLoRho{}\pm\NuTwoNeuralLoRhoSem{}$ at
 $u=\NuTwoLoU{}$ to $\NuTwoNeuralHiRho{}\pm\NuTwoNeuralHiRhoSem{}$ at $u=1$ (\NuTwoNSeeds{} seeds),
-against a base model value of \NuTwoBaseRhoMean{}; as a drift, $\Delta\rho$ runs from
-$\NuTwoNeuralLoDR{}\pm\NuTwoNeuralLoDRSem{}$ to $\NuTwoNeuralHiDR{}\pm\NuTwoNeuralHiDRSem{}$. True
-accuracy falls from \NuTwoNeuralLoAcc{} to \NuTwoNeuralHiAcc{}. Both directions are predicted: below the threshold,
-sharing suppresses the leak far below the base rate; above it, sharing manufactures hacking that
-the filter baseline forbids.
+against a base model value of \NuTwoBaseRhoMean{}. As a drift, $\Delta\rho$ runs from
+$\NuTwoNeuralLoDR{}\pm\NuTwoNeuralLoDRSem{}$ to $\NuTwoNeuralHiDR{}\pm\NuTwoNeuralHiDRSem{}$, and
+true accuracy falls from \NuTwoNeuralLoAcc{} to \NuTwoNeuralHiAcc{}. Both directions are predicted.
+Below the threshold, sharing suppresses the leak far below the base rate; above it, sharing
+manufactures hacking that the filter baseline forbids.
 
-Three things must be said plainly about the $u=1$ endpoint. It is \emph{heterogeneous across
-seeds}, not merely noisy: the five final hack fractions are \NuTwoHiSeedList{}, so the mean is
-carried by the seeds that collapse. The amplification is also \emph{concentrated across prompts}:
-at $u=1$ a mean of \NuTwoFlipHi{}\% of prompts end with the leak more likely than the correct
-answer, against \NuTwoFlipLo{}\% at $u=\NuTwoLoU{}$. That concentration is why $\Delta\rho$ crosses
-zero while $\Delta\Lambda$, which averages logs and is dominated by the suppressed majority, rises
-monotonically from \NuTwoNeuralLoDL{} to \NuTwoNeuralHiDL{} but stays negative: the two statistics
-agree on direction and disagree on ``amplified overall''. And the worst case is starker than the
-operating point: among the \NuTwoCollapseNHi{} runs at $u=1$ reaching verifier reward $\geq0.99$,
-one reaches reward \NuTwoCollapseLkyHi{} with hack fraction \NuTwoCollapseRhoHi{} and true accuracy
+The $u=1$ endpoint is heterogeneous across seeds rather than merely noisy: the five final hack
+fractions are \NuTwoHiSeedList{}, so the mean is carried by the seeds that collapse. The
+amplification is also concentrated across prompts. At $u=1$ a mean of \NuTwoFlipHi{}\% of prompts
+end with the leak more likely than the correct answer, against \NuTwoFlipLo{}\% at
+$u=\NuTwoLoU{}$. That concentration is why $\Delta\rho$ crosses zero while $\Delta\Lambda$, which
+averages logs and is dominated by the suppressed majority, rises monotonically from
+\NuTwoNeuralLoDL{} to \NuTwoNeuralHiDL{} and stays negative: the two statistics agree on direction
+and disagree on ``amplified overall''. The worst case is starker than the operating point. Among
+the \NuTwoCollapseNHi{} runs at $u=1$ reaching verifier reward $\geq0.99$, one reaches reward
+\NuTwoCollapseLkyHi{} with hack fraction \NuTwoCollapseRhoHi{} and true accuracy
 \NuTwoCollapseAccHi{}, whereas the worst of the \NuTwoCollapseNLo{} reward-saturated runs at
-$u=\NuTwoLoU{}$ still has accuracy \NuTwoCollapseAccLo{}. Finally, the sign change is bracketed by
-our grid between $u=0.5$ and $u=1$ and we do not resolve its location; it lies above the base-model
-$\bar V=\NuTwoBaseLky{}$ as the theory requires, but that is a weak test. Randomising which prompts share a leak reproduces this closely (\NuSixNeuralLoRho{} to
+$u=\NuTwoLoU{}$ still has accuracy \NuTwoCollapseAccLo{}. The sign change is bracketed by our grid
+between $u=0.5$ and $u=1$ and we do not resolve its location; it lies above the base-model
+$\bar V=\NuTwoBaseLky{}$ as the theory requires, but that is a weak test.
+
+Randomising which prompts share a leak reproduces the sweep closely (\NuSixNeuralLoRho{} to
 \NuSixNeuralHiRho{}, drift \NuSixLoDR{} to \NuSixHiDR{}, crossing at \NuSixCrossU{}, accuracy
 falling to \NuSixNeuralHiAcc{}), so the effect is not an artefact of contiguous blocks coinciding
-with a single prompt token. That design also happens to equalise the base model: base $\rho$ is
-\NuSixBaseRho{} in every condition, varying by only \NuSixBaseSpread{}, against
+with a single prompt token. That design also equalises the base model: base $\rho$ is
+\NuSixBaseRho{} in every condition, varying by only \NuSixBaseSpread{} against
 \NuTwoBaseRhoSpread{} with contiguous blocks. Its per-prompt arm is flat as well
 (\NuSixTabLoDR{} to \NuSixTabHiDR{}, slope \NuSixTabSlope{} versus \NuSixSlope{} for the
 shared-parameter policy).
@@ -420,16 +419,16 @@ the transformer, two orders of magnitude apart. With contiguous blocks, where th
 itself varies by \NuTwoBaseRhoSpread{}, the same regression gives \NuTwoTabSlope{} against
 \NuTwoNeuralSlope{}. The per-prompt arm does not sit \emph{on} the filter baseline: its
 $\Delta\rho$ is \NuTwoTabLoDR{} to \NuTwoTabHiDR{}, and under sampled GRPO it sits below the
-baseline instead, so we do not attribute the offset to any single cause. But its departure
-carries no information about universality, which is what Corollary~\ref{cor:tabular} requires and
-what the comparison tests. The claim of this paper is about the slope, not the level.
+baseline instead, so we do not attribute the offset to any single cause. Its departure carries no
+information about universality, which is what Corollary~\ref{cor:tabular} requires and what the
+comparison tests. The claim of this paper is about the slope, not the level.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{../figures/fig2_factorial.pdf}
-\caption{\textbf{The controlling quantity is universality, not the verifier's error rate.} Left:
-log-odds drift against universality, one line per false-positive rate. Right: the same data against
-the static false-positive rate, one line per universality, common $y$-scale. Varying accepted wrong
+\caption{The controlling quantity is universality, not the verifier's error rate. Left: log-odds
+drift against universality, one line per false-positive rate. Right: the same data against the
+static false-positive rate, one line per universality, common $y$-scale. Varying accepted wrong
 responses per prompt from \NuThreeKRange{} moves the false-positive rate over \NuThreeFprRange{}
 and mildly \emph{reduces} hacking; universality moves the drift monotonically and much further.}
 \label{fig:factorial}
@@ -437,29 +436,29 @@ and mildly \emph{reduces} hacking; universality moves the drift monotonically an
 
 Figure~\ref{fig:factorial} crosses universality against the static false-positive rate. Here the
 SFT target keeps its uniform component off the leak strings, so total base hack \emph{mass} is
-exactly $\varepsilon$ for every $k$; the base hack \emph{fraction} still rises mildly with $k$
+exactly $\varepsilon$ for every $k$. The base hack \emph{fraction} still rises mildly with $k$
 (mean \NuThreeBaseRhoLoK{}, spread \NuThreeBaseRhoSpreadK{} across cells) because diverting the
 uniform floor also changes the mass on the correct answer, which is one more reason to analyse
-drifts. We use the log-odds drift $\Delta\Lambda$ here rather than
-$\Delta\rho$, because it measures the multiplicative change in total leak mass and is therefore
-invariant to how a fixed base propensity is divided among $k$ strings. A two-way decomposition
-attributes \NuThreeEtaM{} of its variance to universality (swept over $u\in[\NuThreeLoU{},1]$) and
-\NuThreeEtaK{} to the false-positive rate (swept over an eightfold range): averaged over $k$, $\Delta\Lambda$ moves from \NuThreeDLLoU{} at $u=\NuThreeLoU{}$ to
-\NuThreeDLHiU{} at $u=1$, while averaged over $u$ it moves only from \NuThreeDLLoK{} to
-\NuThreeDLHiK{} as the false-positive rate grows eightfold. Note the sign of the latter:
-accepting \emph{more} wrong responses per prompt does not increase hacking here, and mildly
-decreases it, because the base model's fixed propensity to emit an accepted-wrong response is
-divided among more and individually rarer strings. An audit that counts false positives is
+drifts. We use the log-odds drift $\Delta\Lambda$ here rather than $\Delta\rho$, because it
+measures the multiplicative change in total leak mass and is therefore invariant to how a fixed
+base propensity is divided among $k$ strings. A two-way decomposition attributes \NuThreeEtaM{} of
+its variance to universality, swept over $u\in[\NuThreeLoU{},1]$, and \NuThreeEtaK{} to the
+false-positive rate, swept over an eightfold range. Averaged over $k$, $\Delta\Lambda$ moves from
+\NuThreeDLLoU{} at $u=\NuThreeLoU{}$ to \NuThreeDLHiU{} at $u=1$; averaged over $u$ it moves only
+from \NuThreeDLLoK{} to \NuThreeDLHiK{} as the false-positive rate grows eightfold. The sign of the
+latter matters: accepting \emph{more} wrong responses per prompt does not increase hacking here and
+mildly decreases it, because the base model's fixed propensity to emit an accepted-wrong response
+is divided among more and individually rarer strings. An audit that counts false positives is
 measuring something with the wrong sign as well as the wrong magnitude.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{../figures/fig3_mechanism.pdf}
-\caption{\textbf{Mechanism.} Left: the cross-prompt component of the exact drift of
-$\log\pth(h\mid x)$ at the base model (Lemma~\ref{lem:drift}), identically zero for per-prompt
-parameters, as Corollary~\ref{cor:tabular} requires. Centre: mean pairwise cosine between
-per-prompt gradients, i.e.\ the coherence of Definition~\ref{def:coherent}, measured rather than
-assumed. Right: contiguous versus randomised block membership.}
+\caption{Mechanism. Left: the cross-prompt component of the exact drift of $\log\pth(h\mid x)$ at
+the base model (Lemma~\ref{lem:drift}), identically zero for per-prompt parameters as
+Corollary~\ref{cor:tabular} requires. Centre: mean pairwise cosine between per-prompt gradients,
+the coherence of Definition~\ref{def:coherent}, measured rather than assumed. Right: contiguous
+versus randomised block membership.}
 \label{fig:mechanism}
 \end{figure}
 
@@ -468,9 +467,9 @@ assumed. Right: contiguous versus randomised block membership.}
 Figure~\ref{fig:mechanism} tests the mechanism directly. Lemma~\ref{lem:drift} splits the exact
 drift of $\log\pth(h\mid x)$ into an own-prompt term, present for any policy, and a cross-prompt
 term that is the entire contribution of parameter sharing. Computing both by autograd at the base
-model, the cross-prompt term is \MechTabCross{} for the per-prompt policy at every
-universality, where Corollary~\ref{cor:tabular} is exact rather than approximate, while for the
-shared policy it grows from $\MechCrossLo{}\pm\MechCrossLoSem{}$ at $u=\NuTwoLoU{}$ to
+model, the cross-prompt term is \MechTabCross{} for the per-prompt policy at every universality,
+where Corollary~\ref{cor:tabular} is exact rather than approximate, while for the shared policy it
+grows from $\MechCrossLo{}\pm\MechCrossLoSem{}$ at $u=\NuTwoLoU{}$ to
 $\MechCrossHi{}\pm\MechCrossHiSem{}$ at $u=1$. Coherence (Definition~\ref{def:coherent}) is
 likewise measured, not posited: the mean pairwise cosine between per-prompt gradients of the leak
 rises from \CohHackLo{} to \CohHackHi{} while for correct answers it stays at \CohGold{}, even
@@ -478,71 +477,71 @@ though those are not perfectly prompt-specific either ($u_g=\NGoldU{}$).
 
 \paragraph{What we could not verify.} The $u>\bar V$ threshold cannot be pinned down pointwise
 here. At initialisation the cross-prompt term is positive at every $u$, dominated by a transient in
-which every accepted response's logits rise together; after \BurnSteps{} RL steps that transient
+which every accepted response's logits rise together. After \BurnSteps{} RL steps that transient
 has passed but $\bar V$ has already reached \BurnVbar{}, so the predicted threshold sits at
 essentially $1$ and the cross-prompt log-odds drift is small and negative everywhere
-($\BurnLoMin{}$ to $\BurnLoMax{}$), consistent with the proposition for $u\le\bar V$, but not a
-sign change. The observable window is narrow; what survives is the directional content.
+($\BurnLoMin{}$ to $\BurnLoMax{}$), consistent with the proposition for $u\le\bar V$ but not a sign
+change. The observable window is narrow; what survives is the directional content.
 
 \subsection{Under GRPO, under SGD, and with a KL penalty}
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{../figures/fig4_practice.pdf}
-\caption{\textbf{Practice.} Left: sampled GRPO reproduces the pattern. Centre: a KL penalty pulls
-the policy back toward the filter baseline from both sides. Right: two verifier patches that
-improve the measured false-positive rate identically buy very different true accuracy.}
+\caption{Practice. Left: sampled GRPO reproduces the pattern. Centre: a KL penalty pulls the policy
+back toward the filter baseline from both sides. Right: two verifier patches that improve the
+measured false-positive rate identically buy very different true accuracy.}
 \label{fig:practice}
 \end{figure}
 
 The effect is not an artefact of exact-expectation gradients or of Adam. Under sampled GRPO with
 group size $\NGrpoG{}$ and group-standard-deviation normalisation, $\Delta\rho$ runs from
-\NuFiveADLo{} to \NuFiveADHi{}, crossing zero at \NuFiveACrossU{}. The analysis also predicts that at fixed $u$ the outcome should not depend on the number of
-prompts. Repeating the sweep at $N=\NuFourNSmall{}$ and $N=\NuFourNBig{}$ bears this out on the
+\NuFiveADLo{} to \NuFiveADHi{}, crossing zero at \NuFiveACrossU{}.
+
+The analysis predicts that at fixed $u$ the outcome should not depend on the number of prompts.
+Repeating the sweep at $N=\NuFourNSmall{}$ and $N=\NuFourNBig{}$ bears this out on the
 discriminating comparison: at $u=1$ the two agree ($\NuFourUOneSmall{}\pm\NuFourUOneSmallSem{}$
 versus $\NuFourUOneBig{}\pm\NuFourUOneBigSem{}$), whereas at the same \emph{block size}
 $m=\NuFourSameM{}$, which is $u=1$ for the small prompt set and $u=0.25$ for the large one, they
-differ by \NuFourSameMBig{} against $\NuFourUOneSmall{}$. Across the
-\NuFourNShared{} matched values of $u$ the largest gap is \NuFourMatchedGap{}, comparable to the
-$O(1/N)$ correction the appendix flags as non-negligible at $N=\NuFourNSmall{}$. The controlling
-quantity is the fraction of prompts a leak covers, not their number.
+differ by \NuFourSameMBig{} against $\NuFourUOneSmall{}$. Across the \NuFourNShared{} matched values
+of $u$ the largest gap is \NuFourMatchedGap{}, comparable to the $O(1/N)$ correction the appendix
+flags as non-negligible at $N=\NuFourNSmall{}$. The controlling quantity is the fraction of prompts
+a leak covers, not their number.
 
-Plain SGD, the optimiser the analysis is written for, gives the sharpest separation in the
-paper: the shared-parameter policy's hack fraction runs \NuTwoSgdNeuralLoRho{} to
+Plain SGD, the optimiser the analysis is written for, gives the sharpest separation in the paper.
+The shared-parameter policy's hack fraction runs \NuTwoSgdNeuralLoRho{} to
 \NuTwoSgdNeuralHiRho{} with true accuracy falling \NuTwoSgdNeuralLoAcc{} to
-\NuTwoSgdNeuralHiAcc{}, crossing at \NuTwoSgdCrossU{} (slope \NuTwoSgdNeuralSlope{} per doubling),
-while the per-prompt policy moves from \NuTwoSgdTabLoRho{} to \NuTwoSgdTabHiRho{}, a slope of
-\NuTwoSgdTabSlope{}, and \emph{below} its base throughout, exactly the prompt-local
-rich-get-richer drift of Appendix~\ref{app:proofs}. Figure~\ref{fig:appendix} has the full learning-rate grid, the
-trajectories, and the prompt-set-size sweep.
+\NuTwoSgdNeuralHiAcc{}, crossing at \NuTwoSgdCrossU{}, a slope of \NuTwoSgdNeuralSlope{} per
+doubling. The per-prompt policy moves from \NuTwoSgdTabLoRho{} to \NuTwoSgdTabHiRho{}, a slope of
+\NuTwoSgdTabSlope{}, and stays \emph{below} its base throughout, which is the prompt-local
+rich-get-richer drift of Appendix~\ref{app:proofs}. Figure~\ref{fig:appendix} has the full
+learning-rate grid, the trajectories, and the prompt-set-size sweep.
 
 Adding a KL penalty pulls the policy back toward the filter baseline, as
-Proposition~\ref{prop:filter} leads one to expect, but it does so in \emph{both} directions, and that is
-the interesting part. Raising $\beta$ from $0$ to \NuFiveBBeta{} takes $\Delta\rho$ from
-\NuFiveBDRNoKLLo{} to \NuFiveBDRKLLo{} at $u=\NuTwoLoU{}$, monotonically, and in the direction of
-removing the \emph{beneficial} suppression that parameter sharing was providing, at a cost of
+Proposition~\ref{prop:filter} leads one to expect, and it does so in \emph{both} directions.
+Raising $\beta$ from $0$ to \NuFiveBBeta{} takes $\Delta\rho$ from \NuFiveBDRNoKLLo{} to
+\NuFiveBDRKLLo{} at $u=\NuTwoLoU{}$, monotonically, in the direction of removing the
+\emph{beneficial} suppression that parameter sharing was providing, at a cost of
 \NuFiveBAccNoKLLo{} to \NuFiveBAccKLLo{} in true accuracy. At $u=1$ the picture is within noise:
 $\Delta\rho$ over $\beta\in\{0,\dots,\NuFiveBBeta{}\}$ is \NuFiveBDRSeriesHi{}, with the best
 accuracy at a small non-zero $\beta$ rather than at either end. These runs use a single fixed
 learning rate rather than the reward-selected operating point, which is why their $u=1$ drift is
-smaller than in Figure~\ref{fig:universality}. The defensible reading is that KL is not a free
-defence: it is a commitment to the base model's composition of the accepted set, which helps only
-when that composition is better than what training would otherwise reach.
+smaller than in Figure~\ref{fig:universality}. The defensible reading is that KL is not a free defence: it is a
+commitment to the base model's composition of the accepted set, which helps only when that
+composition is better than what training would otherwise reach.
 
 \subsection{Budgeting verifier hardening}
 
 We give a verifier two leak families, one universal string plus one idiosyncratic string per
 prompt, and compare two patches that remove exactly the same number of accepted wrong
-(prompt, response) pairs, and so improve any static audit identically. Removing the universal leak
-leaves the policy at
-\NuFiveCAccU{} true accuracy; removing every idiosyncratic leak instead leaves it at
-\NuFiveCAccI{}, a gap of $\NuFiveCGap{}\pm\NuFiveCGapSem{}$ points (\NuFiveCNSeeds{} seeds) from patches an audit
-rates as equally valuable
-(unpatched: \NuFiveCAccNone{}). The per-prompt policy, which by Corollary~\ref{cor:tabular} cannot
-respond to universality at all, shows a gap of only \NuFiveCGapTab{} points between the same two
-verifiers. That residue is what the base model already carried, since the SFT stage is itself
-shared-parameter (base hack fractions \NuFiveCBaseU{} and \NuFiveCBaseI{}). The remaining
-\NuFiveCGapRL{} points are produced by RL.
+(prompt, response) pairs and so improve any static audit identically. Removing the universal leak
+leaves the policy at \NuFiveCAccU{} true accuracy; removing every idiosyncratic leak instead leaves
+it at \NuFiveCAccI{}, a gap of $\NuFiveCGap{}\pm\NuFiveCGapSem{}$ points (\NuFiveCNSeeds{} seeds)
+from patches an audit rates as equally valuable (unpatched: \NuFiveCAccNone{}). The per-prompt
+policy, which by Corollary~\ref{cor:tabular} cannot respond to universality at all, shows a gap of
+only \NuFiveCGapTab{} points between the same two verifiers. That residue is what the base model
+already carried, since the SFT stage is itself shared-parameter (base hack fractions
+\NuFiveCBaseU{} and \NuFiveCBaseI{}). The remaining \NuFiveCGapRL{} points are produced by RL.
 
 \section{Related work}
 
@@ -551,13 +550,13 @@ preservation of relative probabilities among equally rewarded responses that fol
 established \citep{korbak2022bayesian, gai2025smoothing, kruszewski2026filtering,
 dymetman2026binary, lochab2026ucpo} and underlies the finding that RLVR sharpens rather than
 expands base-model capability \citep{yue2025rlincentivize}. That literature reads the invariance as
-a statement about \emph{diversity} among correct answers; we read it as one about the composition
+a statement about \emph{diversity} among correct answers. We read it as one about the composition
 of the accepted set, and use it as the null model for reward hacking. The rich-get-richer behaviour
 among tied responses under softmax policy gradient is likewise known
 \citep{mei2020global, lochab2026ucpo}; we use it as a control.
 
-\paragraph{Verifier error.} One line of work models verifier error as class-conditional label
-noise and finds RLVR robust to it \citep{wang2020perturbed, rad2026rateorfate, cai2025noisyverifier,
+\paragraph{Verifier error.} One line of work models verifier error as class-conditional label noise
+and finds RLVR robust to it \citep{wang2020perturbed, rad2026rateorfate, cai2025noisyverifier,
 plesner2026imperfect}; a related result is that even spurious rewards can improve some models
 \citep{shao2025spurious}. Such noise is by construction independent of the response, so the policy
 cannot steer toward it. \citet{egashira2026delay} break that assumption with content-dependent
@@ -567,35 +566,40 @@ suites; \citet{khalifa2026countdown} finds amplification; \citet{nishimura2026sp
 share of specification gaming attributable to generalisation as an open question. Universality is
 one parameter that orders these observations. Measurements of verifier false positives
 \citep{zhao2025onetoken, huang2025verifiers, xu2025tinyv, yuan2026miracle} report error rates, not
-universality; we argue universality is the quantity to report.
+universality. We argue universality is the quantity to report.
 
 \paragraph{Reward hacking theory.} \citet{everitt2017corrupted} formalise state-dependent reward
 corruption with strong no-free-lunch results, \citet{skalse2022defining} characterise when a proxy
-is unhackable, and \citet{gao2022scaling} give the empirical overoptimisation curves. These
+is unhackable, and \citet{gao2023scaling} give the empirical overoptimisation curves. These
 describe what a corrupted reward \emph{can} do; we ask what an ordinary first-order optimiser on a
 shared-parameter model does with one. Work modifying the group-relative advantage estimator
 \citep{yang2026biased, zeng2025shrinkage} is orthogonal: our effect survives with exact-expectation
 gradients, where no estimator noise exists.
 
-\section{Limitations and conclusion}
+\section{Conclusion}
 
-Proposition~\ref{prop:threshold} assumes a behaviour-aligned tangent kernel and an approximately
-constant pass rate; we measure the former, and find it varies fourteenfold over the sweep, so the
-threshold is a first-order prediction, not a boundary, and Section~\ref{sec:results} says where we
-could not verify it. The environment is small by design: a two-token response space is what makes
-exact enumeration possible, and the leak is a designated string rather than a strategy. We study
-one leak family per condition where real verifiers leak through many; our seed counts are three to
-five with a heterogeneous $u=1$ outcome; and our policies start from an SFT base with injected
-contamination \citep{khalifa2026countdown}, so leaks a model finds on its own may differ in
-universality. A stronger control than ours, masking the cross-prompt gradient contribution inside
-one shared-parameter model, would isolate sharing without changing architecture.
+RLVR is known to be a filter at its KL-regularised optimum (Proposition~\ref{prop:filter}). What breaks that
+guarantee is not how often a verifier is wrong but whether it is wrong in the same way across
+prompts. Parameter sharing lets a leak collect gradient from every prompt that accepts it while
+every prompt that does not accept it pushes back, and without sharing that channel is identically
+zero. Universality, not error rate, is therefore the quantity to measure, and the quantity against
+which verifier hardening should be budgeted.
 
-RLVR is known to be a filter at its KL-regularised optimum (Proposition~\ref{prop:filter}). What
-breaks that guarantee is not how often a verifier is wrong but whether it is wrong in the same way
-across prompts: parameter sharing lets a leak collect gradient from every prompt that accepts
-it while every prompt that does not accept it pushes back, and without sharing that channel is
-identically zero. Universality, not error rate, is therefore the quantity to measure, and the
-quantity against which verifier hardening should be budgeted.
+\paragraph{Limitations.} Proposition~\ref{prop:threshold} assumes a behaviour-aligned tangent
+kernel and an approximately constant pass rate. We measure the former and find it varies
+fourteenfold over the sweep, so the threshold is a first-order prediction rather than a boundary,
+and Section~\ref{sec:results} says where we could not verify it. The environment is small by
+design: a two-token response space is what makes exact enumeration possible, and the leak is a
+designated string rather than a strategy. We study one leak family per condition where real
+verifiers leak through many. Our seed counts are three to five with a heterogeneous $u=1$ outcome.
+Our policies start from an SFT base with injected contamination \citep{khalifa2026countdown}, so
+leaks a model finds on its own may differ in universality. A stronger control than ours, masking
+the cross-prompt gradient contribution inside one shared-parameter model, would isolate sharing
+without changing architecture.
+
+\paragraph{Use of large language models.} Large language models were used as a general-purpose
+assistant during experiment design and manuscript preparation; every number reported here is
+produced by the released code.
 
 \bibliographystyle{plainnat}
 \bibliography{references}

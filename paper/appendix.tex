@@ -29,9 +29,9 @@ P(\infty)-P(1) \;=\; \frac1N\sum_x \rho_x \;-\; \frac{\sum_x a_x\rho_x}{\sum_x a
 \;=\; -\,\frac{\Cov_x(a_x,\rho_x)}{\mathbb{E}_x[a_x]},
 \]
 which is positive whenever pass rate and hack fraction are negatively correlated across prompts.
-So the pooled statistic drifts upward under pure filtering and is only invariant in the
-degenerate case $\rho_x\equiv\text{const}$; it is, however, asymptotically \emph{unbiased} for the
-invariant $\rho$, since it converges to it in the strong-RL limit.
+The pooled statistic therefore drifts upward under pure filtering and is invariant only in the
+degenerate case $\rho_x\equiv\text{const}$. It is asymptotically unbiased for the invariant $\rho$,
+since it converges to it in the strong-RL limit.
 
 \subsection{Lemma~\ref{lem:drift}}
 
@@ -39,7 +39,8 @@ $\nabla_\theta J = \frac1N\sum_{x'}\sum_{y'}\pth(y'\mid x')r(x',y')\nabla_\theta
 = \frac1N\sum_{x'}\mathbb{E}_{y'}[r(x',y')\nabla_\theta\log\pth(y'\mid x')]$.
 Since $\mathbb{E}_{y'}[\nabla_\theta\log\pth(y'\mid x')]=0$, the expectation equals
 $\Cov_{y'}(r,\nabla_\theta\log\pth)$, understood componentwise. For a fixed vector
-$v=\nabla_\theta\log\pth(y\mid x)$, $\langle v,\Cov(r,g)\rangle = \mathbb{E}[r\langle v,g\rangle]-\mathbb{E}[r]\mathbb{E}[\langle v,g\rangle]=\Cov(r,\langle v,g\rangle)$,
+$v=\nabla_\theta\log\pth(y\mid x)$, $\langle v,\Cov(r,g)\rangle = \mathbb{E}[r\langle
+v,g\rangle]-\mathbb{E}[r]\mathbb{E}[\langle v,g\rangle]=\Cov(r,\langle v,g\rangle)$,
 so the inner product passes inside. \qed
 
 \subsection{Corollary~\ref{cor:tabular}}
@@ -108,11 +109,12 @@ kernel is only approximately coherent.
 is the two-digit decimal string of $ab$ (all products lie in $[4,81]$). The response space is all
 $100$ two-digit strings. Reducing the operand set to $\{2,\dots,5\}$ gives $N=16$ for the
 prompt-set-size sweep, which uses three seeds and the learning-rate grid
-$\{3\times10^{-4},10^{-3},3\times10^{-3}\}$ shared by both arms. Note the correct answers are not perfectly prompt-specific ($2\times6$ and
-$3\times4$ both give $12$), so they carry a universality of their own, $u_g=\NGoldU{}$. Under
+$\{3\times10^{-4},10^{-3},3\times10^{-3}\}$ shared by both arms. The correct answers are not
+perfectly prompt-specific ($2\times6$ and $3\times4$ both give $12$),
+so they carry a universality of their own, $u_g=\NGoldU{}$. Under
 Definition~\ref{def:coherent} what matters is measured coherence rather than string identity, and
 we find the correct responses to be near-incoherent across prompts (\CohGold{}) while the leak is
-not; but $u_g$ is small and non-zero, and we report it rather than assume it away.
+not. $u_g$ is small and non-zero, and we report it rather than assume it away.
 
 \paragraph{Leak assignment.} Leak strings are drawn without replacement from the $69$ two-digit
 strings that are not the correct answer of any prompt, so a leak is never a correct answer
@@ -165,10 +167,10 @@ distribution to within $10^{-4}$ in max-norm (asserted at run time).
 \paragraph{RL.} The default objective is the exact-expectation policy gradient with the exact
 mean baseline,
 $\nabla_\theta J = \frac1N\sum_x\sum_y\pth(y\mid x)\,[r(x,y)-V(x)]\,\nabla_\theta\log\pth(y\mid x)$,
-implemented as a weighted cross-entropy with detached weights. This is the
-infinite-group limit of RLOO / Dr.\ GRPO and removes sampling noise from the comparison; the
-sampled-GRPO experiment uses group size $8$, group-standard-deviation normalisation and one inner
-epoch. Optimiser Adam (default) or SGD, $400$ steps, learning-rate grid
+implemented as a weighted cross-entropy with detached weights. This is the infinite-group limit of
+RLOO and Dr.\ GRPO and removes sampling noise from the
+comparison. The sampled-GRPO experiment uses group size $8$, group-standard-deviation
+normalisation and one inner epoch. Optimiser Adam (default) or SGD, $400$ steps, learning-rate grid
 $\{3\times10^{-4},10^{-3},3\times10^{-3},10^{-2},3\times10^{-2}\}$ for Adam and
 $\{0.3,1,3\}$ for SGD, applied identically to both policy classes. The reported operating point
 is, for each policy class and cell, the learning rate maximising the final verifier reward, which
@@ -187,7 +189,7 @@ $1.6\%$ of prompts (worst case $18.8\%$) and it does not change the ordering of 
 series. The final metric of every run is recomputed in float64 from stored per-prompt masses, so
 the $10^{-8}$ floor used during online logging does not enter any reported number.
 
-The two null-model checks in Section~\ref{sec:results} agree to the last bit for a reason:
+The two null-model checks in Section~\ref{sec:results} agree to the last bit by construction:
 $400$ steps of mirror descent at $\eta=0.05$ reach exactly $\pi_0 e^{20 r}$, which is the
 $\beta=0.05$ endpoint of the KL grid. They are one computation checked two ways, not two
 independent checks.
@@ -223,11 +225,10 @@ for each arm.}
 \begin{figure}[h]
 \centering
 \includegraphics[width=\linewidth]{../figures/fig5_appendix.pdf}
-\caption{\textbf{Left:} the universality effect across the whole Adam learning-rate grid, rather
-than at the reward-selected operating point. \textbf{Centre left:} hack-fraction trajectories for
-the extreme universality conditions, both policy classes. \textbf{Centre right:} the sweep repeated
-at two prompt-set sizes, plotted against $u$. \textbf{Right:} the same universality sweep under
-plain SGD.}
+\caption{Left: the universality effect across the whole Adam learning-rate grid, rather than at
+the reward-selected operating point. Centre left: hack-fraction trajectories for the extreme
+universality conditions, both policy classes. Centre right: the sweep repeated at two prompt-set
+sizes, plotted against $u$. Right: the same universality sweep under plain SGD.}
 \label{fig:appendix}
 \end{figure}
 

@@ -168,13 +168,28 @@ strings); an inconsistent treatment of the diagonal kernel term in Prop. 2; and 
 
 - [x] **Official `neurips_2026.sty` is in place** (from `Formatting_Instructions_For_NeurIPS_2026`,
       unmodified). `checklist.tex` is in `paper/` if the workshop wants it.
-- [ ] Set `\workshoptitle{...}` to the actual workshop name (currently a placeholder); the style
-      file warns if it is empty and the proceedings footnote comes out incomplete.
-- [ ] Fill in the author block (it is currently the anonymous template; most 2026 workshops are
+- [x] **Target venue chosen:** the NeurIPS 2026 workshop *Transitioning from Pre-Training to
+      Post-Training* (Sydney; OpenReview `NeurIPS.cc/2026/Workshop/Pre-to-Post`). Deadline
+      Aug 29 AoE, i.e. Aug 30 07:59 UTC. Submitted as a long paper.
+- [x] **`\workshoptitle{}` set** to `Transitioning from Pre-Training to Post-Training`. It appears
+      in the footnote only in `final` mode; the submission copy carries the standard
+      "Submitted to ... Do not distribute." notice, which is what the official style file intends.
+- [x] **Page limit checked.** Content ends on page 9 and References begin on page 9, inside the
+      9-page long-paper limit. For a 4-page venue (e.g. MATH-AI), cut Sections 5.4 and 5.5 and the
+      related-work paragraph on reward-hacking theory, and move Figures 3 and 4 to the appendix.
+- [x] **Citations re-verified** a second time (2026-08-23), every entry against the arXiv abstract
+      page plus, where a published version exists, the ACL Anthology, PMLR or the NeurIPS
+      proceedings. Three changes: `ahmadian2024rloo` now cites the ACL 2024 version of record
+      (hyphenated "REINFORCE-Style", pp. 12248-12267); `gao2023scaling` now cites ICML 2023 /
+      PMLR v202 (pp. 10835-10866); `khalifa2026countdown` matches arXiv capitalisation. DAPO is
+      deliberately left as the arXiv entry: the NeurIPS 2025 proceedings list 36 authors against
+      arXiv's 35, and mixing an arXiv author list under a proceedings booktitle would be worse
+      than citing the preprint. `skalse2022defining` is likewise left as arXiv, because the NeurIPS
+      2022 proceedings retitle it "Reward Gaming" while the paper's own PDF and our terminology
+      say "hacking".
+- [x] **LLM-usage disclosure added** as a one-sentence paragraph at the end of Section 7.
+- [ ] Fill in the author block (it is currently the anonymous template; the workshop is
       double-blind, so leave it anonymous for submission).
-- [ ] Check the target workshop's page limit. Main content is currently ~8.5 pages, which fits the
-      common 9-page long-paper limit. For a 4-page venue (e.g. MATH-AI), cut Section 5.4–5.5 and
-      the related-work paragraphs on reward-hacking theory, and move Figures 3–4 to the appendix.
 - [ ] Add the NeurIPS checklist if the venue requires it (`checklist.tex` ships with the template).
 - [ ] Push `src/` and `results/` to a public repo and put the link in the reproducibility section.
 
