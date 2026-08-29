@@ -10,7 +10,7 @@ import time
 import numpy as np
 import torch
 
-from env import make_env
+from env import make_env, build_prompts, MaskOnlyVerifier
 from base import build_base, matched_tabular, competence_profile
 from policies import TransformerPolicy
 from rlvr import measure, train, train_mirror
@@ -112,4 +112,96 @@ def gradient_coherence(policy, ver, max_prompts: int = 16, seed: int = 0):
         n = len(vs)
         off = (C.sum() - C.diag().sum()) / (n * (n - 1))
         return float(off)
-    return dict(hack_coh=mean_cos(gh), gold_coh=mean_cos(gg))
+    def scales(vs):
+        M = torch.stack(vs)
+        n = len(vs)
+        K = (M @ M.T)                       # raw kernel entries, not cosines
+        norms = M.norm(dim=1)
+        off = (K.sum() - K.diag().sum()) / (n * (n - 1))
+        return dict(kappa_raw=float(off), kappa_s_raw=float(K.diag().mean()),
+                    gnorm_mean=float(norms.mean()), gnorm_min=float(norms.min()),
+                    gnorm_max=float(norms.max()),
+                    gnorm_spread=float(norms.max() / (norms.min() + 1e-12)))
+    out = dict(hack_coh=mean_cos(gh), gold_coh=mean_cos(gg))
+    for name, vs in (("hack", gh), ("gold", gg)):
+        for kk, vv in scales(vs).items():
+            out[f"{name}_{kk}"] = vv
+    return out
+
+
+# --------------------------------------------------------------------------------------
+# E9: same-checkpoint, mask-only causal control
+def get_base_maskonly(*, seed, n_operands=8, eps=0.03, sft_steps=600, d=64, layers=2,
+                      heads=4, lr=3e-3, lam_seed=12345):
+    """One frozen base per seed, shared by every universality condition.
+
+    The cache key deliberately excludes m: the whole point of E9 is that a single
+    checkpoint serves the entire sweep, so the initial policy, the probability on each leak
+    string and the initial tangent kernel are bit-identical across conditions.
+    """
+    key = _key(seed=seed, n_operands=n_operands, eps=eps, sft_steps=sft_steps, d=d,
+               layers=layers, heads=heads, lr=lr, lam_seed=lam_seed, kind="maskonly", v=1)
+    path = os.path.join(CACHE, f"base_{key}.pt")
+    prompts = build_prompts(n_operands)
+    ver_any = MaskOnlyVerifier(prompts, 1, seed=seed)   # only used for gold + contamination
+    lam = competence_profile(len(prompts), seed=lam_seed)
+    if os.path.exists(path):
+        blob = torch.load(path, weights_only=False)
+        pol = TransformerPolicy(prompts, d=d, layers=layers, heads=heads, seed=seed)
+        pol.load_state_dict(blob["sd"])
+        lp0 = blob["lp0"]
+    else:
+        pol, lp0, _ = build_base(prompts, ver_any, eps=eps, lam=lam, sft_steps=sft_steps,
+                                 lr=lr, seed=seed, d=d, layers=layers, heads=heads,
+                                 clean_floor=True, contam=ver_any.base_contam)
+        tmp = path + f".tmp{os.getpid()}"
+        torch.save({"sd": pol.state_dict(), "lp0": lp0}, tmp)
+        os.replace(tmp, path)
+    return prompts, lam, pol, lp0
+
+
+def _shared_string_stats(lp, ver):
+    """Probability mass on the shared string h, split by whether the prompt accepts it."""
+    import numpy as _np
+    p = torch.exp(lp).detach().numpy()
+    ph = p[:, ver.shared]
+    pg = p[_np.arange(ver.n), ver.gold]
+    inU, outU = ver.U, ~ver.U
+    out = {"p_h_mean": float(ph.mean()),
+           "p_h_in_U": float(ph[inU].mean()) if inU.any() else float("nan"),
+           "p_h_out_U": float(ph[outU].mean()) if outU.any() else float("nan"),
+           "p_gold_mean": float(pg.mean())}
+    with _np.errstate(divide="ignore"):
+        lo = _np.log(_np.clip(ph, 1e-30, None)) - _np.log(_np.clip(pg, 1e-30, None))
+    out["logodds_h_in_U"] = float(lo[inU].mean()) if inU.any() else float("nan")
+    out["logodds_h_out_U"] = float(lo[outU].mean()) if outU.any() else float("nan")
+    out["logodds_h_mean"] = float(lo.mean())
+    return out
+
+
+def run_cell_maskonly(*, m, seed, n_operands=8, algo="pg", norm="mean", steps=400,
+                      lr_neural=1e-3, lr_tabular=1e-3, opt_name="adam", beta=0.0, G=8,
+                      eps=0.03, sft_steps=600, log_every=25, d=64, layers=2, heads=4,
+                      mode="constant_fpr"):
+    """One E9 cell.  Base, leak identities and static FPR are identical across every m."""
+    prompts, lam, pol, lp0 = get_base_maskonly(seed=seed, n_operands=n_operands, eps=eps,
+                                               sft_steps=sft_steps, d=d, layers=layers,
+                                               heads=heads)
+    ver = MaskOnlyVerifier(prompts, m, seed=seed, mode=mode)
+    base = measure(lp0, ver, full=True)
+    base.update(_shared_string_stats(lp0, ver))
+    out = {"config": dict(m=m, k=1, seed=seed, N=len(prompts), u=ver.u,
+                          static_fpr=ver.static_false_positive_rate(),
+                          algo=algo, norm=norm, steps=steps, lr_neural=lr_neural,
+                          lr_tabular=lr_tabular, opt=opt_name, beta=beta, G=G, eps=eps,
+                          n_operands=n_operands, sft_steps=sft_steps, d=d, layers=layers,
+                          heads=heads, exp="maskonly", mode=mode, code_version=5),
+           "base": base}
+    for arm, policy, lr in (("neural", copy.deepcopy(pol), lr_neural),
+                            ("tabular", matched_tabular(lp0, len(prompts)), lr_tabular)):
+        traj = train(policy, ver, algo=algo, norm=norm, steps=steps, lr=lr, beta=beta,
+                     G=G, seed=seed, log_every=log_every, opt_name=opt_name)
+        with torch.no_grad():
+            traj[-1].update(_shared_string_stats(policy.full_logprobs(), ver))
+        out[arm] = traj
+    return out

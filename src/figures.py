@@ -199,7 +199,7 @@ def fig1():
     # base pass rate of the base model = predicted leading-order threshold
     base_lky = np.mean([r["base"]["leaky_reward"] for r in rows])
 
-    fig, axes = plt.subplots(1, 3, figsize=(6.7, 1.80))
+    fig, axes = plt.subplots(1, 3, figsize=(6.7, 1.38))
     ax = axes[0]
     ax.plot(u, brho, color=C_NULL, ls=":", lw=1.0, marker=".", ms=3, label="base model")
     band(ax, u, rn, srn, C_SHARED, "shared params")
@@ -314,7 +314,7 @@ def fig2():
                 B[i, j] = np.mean([val(r, "neural", "base_rho") for r in d.values()])
 
     cols = [C_SHARED, C_TAB, C_ALT, "#eda100"]
-    fig, axes = plt.subplots(1, 2, figsize=(6.7, 1.88))
+    fig, axes = plt.subplots(1, 2, figsize=(6.7, 1.70))
     ax = axes[0]
     ax.axhline(0, color=C_NULL, ls=":", lw=1.0)
     for j, k in enumerate(ks):
@@ -365,7 +365,7 @@ def fig3():
     if not os.path.exists(path):
         print("fig3: no theory data"); return
     th = json.load(open(path))
-    fig, axes = plt.subplots(1, 3, figsize=(6.7, 1.80))
+    fig, axes = plt.subplots(1, 3, figsize=(6.7, 1.38))
     N = 64.0
 
     d = defaultdict(lambda: defaultdict(list))
@@ -465,7 +465,7 @@ def fig3():
 
 
 def fig4():
-    fig, axes = plt.subplots(1, 3, figsize=(6.7, 2.05))
+    fig, axes = plt.subplots(1, 3, figsize=(6.7, 1.82))
     r5a = load_capped("exp5a_shard*.jsonl")
     if r5a:
         N = r5a[0]["config"]["N"]
@@ -666,11 +666,124 @@ def fig5():
     plt.close(fig)
 
 
+# ======================================================================================
+def fig6():
+    """The three causal controls: what sharing does, and where it has to happen."""
+    import numpy as _np
+
+    def sel(rows, arm, tol=REWARD_TOL):
+        by = defaultdict(list)
+        for r in rows:
+            by[(r["config"]["m"], r["config"]["seed"])].append(r)
+        out = {}
+        for k, rs in by.items():
+            best = max(x[arm][-1]["leaky_reward"] for x in rs)
+            ok = [x for x in rs if x[arm][-1]["leaky_reward"] >= best - tol]
+            out[k] = min(ok, key=lambda x: x["config"]["lr_neural"])
+        return out
+
+    def dr(s, arm, m):
+        ks = sorted(k for k in s if k[0] == m)
+        return [s[k][arm][-1]["mean_hack_frac"] - s[k]["base"]["mean_hack_frac"] for k in ks]
+
+    def bootci(v, n=10000, seed=0):
+        v = _np.asarray(v, dtype=float)
+        if len(v) < 2:
+            return (float("nan"), float("nan"))
+        bs = _np.random.default_rng(seed).choice(v, size=(n, len(v)), replace=True).mean(1)
+        return float(_np.percentile(bs, 2.5)), float(_np.percentile(bs, 97.5))
+
+    def slopeci(s, arm, ms):
+        seeds = sorted({k[1] for k in s})
+        out = []
+        for sd in seeds:
+            if not all((m, sd) in s for m in ms):
+                continue
+            xs = _np.log2(ms)
+            ys = [s[(m, sd)][arm][-1]["mean_hack_frac"] - s[(m, sd)]["base"]["mean_hack_frac"]
+                  for m in ms]
+            out.append(_np.polyfit(xs, ys, 1)[0])
+        return float(_np.mean(out)), bootci(out)
+
+    r9 = load("exp9_shard*.jsonl")
+    r9b = load("exp9b_shard*.jsonl")
+    r10 = load("exp10_shard*.jsonl")
+    r1 = [r for r in load_capped("exp2_adam_shard*.jsonl")
+          if r["config"]["seed"] < 3 and r["config"]["m"] in (1, 4, 16, 64)]
+    if not (r9 and r9b and r10 and r1):
+        print("fig6: missing data"); return
+    N = r9[0]["config"]["N"]
+    MS_ALL = [1, 2, 4, 8, 16, 32, 64]
+    MS_10 = [1, 4, 16, 64]
+
+    s9n, s9t = sel(r9, "neural"), sel(r9, "tabular")
+    s9bn, s9bt = sel(r9b, "neural"), sel(r9b, "tabular")
+    s10 = sel(r10, "copies")
+    s1 = sel(r1, "neural")
+
+    fig, axes = plt.subplots(1, 3, figsize=(6.7, 1.20))
+    for ax, (sn, st, ms, title, lab_t) in zip(axes, [
+            (s10, s1, MS_10, "same architecture, sharing removed", "per-prompt copies"),
+            (s9n, s9t, MS_ALL, "frozen base, constant error rate", "per-prompt params"),
+            (s9bn, s9bt, MS_ALL, "frozen base, constant leak mass", "per-prompt params")]):
+        ax.axhline(0, color=C_NULL, ls=":", lw=1.0)
+        if lab_t == "per-prompt copies":
+            xs = _np.array(ms) / N
+            a = [_np.mean(dr(sn, "copies", m)) for m in ms]
+            ea = [bootci(dr(sn, "copies", m)) for m in ms]
+            b = [_np.mean(dr(st, "neural", m)) for m in ms]
+            ax.plot(xs, b, "-o", color=C_SHARED, ms=3, lw=1.2, label="shared params")
+            ax.errorbar(xs, a, yerr=[[y - lo for y, (lo, _) in zip(a, ea)],
+                                     [hi - y for y, (_, hi) in zip(a, ea)]],
+                        fmt="-s", color=C_TAB, ms=3, lw=1.2, capsize=1.5, label=lab_t)
+        else:
+            xs = _np.array(ms) / N
+            a = [_np.mean(dr(sn, "neural", m)) for m in ms]
+            ea = [bootci(dr(sn, "neural", m)) for m in ms]
+            b = [_np.mean(dr(st, "tabular", m)) for m in ms]
+            ax.errorbar(xs, a, yerr=[[y - lo for y, (lo, _) in zip(a, ea)],
+                                     [hi - y for y, (_, hi) in zip(a, ea)]],
+                        fmt="-o", color=C_SHARED, ms=3, lw=1.2, capsize=1.5, label="shared params")
+            ax.plot(xs, b, "-s", color=C_TAB, ms=3, lw=1.2, label=lab_t)
+        ax.set_xscale("log", base=2)
+        ax.set_xlabel(r"universality $u$")
+        ax.set_title(title, fontsize=7)
+        ax.legend(loc="upper left", fontsize=6)
+    axes[0].set_ylabel(r"hack-fraction drift $\Delta\rho$")
+    fig.tight_layout()
+    fig.savefig(os.path.join(FIG, "fig6_controls.pdf"))
+    plt.close(fig)
+
+    m10, c10 = slopeci(s10, "copies", MS_10)
+    m1, c1 = slopeci(s1, "neural", MS_10)
+    m9, c9 = slopeci(s9n, "neural", MS_ALL)
+    m9t, c9t = slopeci(s9t, "tabular", MS_ALL)
+    m9b, c9b = slopeci(s9bn, "neural", MS_ALL)
+    m9bt, c9bt = slopeci(s9bt, "tabular", MS_ALL)
+    ci = lambda c: f"[{c[0]:+.4f}, {c[1]:+.4f}]"
+    num("CopiesSlope", f"{m10:+.4f}");   num("CopiesSlopeCI", ci(c10))
+    num("SharedSlopeMatched", f"{m1:+.4f}"); num("SharedSlopeMatchedCI", ci(c1))
+    num("MaskFprSlope", f"{m9:+.4f}");   num("MaskFprSlopeCI", ci(c9))
+    num("MaskFprSlopeTab", f"{m9t:+.4f}"); num("MaskFprSlopeTabCI", ci(c9t))
+    num("MaskMassSlope", f"{m9b:+.4f}"); num("MaskMassSlopeCI", ci(c9b))
+    num("MaskMassSlopeTab", f"{m9bt:+.4f}"); num("MaskMassSlopeTabCI", ci(c9bt))
+    num("CopiesHiDR", f"{_np.mean(dr(s10,'copies',64)):+.3f}")
+    num("CopiesHiAcc", f"{_np.mean([s10[k]['copies'][-1]['acc'] for k in s10 if k[0]==64]):.3f}")
+    num("CopiesLoDR", f"{_np.mean(dr(s10,'copies',1)):+.3f}")
+    num("MaskFprBaseLo", f"{_np.mean([s9n[k]['base']['hack_mass'] for k in s9n if k[0]==1]):.4f}")
+    num("MaskFprBaseHi", f"{_np.mean([s9n[k]['base']['hack_mass'] for k in s9n if k[0]==64]):.4f}")
+    num("MaskMassHiDR", f"{_np.mean(dr(s9bn,'neural',64)):+.4f}")
+    num("MaskMassMidDR", f"{_np.mean(dr(s9bn,'neural',32)):+.4f}")
+    num("NCopiesSeeds", f"{len({k[1] for k in s10})}")
+    num("NMaskSeeds", f"{len({k[1] for k in s9n})}")
+    num("NMaskMassSeeds", f"{len({k[1] for k in s9bn})}")
+
+
 if __name__ == "__main__":
     import torch
     from policies import TransformerPolicy
     from env import build_prompts, gold_universality
-    fig1(); fig2(); fig3(); fig4(); fig5()
+    fig1(); fig2(); fig3(); fig4(); fig5(); fig6()
     num("NSteps", 400); num("NEps", "0.03"); num("NGrpoG", 8)
     num("NParams", f"{sum(p.numel() for p in TransformerPolicy(build_prompts(8)).parameters()):,}")
     num("NGoldU", f"{gold_universality(build_prompts(8)):.3f}")

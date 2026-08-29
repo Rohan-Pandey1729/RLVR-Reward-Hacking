@@ -110,9 +110,21 @@ class TransformerPolicy(nn.Module):
             x = blk(x, m)
         return self.head(self.lnf(x))                     # (B, T, 10)
 
-    def full_logprobs(self) -> torch.Tensor:
-        out = self._forward(self.enum_seq)                # (N*10, 4, 10)
-        out = out.reshape(self.n, 10, 4, 10)
+    def full_logprobs(self, prompt_idx=None) -> torch.Tensor:
+        """Exact log pi(y|x) for every response.
+
+        `prompt_idx` restricts the forward pass to a subset of prompts.  The per-prompt
+        weight-copy control (E10) trains one copy of this architecture per prompt, and each
+        copy only ever needs its own prompt, so enumerating all N would waste a factor of N.
+        """
+        if prompt_idx is None:
+            seq, n = self.enum_seq, self.n
+        else:
+            pi = torch.as_tensor(prompt_idx, dtype=torch.long).reshape(-1)
+            rows = (pi[:, None] * 10 + torch.arange(10)).reshape(-1)
+            seq, n = self.enum_seq[rows], len(pi)
+        out = self._forward(seq)                          # (n*10, 4, 10)
+        out = out.reshape(n, 10, 4, 10)
         # first-token logits are identical across the y1 dimension (prefix [BOS,a,b]);
         # take index 0 to avoid redundancy.
         lg1 = out[:, 0, 2, :]                             # (N, 10)
@@ -120,7 +132,7 @@ class TransformerPolicy(nn.Module):
         lp1 = F.log_softmax(lg1, dim=-1)
         lp2 = F.log_softmax(lg2, dim=-1)
         lp = lp1.unsqueeze(-1) + lp2
-        return lp.reshape(self.n, N_RESP)
+        return lp.reshape(-1, N_RESP)
 
 
 def make_policy(kind: str, prompts, seed: int = 0, **kw):
