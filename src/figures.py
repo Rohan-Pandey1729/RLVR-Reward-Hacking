@@ -199,7 +199,7 @@ def fig1():
     # base pass rate of the base model = predicted leading-order threshold
     base_lky = np.mean([r["base"]["leaky_reward"] for r in rows])
 
-    fig, axes = plt.subplots(1, 3, figsize=(6.7, 1.38))
+    fig, axes = plt.subplots(1, 3, figsize=(6.7, 1.30))
     ax = axes[0]
     ax.plot(u, brho, color=C_NULL, ls=":", lw=1.0, marker=".", ms=3, label="base model")
     band(ax, u, rn, srn, C_SHARED, "shared params")
@@ -365,7 +365,7 @@ def fig3():
     if not os.path.exists(path):
         print("fig3: no theory data"); return
     th = json.load(open(path))
-    fig, axes = plt.subplots(1, 3, figsize=(6.7, 1.38))
+    fig, axes = plt.subplots(1, 3, figsize=(6.7, 1.30))
     N = 64.0
 
     d = defaultdict(lambda: defaultdict(list))
@@ -675,6 +675,12 @@ def fig6():
         by = defaultdict(list)
         for r in rows:
             by[(r["config"]["m"], r["config"]["seed"])].append(r)
+        # Keep only seeds present at EVERY m in this sweep: a half-finished seed would
+        # otherwise contribute to some conditions and not others and skew the comparison.
+        ms = {k[0] for k in by}
+        seeds = {k[1] for k in by}
+        full = {sd for sd in seeds if all((m, sd) in by for m in ms)}
+        by = {k: v for k, v in by.items() if k[1] in full}
         out = {}
         for k, rs in by.items():
             best = max(x[arm][-1]["leaky_reward"] for x in rs)
@@ -705,11 +711,11 @@ def fig6():
             out.append(_np.polyfit(xs, ys, 1)[0])
         return float(_np.mean(out)), bootci(out)
 
-    r9 = load("exp9_shard*.jsonl")
-    r9b = load("exp9b_shard*.jsonl")
-    r10 = load("exp10_shard*.jsonl")
+    r9 = load_capped("exp9_shard*.jsonl")
+    r9b = load_capped("exp9b_shard*.jsonl", cap=5)
+    r10 = load_capped("exp10_shard*.jsonl")
     r1 = [r for r in load_capped("exp2_adam_shard*.jsonl")
-          if r["config"]["seed"] < 3 and r["config"]["m"] in (1, 4, 16, 64)]
+          if r["config"]["m"] in (1, 4, 16, 64)]
     if not (r9 and r9b and r10 and r1):
         print("fig6: missing data"); return
     N = r9[0]["config"]["N"]
@@ -721,7 +727,7 @@ def fig6():
     s10 = sel(r10, "copies")
     s1 = sel(r1, "neural")
 
-    fig, axes = plt.subplots(1, 3, figsize=(6.7, 1.20))
+    fig, axes = plt.subplots(1, 3, figsize=(6.7, 1.08))
     for ax, (sn, st, ms, title, lab_t) in zip(axes, [
             (s10, s1, MS_10, "same architecture, sharing removed", "per-prompt copies"),
             (s9n, s9t, MS_ALL, "frozen base, constant error rate", "per-prompt params"),
@@ -762,6 +768,28 @@ def fig6():
     m9bt, c9bt = slopeci(s9bt, "tabular", MS_ALL)
     ci = lambda c: f"[{c[0]:+.4f}, {c[1]:+.4f}]"
     num("CopiesSlope", f"{m10:+.4f}");   num("CopiesSlopeCI", ci(c10))
+
+    # The statistically correct comparison is the PAIRED difference in slope between the
+    # shared model and its per-prompt copies on the same seed, not two marginal CIs.
+    def per_seed_slopes(sdict, arm, ms):
+        out = {}
+        for sd in sorted({k[1] for k in sdict}):
+            if not all((m, sd) in sdict for m in ms):
+                continue
+            ys = [sdict[(m, sd)][arm][-1]["mean_hack_frac"] - sdict[(m, sd)]["base"]["mean_hack_frac"]
+                  for m in ms]
+            out[sd] = float(_np.polyfit(_np.log2(ms), ys, 1)[0])
+        return out
+    ps_c = per_seed_slopes(s10, "copies", MS_10)
+    ps_s = per_seed_slopes(s1, "neural", MS_10)
+    common = sorted(set(ps_c) & set(ps_s))
+    if len(common) >= 3:
+        d = _np.array([ps_s[k] - ps_c[k] for k in common])
+        num("CopiesPairedDiff", f"{d.mean():+.4f}")
+        num("CopiesPairedDiffCI", ci(bootci(d)))
+        num("CopiesPairedN", f"{len(d)}")
+        se = d.std(ddof=1) / _np.sqrt(len(d))
+        num("CopiesPairedT", f"{d.mean()/se:.2f}")
     num("SharedSlopeMatched", f"{m1:+.4f}"); num("SharedSlopeMatchedCI", ci(c1))
     num("MaskFprSlope", f"{m9:+.4f}");   num("MaskFprSlopeCI", ci(c9))
     num("MaskFprSlopeTab", f"{m9t:+.4f}"); num("MaskFprSlopeTabCI", ci(c9t))

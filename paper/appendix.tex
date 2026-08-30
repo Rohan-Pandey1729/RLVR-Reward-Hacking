@@ -131,7 +131,7 @@ blocks; each block receives $k$ leak strings shared by all its prompts. The veri
 false-positive rate is exactly $k/99$ in every condition, independent of $m$.
 
 Blocks are contiguous in the default configuration, and with prompts enumerated first-operand-major
-a contiguous block of size $m\geq8$ is exactly ``first operand $=a$'', a property the transformer
+a contiguous block of size $m\geq8$ is exactly a set of first operands, a property the transformer
 can read off a single input token. That would confound universality with how simple the
 prompt-to-leak map is to represent, so we run the whole sweep a second time with block membership
 given by a random permutation of prompts and leak strings drawn independently per $(m,k,\text{seed})$
@@ -196,7 +196,9 @@ we verify the base probability on $h$ agrees to six decimals. The verifier then 
 $m$ prompts in $U$ and, in E9, $s_x$ on the rest, giving exactly $N$ accepted wrong pairs and a
 static false-positive rate of exactly $1/(|\Yset|-1)$ in every condition. E9b accepts nothing wrong
 outside $U$, so every accepted wrong string is $h$ and its base mass is identical across
-conditions, at the cost of a rate that falls with $u$. $U$ is nested across $m$, so adjacent
+conditions, at the cost of a static false-positive
+rate that rises with $u$, from $u/99$, which if anything biases E9b's slope downward given that a
+higher rate mildly reduces hacking in our factorial. $U$ is nested across $m$, so adjacent
 conditions differ only by which prompts switched.
 
 The residual gradient in E9 is that the accepted string's base mass rises from \MaskFprBaseLo{} to
@@ -331,7 +333,8 @@ already carried, since the SFT stage is itself shared-parameter (base hack fract
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\linewidth]{../figures/fig2_factorial.pdf}
-\caption{The controlling quantity is universality, not the verifier's error rate. Left: log-odds
+\caption{In this environment universality moves the drift and the verifier's error rate does not.
+Left: log-odds
 drift against universality, one line per false-positive rate. Right: the same data against the
 static false-positive rate, one line per universality, common $y$-scale. Varying accepted wrong
 responses per prompt from \NuThreeKRange{} moves the false-positive rate over \NuThreeFprRange{}
@@ -377,6 +380,7 @@ attempted; \texttt{src/figures.py} caps every E1 and E8 load at the first ten se
 reported design is balanced at ten seeds for every universality condition rather than giving a
 few conditions more seeds than the rest. \texttt{src/figures.py} regenerates every figure and the
 macro file holding every measured number quoted in the text; the hand-entered constants are the step count, the
-contamination rate and the GRPO group size, which are settings rather than results, together with
-the four appendix figures quoted elsewhere in this appendix (the clipping rates, $N\kappa/\kappa_s$, and the
-seventeenfold growth of $\kappa$), which are recomputed from the same result files.
+contamination rate and the GRPO group size, which are settings rather than results, together with a
+small number of measured figures quoted in the text rather than through a macro (the clipping
+rates, $N\kappa/\kappa_s$, the seventeenfold growth of $\kappa$, and the leave-one-seed-out drift of
+$-0.017$), all recomputed from the same result files.

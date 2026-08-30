@@ -1,0 +1,51 @@
+E10 at ten seeds; fix all 28 findings from the technical-review audit
+
+E10, the decisive control, now runs at ten seeds instead of three, balanced across
+every condition and all at 400 steps. The comparison is now reported as the PAIRED
+difference in slope between the shared model and its per-prompt copies on the same
+seed, which is the correct statistic and avoids reading two marginal intervals
+against each other: +0.0191 per doubling, 95% CI [+0.0082, +0.0330], t = 2.82 on
+ten paired seeds. The copies' own slope is +0.0019, CI [-0.0008, +0.0050], which is
+consistent with zero; the shared model's is +0.0210, CI [+0.0094, +0.0369].
+
+Blocking errors the audit found and this commit fixes.
+  The abstract claimed the shared policy shows "no slope either" in both mask-only
+  controls, which the paper's own printed CI refutes for E9 (+0.0056, CI excludes
+  zero). It now says "no MORE slope than the per-prompt arm", which is what the
+  paired comparison supports.
+
+  "Three controls that do not [differ in parameterisation]" was false: only E10 does.
+  E9 and E9b still compare against a tabular table and remove a different confound.
+
+  "Removing sharing at either stage removes the effect" described a manipulation we
+  never performed. E9/E9b do not remove sharing at the SFT stage; they remove the
+  ALIGNMENT between the SFT target and the verifier's mask. Reworded throughout,
+  including the abstract's necessary condition.
+
+  A Results heading and a figure caption still asserted "universality, not the error
+  rate" as our finding. That is Egashira's, credited elsewhere. Both rewritten.
+
+  E9b's static false-positive rate RISES with u (it is u/99); the paper and the
+  MaskOnlyVerifier docstring both said it falls. Corrected in both, with a note that
+  the true direction biases E9b's slope downward.
+
+Also fixed: "per-prompt policy is flat in u" scoped to these sweeps, since E9/E9b's
+tabular slopes exclude zero; "differing only in parameter sharing" reconciled with
+Section 5.5; E10's grid is three of the shared arm's five learning rates, not the
+same grid; the monotonicity hedge restored to the contributions; the cross-prompt
+term reported as peaking at u=0.5 rather than rising monotonically; two promises
+Definition 3 made that no section kept (raw kernel scales, a residual bound) either
+delivered or withdrawn; a self-referencing section reference; four figure references
+pointing at the wrong figure after three figures moved to the appendix; "one leak
+family per condition" corrected to one or two; the undefined term "behaviour-aligned
+kernel"; the contiguous-block claim, true only at m=8; and the reproducibility
+section's false claim about which constants are hand-entered.
+
+figures.py now routes E9, E9b and E10 through the same seed cap as E1 and E8, and
+drops any seed not present at every m, so a partially finished sweep can no longer
+skew a mean.
+
+Content ends on page 9. Zero em dashes.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_015KzuJB4p3ZE9ALR7NCXVRp

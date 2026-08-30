@@ -221,7 +221,8 @@ class MaskOnlyVerifier:
     ones -- we verified this is not fixable by reweighting the supervised target, since the
     shared network cannot represent an arbitrary per-prompt split.  `mode="constant_mass"`
     instead accepts nothing wrong outside U, so every accepted string is h and its base mass is
-    identical in every condition, at the cost of a static false-positive rate that falls with u.
+    identical in every condition, at the cost of a static false-positive rate that RISES with u
+    (it is exactly u/(|Y|-1), so it is smallest when the leak is idiosyncratic).
     Neither confound is present in both modes, so an effect that survives both is attributable
     to neither.
     """
