@@ -34,6 +34,8 @@
 \newcommand{\Acc}{\mathcal{A}}
 \newcommand{\Hset}{\mathcal{H}}
 \newcommand{\Kk}{K_\theta}
+\newcommand{\Kcoh}{K_\theta^{\mathrm{coh}}}
+\newcommand{\Kxx}{K_{\theta,xx'}}
 \newcommand{\pth}{\pi_\theta}
 \DeclareMathOperator{\Cov}{Cov}
 
@@ -133,8 +135,8 @@ fixed $u$.
 \item We build an RLVR environment in which the full response distribution is enumerated exactly,
 so every reported quantity is the true value under the policy rather than a sample estimate, and in
 which universality and static false-positive rate are independent knobs by construction. Matched
-tabular and transformer policies start from the \emph{identical} distribution and differ only in
-parameter sharing.
+tabular and transformer policies start from the \emph{identical} distribution and differ in
+parameter sharing; Section~\ref{sec:controls} removes the residual parameterisation difference.
 \item The shared-parameter policy's hack fraction is monotone in universality, up to one reversal inside
 its error bars, and crosses from
 suppression toward amplification, crossing zero decisively under both sampled GRPO and plain SGD,
@@ -285,10 +287,10 @@ keeping the terms that depend on $h$, the acceptance fraction that multiplies th
 kernel- and policy-weighted,
 \begin{equation}
 u_{\mathrm{eff}}(x,h) \;=\; \Big(\textstyle\sum_{x' \in U} w_{x'}\Big) \Big/ \Big(\textstyle\sum_{x'} w_{x'}\Big),
-\qquad w_{x'} = \Kk_{x,x'}\,\pth(h\mid x'),
+\qquad w_{x'} = \Kxx\,\pth(h\mid x'),
 \label{eq:ueff}
 \end{equation}
-where $\Kk_{x,x'}$ is the kernel entry coupling $h$ at $x$ to $h$ at $x'$ and $U$ is the accepting
+where $\Kxx$ is the kernel entry coupling $h$ at $x$ to $h$ at $x'$ and $U$ is the accepting
 set. The raw
 fraction $m/N$ is recovered exactly when the cross-prompt kernel entries and the leak
 probabilities are homogeneous across prompts. Proposition~\ref{prop:threshold} below is that
@@ -299,9 +301,9 @@ The corollary needs one empirical property.
 
 \begin{definition}[Coherent kernel model]
 \label{def:coherent}
-Write the kernel as $\Kk = \Kk_{\mathrm{coh}} + R$ with
+Write the kernel as $\Kk = \Kcoh + R$ with
 \[
-\Kk_{\mathrm{coh}}((x,h),(x',y')) = \kappa_{xx'}\,\mathbf{1}[y'=h] \;+\; a(x,x') \;+\; b(x,x',y'),
+\Kcoh((x,h),(x',y')) = \kappa_{xx'}\,\mathbf{1}[y'=h] \;+\; a(x,x') \;+\; b(x,x',y'),
 \qquad \kappa_{xx'} = \begin{cases}\kappa_s & x'=x\\ \kappa & x'\neq x\end{cases}
 \]
 where $a$ does not depend on $y'$ and $b$ does not depend on $h$. The $a$ term contributes zero
@@ -309,13 +311,13 @@ covariance in \eqref{eq:drift} and the $b$ term is common to the leak and the co
 cancels in the within-prompt log-odds, so only $(\kappa,\kappa_s)$ and the residual $R$ survive
 (Appendix~\ref{app:proofs}). A response is \emph{coherent at scales $(\kappa,\kappa_s)$} when the
 induced error in \eqref{eq:threshold} from $R$ is small relative to $\kappa p_h$. We do not bound
-$R$; the proof in Appendix~\ref{app:proofs} substitutes $\Kk_{\mathrm{coh}}$ and drops it, which is
+$R$; the proof in Appendix~\ref{app:proofs} substitutes $\Kcoh$ and drops it, which is
 one reason Proposition~\ref{prop:threshold} is directional. Coherence is a property of
 \emph{how a response is computed}, not of string identity: a leak emitted by prompt-independent
 machinery is coherent, whereas correct answers that happen to coincide across prompts need not be.
 We estimate $\kappa/\kappa_s$ by the mean cross-prompt gradient cosine, which equals it only when
 the per-prompt gradient norms are equal, since
-$\cos(g_x,g_{x'}) = \Kk_{x,x'}/(\lVert g_x\rVert\lVert g_{x'}\rVert)$.
+$\cos(g_x,g_{x'}) = \Kxx/(\lVert g_x\rVert\lVert g_{x'}\rVert)$.
 \end{definition}
 
 \begin{proposition}[Universality threshold]
@@ -457,12 +459,12 @@ The $u=1$ endpoint is heterogeneous rather than merely noisy: the ten final hack
 drift at $-0.017$, still suppression. The heterogeneity is concentrated across prompts: at $u=1$ a
 mean of \NuTwoFlipHi{}\% of prompts end with the leak more likely than the correct answer, against
 \NuTwoFlipLo{}\% at $u=\NuTwoLoU{}$. That is why $\Delta\rho$ reaches zero while $\Delta\Lambda$,
-dominated by the suppressed majority, rises from \NuTwoNeuralLoDL{} to \NuTwoNeuralHiDL{} and stays
+dominated by the suppressed majority, rises from $\NuTwoNeuralLoDL{}$ to $\NuTwoNeuralHiDL{}$ and stays
 clearly negative. In the worst case a $u=1$ run reaches hack fraction
 \NuTwoCollapseRhoHi{} at accuracy \NuTwoCollapseAccHi{} while saturating the verifier.
 
 Randomising which prompts share a leak reproduces the suppression and the slope (drift
-\NuSixLoDR{} to $\NuSixHiDR{}\pm\NuSixHiDRSem{}$), so the effect is not an artefact of contiguous
+$\NuSixLoDR{}$ to $\NuSixHiDR{}\pm\NuSixHiDRSem{}$), so the effect is not an artefact of contiguous
 blocks coinciding with a single prompt token, though its $u=1$ endpoint is carried by one of three
 seeds. That design also equalises the base, whose $\rho$ varies by only \NuSixBaseSpread{} against
 \NuTwoBaseRhoSpread{} with contiguous blocks.
@@ -489,8 +491,8 @@ measures the multiplicative change in total leak mass and is therefore invariant
 base propensity is divided among $k$ strings. A two-way decomposition attributes \NuThreeEtaM{} of
 its variance to universality, swept over $u\in[\NuThreeLoU{},1]$, and \NuThreeEtaK{} to the
 false-positive rate, swept over an eightfold range. Averaged over $k$, $\Delta\Lambda$ moves from
-\NuThreeDLLoU{} at $u=\NuThreeLoU{}$ to \NuThreeDLHiU{} at $u=1$; averaged over $u$ it moves only
-from \NuThreeDLLoK{} to \NuThreeDLHiK{} as the false-positive rate grows eightfold. The sign of the
+$\NuThreeDLLoU{}$ at $u=\NuThreeLoU{}$ to $\NuThreeDLHiU{}$ at $u=1$; averaged over $u$ it moves only
+from $\NuThreeDLLoK{}$ to $\NuThreeDLHiK{}$ as the false-positive rate grows eightfold. The sign of the
 latter matters: accepting \emph{more} wrong responses per prompt does not increase hacking here and
 mildly decreases it, because the base model's fixed propensity to emit an accepted-wrong response
 is divided among more and individually rarer strings. An audit that counts false positives is
@@ -531,17 +533,14 @@ seeds, crossing zero at \NuFiveACrossU{}. Plain SGD, the optimiser the analysis 
 gives the sharpest separation in the paper: the shared policy runs \NuTwoSgdNeuralLoRho{} to
 \NuTwoSgdNeuralHiRho{} with accuracy falling \NuTwoSgdNeuralLoAcc{} to \NuTwoSgdNeuralHiAcc{},
 crossing at \NuTwoSgdCrossU{} with slope \NuTwoSgdNeuralSlope{} per doubling, while the per-prompt
-policy moves \NuTwoSgdTabLoRho{} to \NuTwoSgdTabHiRho{}, slope \NuTwoSgdTabSlope{}, staying
+policy moves \NuTwoSgdTabLoRho{} to \NuTwoSgdTabHiRho{}, slope $\NuTwoSgdTabSlope{}$, staying
 \emph{below} its base throughout, which is the prompt-local rich-get-richer drift of
 Appendix~\ref{app:proofs}.
 
-At fixed $u$ the analysis predicts no dependence on the number of prompts, and repeating the sweep
-at $N=\NuFourNSmall{}$ and $N=\NuFourNBig{}$ is consistent with that (Appendix~\ref{app:extra}).
-
 A KL penalty pulls the policy back toward the filter baseline, as Proposition~\ref{prop:filter}
 leads one to expect, and where it is resolved it does so in the direction that \emph{costs}
-accuracy: raising $\beta$ to \NuFiveBBeta{} takes $\Delta\rho$ from \NuFiveBDRNoKLLo{} to
-\NuFiveBDRKLLo{} at $u=\NuTwoLoU{}$, removing the \emph{beneficial} suppression sharing was
+accuracy: raising $\beta$ to \NuFiveBBeta{} takes $\Delta\rho$ from $\NuFiveBDRNoKLLo{}$ to
+$\NuFiveBDRKLLo{}$ at $u=\NuTwoLoU{}$, removing the \emph{beneficial} suppression sharing was
 providing, at a cost of \NuFiveBAccNoKLLo{} to \NuFiveBAccKLLo{} in accuracy; at $u=1$ the picture
 is within noise. KL is not a free defence: it is a commitment to the base model's composition of
 the accepted set, which helps only when that composition is better than what training would
@@ -581,15 +580,18 @@ confound.
 supervised target and hence the base, so universality is confounded with how well the base
 represents the leak, a coherence we measure growing seventeenfold. We therefore freeze one
 checkpoint per seed and vary only which prompts accept which of two fixed leak strings, in two
-variants holding either the static false-positive rate or the accepted string's base mass constant
+variants holding either the static false-positive rate or the accepted string's \emph{per-prompt}
+base mass constant
 (Appendix~\ref{app:details}).
 
-In neither does the shared policy show more slope than the per-prompt arm: $\MaskFprSlope{}$
-against $\MaskFprSlopeTab{}$ in the first, and $\MaskMassSlope{}$, CI $\MaskMassSlopeCI{}$,
-against $\MaskMassSlopeTab{}$ in the second. This narrows the claim. These controls differ from the others in the
-respect that matters here: their base is \emph{blind to the leak structure}. Where the base is
-rebuilt per condition and encodes it, the slope is present and the copies control shows it needs
-sharing; where the base is frozen and blind, it is absent.
+In neither does the shared policy show more slope than the per-prompt arm: marginally
+$\MaskFprSlope{}$, CI $\MaskFprSlopeCI{}$, and $\MaskMassSlope{}$, CI $\MaskMassSlopeCI{}$,
+against $\MaskFprSlopeTab{}$ and $\MaskMassSlopeTab{}$, and paired within seed
+$\MaskFprPairedDiff{}$, CI $\MaskFprPairedDiffCI{}$ and $\MaskMassPairedDiff{}$, CI
+$\MaskMassPairedDiffCI{}$. The first excludes an E10-sized effect, so this is not an underpowered
+null. These controls differ from the others in the respect that matters
+here: their base is \emph{blind to the leak structure}. Where the base encodes it the slope is present and the copies
+control shows it needs sharing; where the base is blind it is no larger than the per-prompt arm's.
 
 The mechanism is therefore two-stage: shared-parameter supervised training puts the leak's
 cross-prompt structure into the representation, and shared-parameter RL amplifies what is already
@@ -651,17 +653,18 @@ Cross-prompt sharing lets a leak collect gradient from every prompt that accepts
 prompt that does not pushes back, and without sharing that channel is identically zero: per-prompt
 copies of the same architecture show no dependence on leak breadth. Controls with a
 structure-blind base show sharing at RL time is not by itself enough, placing the mechanism in two
-stages. The quantity to audit is therefore not how often a verifier is wrong, nor how broadly its
-acceptances coincide, but whether the false positives it admits are error modes the model already
-produces the same way across prompts.
+stages. The quantity to audit is therefore not how often a verifier is wrong, nor breadth of
+acceptance on its own, but whether the false positives it admits are error modes the model already
+produces the same way across prompts. This is the sense in which \citet{zhang2026leaky} find selection of pre-existing
+error modes rather than learned exploitation.
 
 \paragraph{Limitations and use of LLMs.} Proposition~\ref{prop:threshold} assumes a coherent
-kernel (Definition~\ref{def:coherent}) and a constant pass rate; the kernel varies seventeenfold,
-so the threshold is directional. Exact enumeration requires a two-token response space and the leak
-is a designated string, so string identity is not an adequate definition of a shared error mode for
-real systems. We use one or two leak families per condition, three to ten seeds, and a base
-carrying injected contamination \citep{khalifa2026countdown}. LLMs assisted with experiment design
-and manuscript preparation; every number comes from the released code.
+kernel (Definition~\ref{def:coherent}) and a constant pass rate; the kernel varies seventeenfold, so
+the threshold is directional. Exact enumeration requires a two-token response space and the leak is
+a designated string, so string identity is not an adequate definition of a shared error mode for
+real systems. We use one or two leak families per condition, three to ten seeds with a heterogeneous
+$u=1$ outcome, and a contaminated SFT base. LLMs assisted with experiment design and manuscript
+preparation; every number comes from the released code.
 
 \bibliographystyle{plainnat}
 \bibliography{references}

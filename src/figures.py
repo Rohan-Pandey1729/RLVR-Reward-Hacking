@@ -365,7 +365,7 @@ def fig3():
     if not os.path.exists(path):
         print("fig3: no theory data"); return
     th = json.load(open(path))
-    fig, axes = plt.subplots(1, 3, figsize=(6.7, 1.30))
+    fig, axes = plt.subplots(1, 3, figsize=(6.7, 1.85))
     N = 64.0
 
     d = defaultdict(lambda: defaultdict(list))
@@ -435,7 +435,7 @@ def fig3():
         ax.set_ylabel(r"drift $\Delta\rho$"); ax.set_title("prompt-set size")
         ax.legend(loc="upper left", fontsize=6)
     fig.tight_layout(pad=0.3)
-    fig.savefig(os.path.join(FIG, "fig3_mechanism.pdf"))
+    fig.savefig(os.path.join(FIG, "fig3_mechanism.pdf"), bbox_inches="tight")
     plt.close(fig)
 
     num("MechCrossLo", f"{nc[0]:.1f}"); num("MechCrossHi", f"{nc[-1]:.1f}")
@@ -727,7 +727,7 @@ def fig6():
     s10 = sel(r10, "copies")
     s1 = sel(r1, "neural")
 
-    fig, axes = plt.subplots(1, 3, figsize=(6.7, 1.08))
+    fig, axes = plt.subplots(1, 3, figsize=(6.7, 1.16))
     for ax, (sn, st, ms, title, lab_t) in zip(axes, [
             (s10, s1, MS_10, "same architecture, sharing removed", "per-prompt copies"),
             (s9n, s9t, MS_ALL, "frozen base, constant error rate", "per-prompt params"),
@@ -756,8 +756,8 @@ def fig6():
         ax.set_title(title, fontsize=7)
         ax.legend(loc="upper left", fontsize=6)
     axes[0].set_ylabel(r"hack-fraction drift $\Delta\rho$")
-    fig.tight_layout()
-    fig.savefig(os.path.join(FIG, "fig6_controls.pdf"))
+    fig.tight_layout(pad=0.3, w_pad=1.2)
+    fig.savefig(os.path.join(FIG, "fig6_controls.pdf"), bbox_inches="tight")
     plt.close(fig)
 
     m10, c10 = slopeci(s10, "copies", MS_10)
@@ -790,6 +790,20 @@ def fig6():
         num("CopiesPairedN", f"{len(d)}")
         se = d.std(ddof=1) / _np.sqrt(len(d))
         num("CopiesPairedT", f"{d.mean()/se:.2f}")
+
+    # The same paired comparison for the two mask-only controls.  Quoting two marginal
+    # estimates there while quoting a paired one for E10 would be inconsistent, and the
+    # paired interval is the statistic that answers "is this just an underpowered null".
+    for tag, sn, st, an, at, ms in (("MaskFprPaired", s9n, s9t, "neural", "tabular", MS_ALL),
+                                    ("MaskMassPaired", s9bn, s9bt, "neural", "tabular", MS_ALL)):
+        pn = per_seed_slopes(sn, an, ms)
+        pt = per_seed_slopes(st, at, ms)
+        com = sorted(set(pn) & set(pt))
+        if len(com) >= 3:
+            dd = _np.array([pn[k] - pt[k] for k in com])
+            num(tag + "Diff", f"{dd.mean():+.4f}")
+            num(tag + "DiffCI", ci(bootci(dd)))
+            num(tag + "N", f"{len(dd)}")
     num("SharedSlopeMatched", f"{m1:+.4f}"); num("SharedSlopeMatchedCI", ci(c1))
     num("MaskFprSlope", f"{m9:+.4f}");   num("MaskFprSlopeCI", ci(c9))
     num("MaskFprSlopeTab", f"{m9t:+.4f}"); num("MaskFprSlopeTabCI", ci(c9t))

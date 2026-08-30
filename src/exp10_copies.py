@@ -7,7 +7,7 @@ effective step sizes.  A reviewer can therefore attribute part of the gap to arc
 
 E10 removes that objection.  Every arm here is the identical transformer architecture,
 identically initialised from the same base checkpoint, trained with the same optimiser, the
-same learning-rate grid and the same number of steps.  The only difference is that the
+three smallest learning rates of that grid and the same number of steps.  The only difference is that the
 per-prompt arm holds N independent copies of the weights, one per prompt, each trained on its
 own prompt alone.  Parameter sharing is then the single manipulated variable, and
 Corollary 1 predicts the copies carry no dependence on universality at all.
@@ -66,7 +66,7 @@ def main():
     ap.add_argument("--nshards", type=int, default=1)
     ap.add_argument("--threads", type=int, default=1)
     ap.add_argument("--steps", type=int, default=400)
-    ap.add_argument("--seeds", type=str, default="0,1,2")
+    ap.add_argument("--seeds", type=str, default="0,1,2,3,4,5,6,7,8,9")
     a = ap.parse_args()
     torch.set_num_threads(a.threads)
 

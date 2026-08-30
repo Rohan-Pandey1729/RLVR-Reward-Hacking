@@ -1,49 +1,53 @@
-E10 at ten seeds; fix all 28 findings from the technical-review audit
+Fix the sign-off audit findings; zero TeX errors, zero overfull boxes
 
-E10, the decisive control, now runs at ten seeds instead of three, balanced across
-every condition and all at 400 steps. The comparison is now reported as the PAIRED
-difference in slope between the shared model and its per-prompt copies on the same
-seed, which is the correct statistic and avoids reading two marginal intervals
-against each other: +0.0191 per doubling, 95% CI [+0.0082, +0.0330], t = 2.82 on
-ten paired seeds. The copies' own slope is +0.0019, CI [-0.0008, +0.0050], which is
-consistent with zero; the shared model's is +0.0210, CI [+0.0094, +0.0369].
+Blocking, all five fixed.
+  Table 1 said E10 ran 3 seeds while the abstract, contributions and Section 5.5 all
+  reported n = 10. The protocol table now matches the data.
 
-Blocking errors the audit found and this commit fixes.
-  The abstract claimed the shared policy shows "no slope either" in both mask-only
-  controls, which the paper's own printed CI refutes for E9 (+0.0056, CI excludes
-  zero). It now says "no MORE slope than the per-prompt arm", which is what the
-  paired comparison supports.
+  Six "! Double subscript" TeX errors: \Kk expands to K_\theta, so \Kk_{coh} and
+  \Kk_{x,x'} produced K_\theta_{...}, which TeX recovered from silently and typeset
+  with a stray subscript beside theta throughout equation (2) and Definition 3. Added
+  \Kcoh and \Kxx and rewrote all six sites. The log is now clean.
 
-  "Three controls that do not [differ in parameterisation]" was false: only E10 does.
-  E9 and E9b still compare against a tabular table and remove a different confound.
+  Figure 2's y-axis label was clipped out of the bounding box, rendering as
+  "ack-fraction dri" on the page carrying the paper's new headline control. Figure 3
+  had the same defect on both labels. Fixed with bbox_inches="tight" and more height.
 
-  "Removing sharing at either stage removes the effect" described a manipulation we
-  never performed. E9/E9b do not remove sharing at the SFT stage; they remove the
-  ALIGNMENT between the SFT target and the verifier's mask. Reworded throughout,
-  including the abstract's necessary condition.
+  The previous round softened the abstract's claim about E9 by deleting E9's
+  confidence interval from the body, which was the only interval in that sentence
+  excluding zero. Restored.
 
-  A Results heading and a figure caption still asserted "universality, not the error
-  rate" as our finding. That is Egashira's, credited elsewhere. Both rewritten.
+  Section 5.5 still said the slope "is absent" under a blind base. E9's shared slope
+  is +0.0056 with a CI excluding zero. It now says "no larger than the per-prompt
+  arm's", which is what the paired test supports.
 
-  E9b's static false-positive rate RISES with u (it is u/99); the paper and the
-  MaskOnlyVerifier docstring both said it falls. Corrected in both, with a note that
-  the true direction biases E9b's slope downward.
+Statistics. E9 and E9b now report the paired within-seed difference alongside the
+marginals, as E10 already did: +0.0001, CI [-0.0052, +0.0069] over 10 seeds, and
+-0.0084, CI [-0.0154, -0.0009] over 5. The first interval excludes an effect of the
+size E10 measures, so the null is not merely underpowered. That strengthens the
+argument and removes an inconsistency in statistical practice between the two halves
+of the same subsection.
 
-Also fixed: "per-prompt policy is flat in u" scoped to these sweeps, since E9/E9b's
-tabular slopes exclude zero; "differing only in parameter sharing" reconciled with
-Section 5.5; E10's grid is three of the shared arm's five learning rates, not the
-same grid; the monotonicity hedge restored to the contributions; the cross-prompt
-term reported as peaking at u=0.5 rather than rising monotonically; two promises
-Definition 3 made that no section kept (raw kernel scales, a residual bound) either
-delivered or withdrawn; a self-referencing section reference; four figure references
-pointing at the wrong figure after three figures moved to the appendix; "one leak
-family per condition" corrected to one or two; the undefined term "behaviour-aligned
-kernel"; the contiguous-block claim, true only at m=8; and the reproducibility
-section's false claim about which constants are hand-entered.
+Correctness. "Seeds 0-4 of E1 and E8 came from an earlier revision" was false for E8.
+"Differing only in parameter sharing" survived in a third place. E10 uses three of the
+shared arm's five learning rates, not the same grid, in the appendix and the released
+docstring as well as the main text. The matched shared slope (+0.0210) now says why it
+differs from the seven-condition figure (+0.0177). E9b holds the PER-PROMPT base mass
+fixed; the aggregate rises with u, which biases its slope downward, now disclosed
+alongside the rising false-positive rate. E6 sweeps two learning-rate pairs, not one.
+The Corollary 1 escape clause covers E9b as well as E9. The deleted Zhang bridge is
+restored, so "the model's own shared error modes" is derived in the body rather than
+appearing cold in the abstract. The conclusion no longer disowns the breadth result
+that Section 5.6 is built on. The reproducibility section's list of hand-entered
+constants now includes the coherence peak and admits that three calibration figures
+come from a diagnostic run whose output is not shipped. exp10_copies.py's --seeds
+default is the ten actually used, so the released script reproduces the reported run.
 
-figures.py now routes E9, E9b and E10 through the same seed cap as E1 and E8, and
-drops any seed not present at every m, so a partially finished sweep can no longer
-skew a mean.
+Typography. Negative-valued macros were rendering as hyphens beside correctly set
+minus signs; all are now in math mode. The protocol table no longer overflows.
+
+Anonymity verified: anonymous author block, no names, affiliations, emails or URLs in
+either source file, and PDF metadata carries only Creator and Producer.
 
 Content ends on page 9. Zero em dashes.
 
