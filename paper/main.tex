@@ -40,7 +40,6 @@
 \DeclareMathOperator{\Cov}{Cov}
 
 \input{numbers}
-\input{numbers_placeholder}
 
 \title{Wrong the Same Way: Cross-Prompt Sharing\\Shapes Reward Hacking in RLVR}
 
@@ -84,13 +83,14 @@ $\NuFiveCGap{}\pm\NuFiveCGapSem{}$ points of true accuracy.
 \section{Introduction}
 
 RLVR trains a language model against a programmatic verifier: a response is rewarded if a checker
-accepts it \citep{shao2024deepseekmath}. Verifiers are imperfect. Generative judges accept degenerate strings:
-non-word symbols and generic reasoning openers elicit false positives across a wide range of judge
-models \citep{zhao2025onetoken}. Fuzzing programmatic checkers turns up false-positive rates above
-$0.8$ on adversarial completions for math and tool-call verifiers \citep{ray2026fuzzing}. Test
-suites accept programs that pass the visible tests and nothing else \citep{khalifa2026countdown}. Outcome-only checkers reward a correct final
-answer reached by invalid reasoning \citep{yuan2026miracle}. Each such false positive is a response
-the policy can be paid for without being right.
+accepts it \citep{shao2024deepseekmath, deepseekai2025r1}. Verifiers are imperfect. Generative
+judges accept degenerate strings: non-word symbols and generic reasoning openers elicit false
+positives across a wide range of judge models \citep{zhao2025onetoken}. Test suites accept programs
+that pass the visible tests and nothing else \citep{khalifa2026countdown}. Outcome-only checkers
+reward a correct final answer reached by invalid reasoning \citep{yuan2026miracle}, the failure that
+motivated supervising each reasoning step \citep{lightman2024verify} rather than the final answer
+alone \citep{cobbe2021gsm8k}. Each such false positive is a response the policy can be paid for
+without being right.
 
 The literature gives two incompatible accounts of what RLVR does with such false positives. In the first, RLVR tolerates verifier
 error: sweeping the noise rate from $1\%$ to $50\%$ leaves peak validation accuracy within two
@@ -106,7 +106,8 @@ verification error produces delay, plateau or collapse \citep{egashira2026delay}
 models learn to game extensional verifiers \citep{helff2026gaming}, and production reward hacking
 generalises into broader misalignment \citep{macdiarmid2025natural}.
 
-Theory favours the first account. At the KL-regularised optimum the policy is
+Theory favours the first account. At the KL-regularised optimum of the RLHF objective
+\citep{stiennon2020summarize, ouyang2022instructgpt} the policy is
 $\pi^\star(y \mid x) \propto \pi_{\mathrm{ref}}(y\mid x)\,e^{r(x,y)/\beta}$, so within a reward
 level set the odds are exactly the reference model's \citep{korbak2022bayesian}. Every accepted
 response, correct or exploiting, is multiplied by the same factor. RLVR is a filter on the accepted
@@ -199,8 +200,9 @@ for every $\beta>0$. The same holds at every step of any multiplicative update
 $\pi_{t+1}(\cdot\mid x)\propto \pi_t(\cdot\mid x)\exp(\eta f(r(x,\cdot)))$.
 \end{proposition}
 
-The closed form is the Gibbs variational principle and is standard
-\citep{korbak2022bayesian, kruszewski2026filtering, dymetman2026binary}. We state it because it is
+The closed form is the Gibbs variational principle, standard in RL \citep{peters2010reps} and in
+the LLM setting \citep{korbak2022bayesian, kruszewski2026filtering, dymetman2026binary}. We state
+it because it is
 the baseline everything else is measured against, and because its consequence for reward hacking,
 that the composition of the accepted set is frozen at the base model's, is the prediction under
 test. As $\beta\to0$, $\pi^\star_\beta \to \pi_{\mathrm{ref}}(\cdot\mid\Acc(x))$: the whole
@@ -250,7 +252,8 @@ covariance in its second argument gives \eqref{eq:drift}.
 Equation~\eqref{eq:drift} says that the log-probability of a response on \emph{one} prompt is moved
 by what happens on \emph{every} prompt, in proportion to how strongly reward covaries with tangent
 similarity there. It is an instantaneous identity and we use it as such. Our experiments use Adam
-rather than gradient flow. For an update $\dot\theta = P\nabla J$ with $P$ positive definite and
+\citep{kingma2015adam} rather than gradient flow. For an update $\dot\theta = P\nabla J$ with $P$
+positive definite and
 fixed, \eqref{eq:drift} holds with $\Kk$ replaced by
 $\Kk^P((x,y),(x',y')) = \langle \nabla_\theta\log\pth(y\mid x),\, P\,\nabla_\theta\log\pth(y'\mid x')\rangle$.
 Adam is not of that form: its first moment makes the update history-dependent, so we do not claim
@@ -376,8 +379,9 @@ in a block share the same leak strings. Varying $m$ varies universality $u=m/N$ 
 false-positive rate held \emph{exactly} fixed at $k/(|\Yset|-1)$. Varying $k$ varies the static
 false-positive rate with universality fixed.
 
-\paragraph{Base model.} A $2$-layer, $64$-dimensional transformer (\NParams{} parameters) is
-supervised fine-tuned on a target that mixes the correct answer, a per-prompt competence level
+\paragraph{Base model.} A $2$-layer, $64$-dimensional transformer \citep{vaswani2017attention}
+(\NParams{} parameters) is supervised fine-tuned on a target that mixes the correct answer, a
+per-prompt competence level
 $\lambda_x$ spread over $[0,0.9]$, and a small contamination rate $\varepsilon=\NEps{}$ of leak
 demonstrations, in the spirit of \citet{khalifa2026countdown}, who find a trace of contamination
 enough to seed hacking. Competence is assigned by a fixed permutation independent of the block structure, so
@@ -395,9 +399,10 @@ with identical objectives, and with identical learning-rate grids wherever a gri
 parameterisation; Section~\ref{sec:controls} removes the latter.
 
 \paragraph{Protocol.} Unless stated otherwise we run exact-expectation policy gradient with the
-exact mean baseline, the expectation-limit of RLOO and Dr.\ GRPO
-\citep{ahmadian2024rloo, liu2025drgrpo}; group-relative variants such as \citet{yu2025dapo} share
-this structure. Runs are \NSteps{} steps with Adam, with three to ten seeds per
+exact mean baseline, the expectation-limit of RLOO \citep{ahmadian2024rloo} and of Dr.\ GRPO
+\citep{liu2025drgrpo}, which debiases GRPO \citep{shao2024deepseekmath}; group-relative variants
+such as \citet{yu2025dapo} share this structure, as does PPO \citep{schulman2017ppo} inside its
+clipping range. Runs are \NSteps{} steps with Adam, with three to ten seeds per
 cell (Appendix~\ref{app:details}, Table~\ref{tab:protocol}). We report the operating point selected by
 the criterion a practitioner would use: the smallest learning rate in the grid whose final
 \emph{verifier} reward is within $10^{-3}$ of the best. That tie-break is conservative for our
@@ -418,8 +423,6 @@ Section~\ref{sec:design}. Absolute $\rho$ is plotted with the base curve.
 Exact mirror descent leaves $\rho$ invariant to \NullDriftMirror{} and $\Lambda$ to
 \NullDriftMirrorLam{} over \NullMirrorSteps{} steps, and the KL-regularised optimum leaves $\rho$
 invariant to \NullDriftKL{} across $\beta \in \NullBetaRange{}$, that is to floating-point zero.
-Over the same trajectory the \emph{pooled} hack fraction moves by \NullDriftMirrorPooled{}: a
-practitioner tracking it would infer growing exploitation from pure filtering.
 Lemma~\ref{lem:drift} matches finite differences to \DriftRelErr{}, and the per-prompt policy's
 cross-prompt kernel is \KernelRatioTab{} against the transformer's \KernelRatioNeural{} of its own
 self-kernel.
@@ -595,8 +598,7 @@ control shows it needs sharing; where the base is blind it is no larger than the
 
 The mechanism is therefore two-stage: shared-parameter supervised training puts the leak's
 cross-prompt structure into the representation, and shared-parameter RL amplifies what is already
-there. Removing sharing at RL time removes the effect, and so does making the base blind to which
-prompts the verifier will accept.
+there.
 
 \subsection{Budgeting verifier hardening}
 
@@ -613,7 +615,8 @@ Figure~\ref{fig:practice}, right, and Appendix~\ref{app:extra} have the setup.
 \paragraph{RLVR as filtering.} The exponential-tilting form of the KL-regularised optimum is
 established \citep{korbak2022bayesian, gai2025smoothing, kruszewski2026filtering,
 dymetman2026binary, lochab2026ucpo} and underlies the finding that RLVR sharpens rather than
-expands base-model capability \citep{yue2025rlincentivize}. That literature reads the invariance as
+expands base-model capability \citep{yue2025rlincentivize}; inverting it is how
+\citet{rafailov2023dpo} dispense with a reward model. That literature reads the invariance as
 being about diversity among correct answers; we read it as being about the composition of the
 accepted set, and use it as our null model. Rich-get-richer behaviour among tied responses under
 softmax policy gradient is likewise known \citep{mei2020global, lochab2026ucpo}; we use it as a
@@ -626,8 +629,8 @@ training: both show \emph{correction} helps, not that uncorrected training is ro
 \citet{rad2026rateorfate} give a phase transition in the Youden index, incorrect modes going extinct
 when $J>0$ and dominating when $J<0$; spurious rewards can even help some model families
 \citep{shao2025spurious}. Measurements of
-verifier false positives \citep{zhao2025onetoken, huang2025verifiers, xu2025tinyv, yuan2026miracle,
-ray2026fuzzing} report error rates, not how accepted errors align across prompts.
+verifier false positives \citep{zhao2025onetoken, huang2025verifiers, xu2025tinyv,
+yuan2026miracle} report error rates, not how accepted errors align across prompts.
 
 \paragraph{Systematic error, and what is new here.} \citet{egashira2026delay} establish the claim
 we build on: the outcome ``[is] not determined by the overall error rate but by the specific pattern
@@ -637,7 +640,7 @@ the error rate fixed and vary how many prompts share the accepted response. Ours
 mechanism (a cross-prompt covariance that vanishes identically without sharing, giving a
 discriminating control rather than an association), and the sign, since their outcomes are all
 non-positive whereas our largest effect is active \emph{suppression}. \citet{zhang2026leaky} finds
-inheritance rather than learned exploitation, \citet{khalifa2026countdown} finds amplification, and
+inheritance rather than learned exploitation, \citet{khalifa2026countdown} find amplification, and
 \citet{nishimura2026specgaming} find specification gaming rising after RL reasoning training.
 \citet{everitt2017corrupted}, \citet{skalse2022defining} and \citet{gao2023scaling} describe what a
 corrupted reward \emph{can} do; we ask what an ordinary optimiser does with one. Work on the
@@ -655,7 +658,7 @@ copies of the same architecture show no dependence on leak breadth. Controls wit
 structure-blind base show sharing at RL time is not by itself enough, placing the mechanism in two
 stages. The quantity to audit is therefore not how often a verifier is wrong, nor breadth of
 acceptance on its own, but whether the false positives it admits are error modes the model already
-produces the same way across prompts. This is the sense in which \citet{zhang2026leaky} find selection of pre-existing
+produces the same way across prompts. This is the sense in which \citet{zhang2026leaky} finds selection of pre-existing
 error modes rather than learned exploitation.
 
 \paragraph{Limitations and use of LLMs.} Proposition~\ref{prop:threshold} assumes a coherent

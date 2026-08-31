@@ -8,7 +8,6 @@ bibtex main > /dev/null 2>&1 || true
 pdflatex -interaction=nonstopmode main.tex > /dev/null 2>&1 || true
 pdflatex -interaction=nonstopmode main.tex > /dev/null 2>&1 || true
 echo "built: $(pdfinfo main.pdf | grep Pages)"
-grep -c '??' numbers_placeholder.tex > /dev/null
 MISSING=$(python3 - <<'PY'
 import json, re, os
 nums = set(json.load(open('../results/numbers.json')).keys())

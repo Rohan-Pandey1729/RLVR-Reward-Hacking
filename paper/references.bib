@@ -1,247 +1,478 @@
-% All entries verified against arXiv abstract pages (titles, author lists, dates, venues).
-
-@article{shao2024deepseekmath,
-  title  = {{DeepSeekMath}: Pushing the Limits of Mathematical Reasoning in Open Language Models},
-  author = {Shao, Zhihong and Wang, Peiyi and Zhu, Qihao and Xu, Runxin and Song, Junxiao and Bi, Xiao and Zhang, Haowei and Zhang, Mingchuan and Li, Y. K. and Wu, Y. and Guo, Daya},
-  journal = {arXiv preprint arXiv:2402.03300},
-  year   = {2024}
+@misc{shao2024deepseekmath,
+      title={DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models}, 
+      author={Zhihong Shao and Peiyi Wang and Qihao Zhu and Runxin Xu and Junxiao Song and Xiao Bi and Haowei Zhang and Mingchuan Zhang and Y. K. Li and Y. Wu and Daya Guo},
+      year={2024},
+      eprint={2402.03300},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2402.03300}, 
 }
 
-@article{liu2025drgrpo,
-  title     = {Understanding {R1}-Zero-Like Training: A Critical Perspective},
-  author    = {Liu, Zichen and Chen, Changyu and Li, Wenjun and Qi, Penghui and Pang, Tianyu and Du, Chao and Lee, Wee Sun and Lin, Min},
-  journal   = {arXiv preprint arXiv:2503.20783},
-  year      = {2025}
+@misc{liu2025drgrpo,
+      title={Understanding R1-Zero-Like Training: A Critical Perspective}, 
+      author={Zichen Liu and Changyu Chen and Wenjun Li and Penghui Qi and Tianyu Pang and Chao Du and Wee Sun Lee and Min Lin},
+      year={2025},
+      eprint={2503.20783},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2503.20783}, 
 }
 
-@article{yu2025dapo,
-  title  = {{DAPO}: An Open-Source {LLM} Reinforcement Learning System at Scale},
-  author = {Yu, Qiying and Zhang, Zheng and Zhu, Ruofei and Yuan, Yufeng and Zuo, Xiaochen and Yue, Yu and Dai, Weinan and Fan, Tiantian and Liu, Gaohong and Liu, Lingjun and Liu, Xin and Lin, Haibin and Lin, Zhiqi and Ma, Bole and Sheng, Guangming and Tong, Yuxuan and Zhang, Chi and Zhang, Mofan and Zhang, Wang and Zhu, Hang and Zhu, Jinhua and Chen, Jiaze and Chen, Jiangjie and Wang, Chengyi and Yu, Hongli and Song, Yuxuan and Wei, Xiangpeng and Zhou, Hao and Liu, Jingjing and Ma, Wei-Ying and Zhang, Ya-Qin and Yan, Lin and Qiao, Mu and Wu, Yonghui and Wang, Mingxuan},
-  journal = {arXiv preprint arXiv:2503.14476},
-  year   = {2025}
+@misc{yu2025dapo,
+      title={DAPO: An Open-Source LLM Reinforcement Learning System at Scale}, 
+      author={Qiying Yu and Zheng Zhang and Ruofei Zhu and Yufeng Yuan and Xiaochen Zuo and Yu Yue and Weinan Dai and Tiantian Fan and Gaohong Liu and Lingjun Liu and Xin Liu and Haibin Lin and Zhiqi Lin and Bole Ma and Guangming Sheng and Yuxuan Tong and Chi Zhang and Mofan Zhang and Wang Zhang and Hang Zhu and Jinhua Zhu and Jiaze Chen and Jiangjie Chen and Chengyi Wang and Hongli Yu and Yuxuan Song and Xiangpeng Wei and Hao Zhou and Jingjing Liu and Wei-Ying Ma and Ya-Qin Zhang and Lin Yan and Mu Qiao and Yonghui Wu and Mingxuan Wang},
+      year={2025},
+      eprint={2503.14476},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2503.14476}, 
 }
 
 @inproceedings{ahmadian2024rloo,
-  title     = {Back to Basics: Revisiting {REINFORCE}-Style Optimization for Learning from Human Feedback in {LLM}s},
-  author    = {Ahmadian, Arash and Cremer, Chris and Gall{\'e}, Matthias and Fadaee, Marzieh and Kreutzer, Julia and Pietquin, Olivier and {\"U}st{\"u}n, Ahmet and Hooker, Sara},
-  booktitle = {Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)},
-  pages     = {12248--12267},
-  year      = {2024}
+      title = "Back to Basics: Revisiting {REINFORCE}-Style Optimization for Learning from Human Feedback in {LLM}s",
+      author={Arash Ahmadian and Chris Cremer and Matthias Gallé and Marzieh Fadaee and Julia Kreutzer and Olivier Pietquin and Ahmet Üstün and Sara Hooker},
+      booktitle = "Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)",
+      month = aug,
+      year = "2024",
+      address = "Bangkok, Thailand",
+      publisher = "Association for Computational Linguistics",
+      url = "https://aclanthology.org/2024.acl-long.662/",
+      doi = "10.18653/v1/2024.acl-long.662",
+      pages = "12248--12267",
+      abstract = "AI alignment in the shape of Reinforcement Learning from Human Feedback (RLHF) is increasingly treated as a crucial ingredient for high performance large language models. Proximal Policy Optimization (PPO) has been installed by the seminal literature as the standard method for the RL part of RLHF. However, it involves both high computational cost and sensitive hyperparameter tuning. We posit that most of the motivational principles that led to the development of PPO are less of a practical concern in RLHF and advocate for a less computationally expensive method that preserves and even increases performance. We revisit how alignment from human preferences is formulated in the context of RL. Keeping simplicity as a guiding principle, we show that many components of PPO are unnecessary in an RLHF context and that far simpler REINFORCE-style optimization variants outperform both PPO and newly proposed ``RL-free'' methods such as DPO and RAFT. Our work suggests that careful adaptation to LLMs alignment characteristics allows benefiting from online RL optimization at low cost."
+}
+
+% ---- RL, RLHF, and learned verifiers: foundations -----------------------------------
+@misc{schulman2017ppo,
+      title={Proximal Policy Optimization Algorithms}, 
+      author={John Schulman and Filip Wolski and Prafulla Dhariwal and Alec Radford and Oleg Klimov},
+      year={2017},
+      eprint={1707.06347},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/1707.06347}, 
+}
+
+@inproceedings{peters2010reps,
+      author={Jan Peters and Katharina M{\"u}lling and Yasemin Altun},
+      title = {Relative entropy policy search},
+      year = {2010},
+      publisher = {AAAI Press},
+      abstract = {Policy search is a successful approach to reinforcement learning. However, policy improvements often result in the loss of information. Hence, it has been marred by premature convergence and implausible solutions. As first suggested in the context of covariant policy gradients (Bagnell and Schneider 2003), many of these problems may be addressed by constraining the information loss. In this paper, we continue this path of reasoning and suggest the Relative Entropy Policy Search (REPS) method. The resulting method differs significantly from previous policy gradient approaches and yields an exact update step. It works well on typical reinforcement learning benchmark problems.},
+      booktitle = {Proceedings of the Twenty-Fourth AAAI Conference on Artificial Intelligence},
+      pages = {1607–1612},
+      numpages = {6},
+      location = {Atlanta, Georgia},
+      series = {AAAI'10}
+}
+
+@inproceedings{vaswani2017attention,
+      title={Attention is All you Need},
+      author={Ashish Vaswani and Noam Shazeer and Niki Parmar and Jakob Uszkoreit and Llion Jones and Aidan N. Gomez and {\L}ukasz Kaiser and Illia Polosukhin},
+      year = {2017},
+      isbn = {9781510860964},
+      publisher = {Curran Associates Inc.},
+      address = {Red Hook, NY, USA},
+      abstract = {The dominant sequence transduction models are based on complex recurrent or convolutional neural networks that include an encoder and a decoder. The best performing models also connect the encoder and decoder through an attention mechanism. We propose a new simple network architecture, the Transformer, based solely on attention mechanisms, dispensing with recurrence and convolutions entirely. Experiments on two machine translation tasks show these models to be superior in quality while being more parallelizable and requiring significantly less time to train. Our model achieves 28.4 BLEU on the WMT 2014 English-to-German translation task, improving over the existing best results, including ensembles, by over 2 BLEU. On the WMT 2014 English-to-French translation task, our model establishes a new single-model state-of-the-art BLEU score of 41.0 after training for 3.5 days on eight GPUs, a small fraction of the training costs of the best models from the literature.},
+      booktitle = {Proceedings of the 31st International Conference on Neural Information Processing Systems},
+      pages = {6000–6010},
+      numpages = {11},
+      location = {Long Beach, California, USA},
+      series = {NIPS'17}
+}
+
+@inproceedings{kingma2015adam,
+      author    = {Kingma, Diederik P. and Ba, Jimmy},
+      title     = {Adam: A Method for Stochastic Optimization},
+      booktitle = {International Conference on Learning Representations (ICLR)},
+      year      = {2015},
+      url       = {https://arxiv.org/abs/1412.6980}
+}
+
+@inproceedings{stiennon2020summarize,
+      author = {Stiennon, Nisan and Ouyang, Long and Wu, Jeff and Ziegler, Daniel M. and Lowe, Ryan and Voss, Chelsea and Radford, Alec and Amodei, Dario and Christiano, Paul},
+      title = {Learning to summarize from human feedback},
+      year = {2020},
+      isbn = {9781713829546},
+      publisher = {Curran Associates Inc.},
+      address = {Red Hook, NY, USA},
+      abstract = {As language models become more powerful, training and evaluation are increasingly bottlenecked by the data and metrics used for a particular task. For example, summarization models are often trained to predict human reference summaries and evaluated using ROUGE, but both of these metrics are rough proxies for what we really care about—summary quality. In this work, we show that it is possible to significantly improve summary quality by training a model to optimize for human preferences. We collect a large, high-quality dataset of human comparisons between summaries, train a model to predict the human-preferred summary, and use that model as a reward function to fine-tune a summarization policy using reinforcement learning. We apply our method to a version of the TL;DR dataset of Reddit posts [63] and find that our models significantly outperform both human reference summaries and much larger models fine-tuned with supervised learning alone. Our models also transfer to CNN/DM news articles [22], producing summaries nearly as good as the human reference without any news-specific fine-tuning. We conduct extensive analyses to understand our human feedback dataset and fine-tuned models. We establish that our reward model generalizes to new datasets, and that optimizing our reward model results in better summaries than optimizing ROUGE according to humans. We hope the evidence from our paper motivates machine learning researchers to pay closer attention to how their training loss affects the model behavior they actually want.},
+      booktitle = {Proceedings of the 34th International Conference on Neural Information Processing Systems},
+      articleno = {253},
+      numpages = {14},
+      location = {Vancouver, BC, Canada},
+      series = {NIPS '20}
+}
+
+@inproceedings{ouyang2022instructgpt,
+      author = {Ouyang, Long and Wu, Jeff and Jiang, Xu and Almeida, Diogo and Wainwright, Carroll L. and Mishkin, Pamela and Zhang, Chong and Agarwal, Sandhini and Slama, Katarina and Ray, Alex and Schulman, John and Hilton, Jacob and Kelton, Fraser and Miller, Luke and Simens, Maddie and Askell, Amanda and Welinder, Peter and Christiano, Paul and Leike, Jan and Lowe, Ryan},
+      title = {Training language models to follow instructions with human feedback},
+      year = {2022},
+      isbn = {9781713871088},
+      publisher = {Curran Associates Inc.},
+      address = {Red Hook, NY, USA},
+      abstract = {Making language models bigger does not inherently make them better at following a user's intent. For example, large language models can generate outputs that are untruthful, toxic, or simply not helpful to the user. In other words, these models are not aligned with their users. In this paper, we show an avenue for aligning language models with user intent on a wide range of tasks by fine-tuning with human feedback. Starting with a set of labeler-written prompts and prompts submitted through a language model API, we collect a dataset of labeler demonstrations of the desired model behavior, which we use to fine-tune GPT-3 using supervised learning. We then collect a dataset of rankings of model outputs, which we use to further fine-tune this supervised model using reinforcement learning from human feedback. We call the resulting models InstructGPT. In human evaluations on our prompt distribution, outputs from the 1.3B parameter InstructGPT model are preferred to outputs from the 175B GPT-3, despite having 100x fewer parameters. Moreover, InstructGPT models show improvements in truthfulness and reductions in toxic output generation while having minimal performance regressions on public NLP datasets. Even though InstructGPT still makes simple mistakes, our results show that fine-tuning with human feedback is a promising direction for aligning language models with human intent.},
+      booktitle = {Proceedings of the 36th International Conference on Neural Information Processing Systems},
+      articleno = {2011},
+      numpages = {15},
+      location = {New Orleans, LA, USA},
+      series = {NIPS '22}
+}
+
+@inproceedings{rafailov2023dpo,
+      author = {Rafailov, Rafael and Sharma, Archit and Mitchell, Eric and Ermon, Stefano and Manning, Christopher D. and Finn, Chelsea},
+      title = {Direct preference optimization: your language model is secretly a reward model},
+      year = {2023},
+      publisher = {Curran Associates Inc.},
+      address = {Red Hook, NY, USA},
+      abstract = {While large-scale unsupervised language models (LMs) learn broad world knowledge and some reasoning skills, achieving precise control of their behavior is difficult due to the completely unsupervised nature of their training. Existing methods for gaining such steerability collect human labels of the relative quality of model generations and fine-tune the unsupervised LM to align with these preferences, often with reinforcement learning from human feedback (RLHF). However, RLHF is a complex and often unstable procedure, first fitting a reward model that reflects the human preferences, and then fine-tuning the large unsupervised LM using reinforcement learning to maximize this estimated reward without drifting too far from the original model. In this paper, we leverage a mapping between reward functions and optimal policies to show that this constrained reward maximization problem can be optimized exactly with a single stage of policy training, essentially solving a classification problem on the human preference data. The resulting algorithm, which we call Direct Preference Optimization (DPO), is stable, performant, and computationally lightweight, eliminating the need for fitting a reward model, sampling from the LM during fine-tuning, or performing significant hyperparameter tuning. Our experiments show that DPO can fine-tune LMs to align with human preferences as well as or better than existing methods. Notably, fine-tuning with DPO exceeds RLHF's ability to control sentiment of generations and improves response quality in summarization and single-turn dialogue while being substantially simpler to implement and train.},
+      booktitle = {Proceedings of the 37th International Conference on Neural Information Processing Systems},
+      articleno = {2338},
+      numpages = {14},
+      location = {New Orleans, LA, USA},
+      series = {NIPS '23}
+}
+
+@misc{cobbe2021gsm8k,
+      title={Training Verifiers to Solve Math Word Problems}, 
+      author={Karl Cobbe and Vineet Kosaraju and Mohammad Bavarian and Mark Chen and Heewoo Jun and Lukasz Kaiser and Matthias Plappert and Jerry Tworek and Jacob Hilton and Reiichiro Nakano and Christopher Hesse and John Schulman},
+      year={2021},
+      eprint={2110.14168},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2110.14168}, 
+}
+
+@misc{lightman2024verify,
+      title={Let's Verify Step by Step}, 
+      author={Hunter Lightman and Vineet Kosaraju and Yura Burda and Harri Edwards and Bowen Baker and Teddy Lee and Jan Leike and John Schulman and Ilya Sutskever and Karl Cobbe},
+      year={2023},
+      eprint={2305.20050},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2305.20050}, 
+}
+
+@article{deepseekai2025r1,
+      title={DeepSeek-R1 incentivizes reasoning in LLMs through reinforcement learning},
+      volume={645},
+      ISSN={1476-4687},
+      url={http://dx.doi.org/10.1038/s41586-025-09422-z},
+      DOI={10.1038/s41586-025-09422-z},
+      number={8081},
+      journal={Nature},
+      publisher={Springer Science and Business Media LLC},
+      author={Guo, Daya and Yang, Dejian and Zhang, Haowei and Song, Junxiao and Wang, Peiyi and Zhu, Qihao and Xu, Runxin and Zhang, Ruoyu and Ma, Shirong and Bi, Xiao and Zhang, Xiaokang and Yu, Xingkai and Wu, Yu and Wu, Z. F. and Gou, Zhibin and Shao, Zhihong and Li, Zhuoshu and Gao, Ziyi and Liu, Aixin and Xue, Bing and Wang, Bingxuan and Wu, Bochao and Feng, Bei and Lu, Chengda and Zhao, Chenggang and Deng, Chengqi and Ruan, Chong and Dai, Damai and Chen, Deli and Ji, Dongjie and Li, Erhang and Lin, Fangyun and Dai, Fucong and Luo, Fuli and Hao, Guangbo and Chen, Guanting and Li, Guowei and Zhang, H. and Xu, Hanwei and Ding, Honghui and Gao, Huazuo and Qu, Hui and Li, Hui and Guo, Jianzhong and Li, Jiashi and Chen, Jingchang and Yuan, Jingyang and Tu, Jinhao and Qiu, Junjie and Li, Junlong and Cai, J. L. and Ni, Jiaqi and Liang, Jian and Chen, Jin and Dong, Kai and Hu, Kai and You, Kaichao and Gao, Kaige and Guan, Kang and Huang, Kexin and Yu, Kuai and Wang, Lean and Zhang, Lecong and Zhao, Liang and Wang, Litong and Zhang, Liyue and Xu, Lei and Xia, Leyi and Zhang, Mingchuan and Zhang, Minghua and Tang, Minghui and Zhou, Mingxu and Li, Meng and Wang, Miaojun and Li, Mingming and Tian, Ning and Huang, Panpan and Zhang, Peng and Wang, Qiancheng and Chen, Qinyu and Du, Qiushi and Ge, Ruiqi and Zhang, Ruisong and Pan, Ruizhe and Wang, Runji and Chen, R. J. and Jin, R. L. and Chen, Ruyi and Lu, Shanghao and Zhou, Shangyan and Chen, Shanhuang and Ye, Shengfeng and Wang, Shiyu and Yu, Shuiping and Zhou, Shunfeng and Pan, Shuting and Li, S. S. and Zhou, Shuang and Wu, Shaoqing and Yun, Tao and Pei, Tian and Sun, Tianyu and Wang, T. and Zeng, Wangding and Liu, Wen and Liang, Wenfeng and Gao, Wenjun and Yu, Wenqin and Zhang, Wentao and Xiao, W. L. and An, Wei and Liu, Xiaodong and Wang, Xiaohan and Chen, Xiaokang and Nie, Xiaotao and Cheng, Xin and Liu, Xin and Xie, Xin and Liu, Xingchao and Yang, Xinyu and Li, Xinyuan and Su, Xuecheng and Lin, Xuheng and Li, X. Q. and Jin, Xiangyue and Shen, Xiaojin and Chen, Xiaosha and Sun, Xiaowen and Wang, Xiaoxiang and Song, Xinnan and Zhou, Xinyi and Wang, Xianzu and Shan, Xinxia and Li, Y. K. and Wang, Y. Q. and Wei, Y. X. and Zhang, Yang and Xu, Yanhong and Li, Yao and Zhao, Yao and Sun, Yaofeng and Wang, Yaohui and Yu, Yi and Zhang, Yichao and Shi, Yifan and Xiong, Yiliang and He, Ying and Piao, Yishi and Wang, Yisong and Tan, Yixuan and Ma, Yiyang and Liu, Yiyuan and Guo, Yongqiang and Ou, Yuan and Wang, Yuduan and Gong, Yue and Zou, Yuheng and He, Yujia and Xiong, Yunfan and Luo, Yuxiang and You, Yuxiang and Liu, Yuxuan and Zhou, Yuyang and Zhu, Y. X. and Huang, Yanping and Li, Yaohui and Zheng, Yi and Zhu, Yuchen and Ma, Yunxian and Tang, Ying and Zha, Yukun and Yan, Yuting and Ren, Z. Z. and Ren, Zehui and Sha, Zhangli and Fu, Zhe and Xu, Zhean and Xie, Zhenda and Zhang, Zhengyan and Hao, Zhewen and Ma, Zhicheng and Yan, Zhigang and Wu, Zhiyu and Gu, Zihui and Zhu, Zijia and Liu, Zijun and Li, Zilin and Xie, Ziwei and Song, Ziyang and Pan, Zizheng and Huang, Zhen and Xu, Zhipeng and Zhang, Zhongyu and Zhang, Zhen},
+      year={2025},
+      month=Sept, pages={633–638}
 }
 
 % ---- the filter / null model -------------------------------------------------------
 @inproceedings{korbak2022bayesian,
-  title     = {{RL} with {KL} penalties is better viewed as {B}ayesian inference},
-  author    = {Korbak, Tomasz and Perez, Ethan and Buckley, Christopher L},
-  booktitle = {Findings of the Association for Computational Linguistics: EMNLP 2022},
-  year      = {2022}
+      title={RL with KL penalties is better viewed as Bayesian inference},
+      author={Tomasz Korbak and Ethan Perez and Christopher L. Buckley},
+      booktitle={Conference on Empirical Methods in Natural Language Processing},
+      year={2022},
+      url={https://api.semanticscholar.org/CorpusID:248987624}
 }
 
-@article{gai2025smoothing,
-  title  = {Differential Smoothing Mitigates Sharpening and Improves {LLM} Reasoning},
-  author = {Gai, Jingchu and Zeng, Guanning and Zhang, Huaqing and Raghunathan, Aditi},
-  journal = {arXiv preprint arXiv:2511.19942},
-  year   = {2025}
+@misc{gai2025smoothing,
+      title={Differential Smoothing Mitigates Sharpening and Improves LLM Reasoning}, 
+      author={Jingchu Gai and Guanning Zeng and Huaqing Zhang and Aditi Raghunathan},
+      year={2025},
+      eprint={2511.19942},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2511.19942}, 
 }
 
-@inproceedings{kruszewski2026filtering,
-  title     = {Whatever Remains Must Be True: Filtering Drives Reasoning in {LLM}s, Shaping Diversity},
-  author    = {Kruszewski, Germ{\'a}n and Erbacher, Pierre and Rozen, Jos and Dymetman, Marc},
-  booktitle = {International Conference on Learning Representations (ICLR)},
-  year      = {2026}
+@misc{kruszewski2026filtering,
+      title={Whatever Remains Must Be True: Filtering Drives Reasoning in LLMs, Shaping Diversity}, 
+      author={Germán Kruszewski and Pierre Erbacher and Jos Rozen and Marc Dymetman},
+      year={2026},
+      eprint={2512.05962},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2512.05962}, 
 }
 
-@article{dymetman2026binary,
-  title  = {Binary Rewards and Reinforcement Learning: Fundamental Challenges},
-  author = {Dymetman, Marc},
-  journal = {arXiv preprint arXiv:2605.02375},
-  year   = {2026}
+@misc{dymetman2026binary,
+      title={Binary Rewards and Reinforcement Learning: Fundamental Challenges}, 
+      author={Marc Dymetman},
+      year={2026},
+      eprint={2605.02375},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2605.02375}, 
 }
 
-@article{lochab2026ucpo,
-  title  = {Uniform-Correct Policy Optimization: Breaking {RLVR}'s Indifference to Diversity},
-  author = {Lochab, Anamika and Li, Bolian and Zhang, Ruqi},
-  journal = {arXiv preprint arXiv:2605.00365},
-  year   = {2026}
+@misc{lochab2026ucpo,
+      title={Uniform-Correct Policy Optimization: Breaking RLVR's Indifference to Diversity}, 
+      author={Anamika Lochab and Bolian Li and Ruqi Zhang},
+      year={2026},
+      eprint={2605.00365},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2605.00365}, 
 }
 
-@inproceedings{yue2025rlincentivize,
-  title     = {Does Reinforcement Learning Really Incentivize Reasoning Capacity in {LLM}s Beyond the Base Model?},
-  author    = {Yue, Yang and Chen, Zhiqi and Lu, Rui and Zhao, Andrew and Wang, Zhaokai and Yue, Yang and Song, Shiji and Huang, Gao},
-  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
-  year      = {2025}
+@misc{yue2025rlincentivize,
+      title={Does Reinforcement Learning Really Incentivize Reasoning Capacity in LLMs Beyond the Base Model?}, 
+      author={Yang Yue and Zhiqi Chen and Rui Lu and Andrew Zhao and Zhaokai Wang and Yang Yue and Shiji Song and Gao Huang},
+      year={2025},
+      eprint={2504.13837},
+      archivePrefix={arXiv},
+      primaryClass={cs.AI},
+      url={https://arxiv.org/abs/2504.13837}, 
 }
 
 % ---- the contradictory empirical evidence ------------------------------------------
-@article{zhang2026leaky,
-  title  = {When the Reward Suite Is Leaky: A Preregistered Causal Contrast of Natural Verifier False Positives in {RLVR}},
-  author = {Zhang, Chuyifei},
-  journal = {arXiv preprint arXiv:2607.11022},
-  year   = {2026}
+@misc{zhang2026leaky,
+      title={When the Reward Suite Is Leaky: A Preregistered Causal Contrast of Natural Verifier False Positives in RLVR}, 
+      author={Chuyifei Zhang},
+      year={2026},
+      eprint={2607.11022},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2607.11022}, 
 }
 
-@inproceedings{egashira2026delay,
-  title     = {Delay, Plateau, or Collapse: Evaluating the Impact of Systematic Verification Error on {RLVR}},
-  author    = {Egashira, Kazuki and Vero, Mark and Dekoninck, Jasper and Dorner, Florian E. and Staab, Robin and Vechev, Martin},
-  booktitle = {Conference on Language Modeling (COLM)},
-  note      = {arXiv:2605.02909v2},
-  year      = {2026}
+@misc{egashira2026delay,
+      title={Delay, Plateau, or Collapse: Evaluating the Impact of Systematic Verification Error on RLVR}, 
+      author={Kazuki Egashira and Mark Vero and Jasper Dekoninck and Florian E. Dorner and Robin Staab and Martin Vechev},
+      year={2026},
+      eprint={2605.02909},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2605.02909}, 
 }
 
-@inproceedings{ackermann2026gradreg,
-  title     = {Gradient Regularization Mitigates Reward Hacking in Reinforcement Learning from Human Feedback and Verifiable Rewards},
-  author    = {Ackermann, Johannes and Noukhovitch, Michael and Ishida, Takashi and Sugiyama, Masashi},
-  booktitle = {International Conference on Machine Learning (ICML)},
-  year      = {2026}
+@misc{ackermann2026gradreg,
+      title={Gradient Regularization Mitigates Reward Hacking in Reinforcement Learning from Human Feedback and Verifiable Rewards}, 
+      author={Johannes Ackermann and Michael Noukhovitch and Takashi Ishida and Masashi Sugiyama},
+      year={2026},
+      eprint={2602.18037},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2602.18037}, 
 }
 
-@article{ray2026fuzzing,
-  title  = {Before the Model Learns the Bug: Fuzzing {RLVR} Verifiers},
-  author = {Ray, Jaideep},
-  journal = {arXiv preprint arXiv:2606.01066},
-  year   = {2026}
+@misc{khalifa2026countdown,
+      title={Countdown-Code: A Testbed for Studying The Emergence and Generalization of Reward Hacking in RLVR}, 
+      author={Muhammad Khalifa and Zohaib Khan and Omer Tafveez and Hao Peng and Lu Wang},
+      year={2026},
+      eprint={2603.07084},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2603.07084}, 
 }
 
-@article{khalifa2026countdown,
-  title  = {Countdown-Code: A Testbed for Studying The Emergence and Generalization of Reward Hacking in {RLVR}},
-  author = {Khalifa, Muhammad and Khan, Zohaib and Tafveez, Omer and Peng, Hao and Wang, Lu},
-  journal = {arXiv preprint arXiv:2603.07084},
-  year   = {2026}
+@misc{nishimura2026specgaming,
+      title={Towards Understanding Specification Gaming in Reasoning Models}, 
+      author={Kei Nishimura-Gasparian and Robert McCarthy and David Lindner},
+      year={2026},
+      eprint={2605.02269},
+      archivePrefix={arXiv},
+      primaryClass={cs.AI},
+      url={https://arxiv.org/abs/2605.02269}, 
 }
 
-@article{nishimura2026specgaming,
-  title  = {Towards Understanding Specification Gaming in Reasoning Models},
-  author = {Nishimura-Gasparian, Kei and McCarthy, Robert and Lindner, David},
-  journal = {arXiv preprint arXiv:2605.02269},
-  year   = {2026}
-}
-
-@article{macdiarmid2025natural,
-  title  = {Natural Emergent Misalignment from Reward Hacking in Production {RL}},
-  author = {MacDiarmid, Monte and Wright, Benjamin and Uesato, Jonathan and Benton, Joe and Kutasov, Jon and Price, Sara and Bouscal, Naia and Bowman, Sam and Bricken, Trenton and Cloud, Alex and Denison, Carson and Gasteiger, Johannes and Greenblatt, Ryan and Leike, Jan and Lindsey, Jack and Mikulik, Vlad and Perez, Ethan and Rodrigues, Alex and Thomas, Drake and Webson, Albert and Ziegler, Daniel and Hubinger, Evan},
-  journal = {arXiv preprint arXiv:2511.18397},
-  year   = {2025}
+@misc{macdiarmid2025natural,
+      title={Natural Emergent Misalignment from Reward Hacking in Production RL}, 
+      author={Monte MacDiarmid and Benjamin Wright and Jonathan Uesato and Joe Benton and Jon Kutasov and Sara Price and Naia Bouscal and Sam Bowman and Trenton Bricken and Alex Cloud and Carson Denison and Johannes Gasteiger and Ryan Greenblatt and Jan Leike and Jack Lindsey and Vlad Mikulik and Ethan Perez and Alex Rodrigues and Drake Thomas and Albert Webson and Daniel Ziegler and Evan Hubinger},
+      year={2025},
+      eprint={2511.18397},
+      archivePrefix={arXiv},
+      primaryClass={cs.AI},
+      url={https://arxiv.org/abs/2511.18397}, 
 }
 
 % ---- verifier error: measurement and noise robustness ------------------------------
-@article{zhao2025onetoken,
-  title  = {One Token to Fool {LLM}-as-a-Judge},
-  author = {Zhao, Yulai and Liu, Haolin and Yu, Dian and Kung, Sunyuan and Chen, Meijia and Mi, Haitao and Yu, Dong},
-  journal = {arXiv preprint arXiv:2507.08794},
-  year   = {2025}
+@misc{zhao2025onetoken,
+      title={One Token to Fool LLM-as-a-Judge}, 
+      author={Yulai Zhao and Haolin Liu and Dian Yu and Sunyuan Kung and Meijia Chen and Haitao Mi and Dong Yu},
+      year={2026},
+      eprint={2507.08794},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2507.08794}, 
 }
 
-@article{huang2025verifiers,
-  title  = {From Accuracy to Robustness: A Study of Rule- and Model-based Verifiers in Mathematical Reasoning},
-  author = {Huang, Yuzhen and Zeng, Weihao and Zeng, Xingshan and Zhu, Qi and He, Junxian},
-  journal = {arXiv preprint arXiv:2505.22203},
-  year   = {2025}
+@misc{huang2025verifiers,
+      title={From Accuracy to Robustness: A Study of Rule- and Model-based Verifiers in Mathematical Reasoning}, 
+      author={Yuzhen Huang and Weihao Zeng and Xingshan Zeng and Qi Zhu and Junxian He},
+      year={2026},
+      eprint={2505.22203},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2505.22203}, 
 }
 
-@article{xu2025tinyv,
-  title  = {{TinyV}: Reducing False Negatives in Verification Improves {RL} for {LLM} Reasoning},
-  author = {Xu, Zhangchen and Li, Yuetai and Jiang, Fengqing and Ramasubramanian, Bhaskar and Niu, Luyao and Lin, Bill Yuchen and Poovendran, Radha},
-  journal = {arXiv preprint arXiv:2505.14625},
-  year   = {2025}
+@misc{xu2025tinyv,
+      title={TinyV: Reducing False Negatives in Verification Improves RL for LLM Reasoning}, 
+      author={Zhangchen Xu and Yuetai Li and Fengqing Jiang and Bhaskar Ramasubramanian and Luyao Niu and Bill Yuchen Lin and Radha Poovendran},
+      year={2025},
+      eprint={2505.14625},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2505.14625}, 
 }
 
-@inproceedings{yuan2026miracle,
-  title     = {Curing Miracle Steps in {LLM} Mathematical Reasoning with Rubric Rewards},
-  author    = {Yuan, Youliang and Mang, Qiuyang and Chen, Jingbang and Wan, Hong and Liu, Xiaoyuan and Xu, Junjielong and Huang, Jen-tse and Wang, Wenxuan and Jiao, Wenxiang and He, Pinjia},
-  booktitle = {Annual Meeting of the Association for Computational Linguistics (ACL)},
-  year      = {2026}
+@misc{yuan2026miracle,
+      title={Curing Miracle Steps in LLM Mathematical Reasoning with Rubric Rewards}, 
+      author={Youliang Yuan and Qiuyang Mang and Jingbang Chen and Hong Wan and Xiaoyuan Liu and Junjielong Xu and Jen-tse Huang and Wenxuan Wang and Wenxiang Jiao and Pinjia He},
+      year={2026},
+      eprint={2510.07774},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2510.07774}, 
 }
 
-@article{rad2026rateorfate,
-  title  = {Rate or Fate? {RLV$^\varepsilon$R}: Reinforcement Learning with Verifiable Noisy Rewards},
-  author = {Rad, Ali and Filom, Khashayar and Keivan, Darioush and Mohajerin Esfahani, Peyman and Kamalinejad, Ehsan},
-  journal = {arXiv preprint arXiv:2601.04411},
-  year   = {2026}
+@misc{rad2026rateorfate,
+      title={Rate or Fate? RLV$^\varepsilon$R: Reinforcement Learning with Verifiable Noisy Rewards}, 
+      author={Ali Rad and Khashayar Filom and Darioush Keivan and Peyman Mohajerin Esfahani and Ehsan Kamalinejad},
+      year={2026},
+      eprint={2601.04411},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2601.04411}, 
 }
 
-@article{cai2025noisyverifier,
-  title  = {Reinforcement Learning with Verifiable yet Noisy Rewards under Imperfect Verifiers},
-  author = {Cai, Xin-Qiang and Wang, Wei and Liu, Feng and Liu, Tongliang and Niu, Gang and Sugiyama, Masashi},
-  journal = {arXiv preprint arXiv:2510.00915},
-  year   = {2025}
+@misc{cai2025noisyverifier,
+      title={Reinforcement Learning with Verifiable yet Noisy Rewards under Imperfect Verifiers}, 
+      author={Xin-Qiang Cai and Wei Wang and Feng Liu and Tongliang Liu and Gang Niu and Masashi Sugiyama},
+      year={2026},
+      eprint={2510.00915},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2510.00915}, 
 }
 
-@article{plesner2026imperfect,
-  title  = {An Imperfect Verifier is Good Enough: Learning with Noisy Rewards},
-  author = {Plesner, Andreas and Guzm{\'a}n, Francisco and Athalye, Anish},
-  journal = {arXiv preprint arXiv:2604.07666},
-  year   = {2026}
+@misc{plesner2026imperfect,
+      title={An Imperfect Verifier is Good Enough: Learning with Noisy Rewards}, 
+      author={Andreas Plesner and Francisco Guzmán and Anish Athalye},
+      year={2026},
+      eprint={2604.07666},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2604.07666}, 
 }
 
-@inproceedings{wang2020perturbed,
-  title     = {Reinforcement Learning with Perturbed Rewards},
-  author    = {Wang, Jingkang and Liu, Yang and Li, Bo},
-  booktitle = {AAAI Conference on Artificial Intelligence},
-  year      = {2020}
+@misc{wang2020perturbed,
+      title={Reinforcement Learning with Perturbed Rewards}, 
+      author={Jingkang Wang and Yang Liu and Bo Li},
+      year={2020},
+      eprint={1810.01032},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/1810.01032}, 
 }
 
-@article{shao2025spurious,
-  title  = {Spurious Rewards: Rethinking Training Signals in {RLVR}},
-  author = {Shao, Rulin and Li, Shuyue Stella and Xin, Rui and Geng, Scott and Wang, Yiping and Oh, Sewoong and Du, Simon Shaolei and Lambert, Nathan and Min, Sewon and Krishna, Ranjay and Tsvetkov, Yulia and Hajishirzi, Hannaneh and Koh, Pang Wei and Zettlemoyer, Luke},
-  journal = {arXiv preprint arXiv:2506.10947},
-  year   = {2025}
+@misc{shao2025spurious,
+      title={Spurious Rewards: Rethinking Training Signals in RLVR}, 
+      author={Rulin Shao and Shuyue Stella Li and Rui Xin and Scott Geng and Yiping Wang and Sewoong Oh and Simon Shaolei Du and Nathan Lambert and Sewon Min and Ranjay Krishna and Yulia Tsvetkov and Hannaneh Hajishirzi and Pang Wei Koh and Luke Zettlemoyer},
+      year={2026},
+      eprint={2506.10947},
+      archivePrefix={arXiv},
+      primaryClass={cs.AI},
+      url={https://arxiv.org/abs/2506.10947}, 
 }
 
-@article{helff2026gaming,
-  title  = {{LLM}s Gaming Verifiers: {RLVR} can Lead to Reward Hacking},
-  author = {Helff, Lukas and Delfosse, Quentin and Steinmann, David and H{\"a}rle, Ruben and Shindo, Hikaru and Schramowski, Patrick and Stammer, Wolfgang and Kersting, Kristian and Friedrich, Felix},
-  journal = {arXiv preprint arXiv:2604.15149},
-  year   = {2026}
+@misc{helff2026gaming,
+      title={LLMs Gaming Verifiers: RLVR can Lead to Reward Hacking}, 
+      author={Lukas Helff and Quentin Delfosse and David Steinmann and Ruben Härle and Hikaru Shindo and Patrick Schramowski and Wolfgang Stammer and Kristian Kersting and Felix Friedrich},
+      year={2026},
+      eprint={2604.15149},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2604.15149}, 
 }
 
 % ---- reward hacking theory ----------------------------------------------------------
 @inproceedings{everitt2017corrupted,
-  title     = {Reinforcement Learning with a Corrupted Reward Channel},
-  author    = {Everitt, Tom and Krakovna, Victoria and Orseau, Laurent and Hutter, Marcus and Legg, Shane},
-  booktitle = {International Joint Conference on Artificial Intelligence (IJCAI)},
-  year      = {2017}
+      author = {Everitt, Tom and Krakovna, Victoria and Orseau, Laurent and Legg, Shane},
+      title = {Reinforcement learning with a corrupted reward channel},
+      year = {2017},
+      isbn = {9780999241103},
+      publisher = {AAAI Press},
+      abstract = {No real-world reward function is perfect. Sensory errors and software bugs may result in agents getting higher (or lower) rewards than they should. For example, a reinforcement learning agent may prefer states where a sensory error gives it the maximum reward, but where the true reward is actually small. We formalise this problem as a generalised Markov Decision Problem called Corrupt Reward MDP. Traditional RL methods fare poorly in CRMDPs, even under strong simplifying assumptions and when trying to compensate for the possibly corrupt rewards. Two ways around the problem are investigated. First, by giving the agent richer data, such as in inverse reinforcement learning and semi-supervised reinforcement learning, reward corruption stemming from systematic sensory errors may sometimes be completely managed. Second, by using randomisation to blunt the agent's optimisation, reward corruption can be partially managed under some assumptions.},
+      booktitle = {Proceedings of the 26th International Joint Conference on Artificial Intelligence},
+      pages = {4705–4713},
+      numpages = {9},
+      location = {Melbourne, Australia},
+      series = {IJCAI'17}
 }
 
-@article{skalse2022defining,
-  title  = {Defining and Characterizing Reward Hacking},
-  author = {Skalse, Joar and Howe, Nikolaus H. R. and Krasheninnikov, Dmitrii and Krueger, David},
-  journal = {arXiv preprint arXiv:2209.13085},
-  year   = {2022}
+@inproceedings{skalse2022defining,
+      author = {Skalse, Joar and Howe, Nikolaus H. R. and Krasheninnikov, Dmitrii and Krueger, David},
+      title = {Defining and characterizing reward hacking},
+      year = {2022},
+      isbn = {9781713871088},
+      publisher = {Curran Associates Inc.},
+      address = {Red Hook, NY, USA},
+      abstract = {We provide the first formal definition of <b>reward hacking</b>, a phenomenon where optimizing an imperfect proxy reward function, $mathcal{tilde{R}}$, leads to poor performance according to the true reward function, $mathcal{R}$. We say that a proxy is <b>unhackable</b> if increasing the expected proxy return can never decrease the expected true return. Intuitively, it might be possible to create an unhackable proxy by leaving some terms out of the reward function (making it "narrower") or overlooking fine-grained distinctions between roughly equivalent outcomes, but we show this is usually not the case. A key insight is that the linearity of reward (in state-action visit counts) makes unhackability a very strong condition. In particular, for the set of all stochastic policies, two reward functions can only be unhackable if one of them is constant. We thus turn our attention to deterministic policies and finite sets of stochastic policies, where non-trivial unhackable pairs always exist, and establish necessary and sufficient conditions for the existence of simplifications, an important special case of unhackability. Our results reveal a tension between using reward functions to specify narrow tasks and aligning AI systems with human values.},
+      booktitle = {Proceedings of the 36th International Conference on Neural Information Processing Systems},
+      articleno = {687},
+      numpages = {12},
+      location = {New Orleans, LA, USA},
+      series = {NIPS '22}
 }
 
 @inproceedings{gao2023scaling,
-  title     = {Scaling Laws for Reward Model Overoptimization},
-  author    = {Gao, Leo and Schulman, John and Hilton, Jacob},
-  booktitle = {International Conference on Machine Learning (ICML)},
-  pages     = {10835--10866},
-  year      = {2023}
+      author = {Gao, Leo and Schulman, John and Hilton, Jacob},
+      title = {Scaling laws for reward model overoptimization},
+      year = {2023},
+      publisher = {JMLR.org},
+      abstract = {In reinforcement learning from human feedback, it is common to optimize against a reward model trained to predict human preferences. Because the reward model is an imperfect proxy, optimizing its value too much can hinder ground truth performance, in accordance with Goodhart's law. This effect has been frequently observed, but not carefully measured due to the expense of collecting human preference data. In this work, we use a synthetic setup in which a fixed "gold-standard" reward model plays the role of humans, providing labels used to train a proxy reward model. We study how the gold reward model score changes as we optimize against the proxy reward model using either reinforcement learning or best-of-n sampling. We find that this relationship follows a different functional form depending on the method of optimization, and that in both cases its coefficients scale smoothly with the number of reward model parameters. We also study the effect on this relationship of the size of the reward model dataset, the number of reward model and policy parameters, and the coefficient of the KL penalty added to the reward in the reinforcement learning setup. We explore the implications of these empirical results for theoretical considerations in AI alignment.},
+      booktitle = {Proceedings of the 40th International Conference on Machine Learning},
+      articleno = {437},
+      numpages = {32},
+      location = {Honolulu, Hawaii, USA},
+      series = {ICML'23}
 }
 
-% ---- optimisation background --------------------------------------------------------
 @inproceedings{mei2020global,
-  title     = {On the Global Convergence Rates of Softmax Policy Gradient Methods},
-  author    = {Mei, Jincheng and Xiao, Chenjun and Szepesv{\'a}ri, Csaba and Schuurmans, Dale},
-  booktitle = {International Conference on Machine Learning (ICML)},
-  year      = {2020}
+      author = {Mei, Jincheng and Xiao, Chenjun and Szepesv{\'a}ri, Csaba and Schuurmans, Dale},
+      title = {On the global convergence rates of softmax policy gradient methods},
+      year = {2020},
+      publisher = {JMLR.org},
+      abstract = {We make three contributions toward better understanding policy gradient methods in the tabular setting. First, we show that with the true gradient, policy gradient with a softmax parametrization converges at a O(1/t) rate, with constants depending on the problem and initialization. This result significantly expands the recent asymptotic convergence results. The analysis relies on two findings: that the softmax policy gradient satisfies a {\L}ojasiewicz inequality, and the minimum probability of an optimal action during optimization can be bounded in terms of its initial value. Second, we analyze entropy regularized policy gradient and show that it enjoys a significantly faster linear convergence rate O(e-t) toward soft-max optimal policy. This result resolves an open question in the recent literature. Finally, combining the above two results and additional new Ω(1/t) lower bound results, we explain how entropy regularization improves policy optimization, even with the true gradient, from the perspective of convergence rate. The separation of rates is further explained using the notion of non-uniform Lojasiewicz degree. These results provide a theoretical understanding of the impact of entropy and corroborate existing empirical studies.},
+      booktitle = {Proceedings of the 37th International Conference on Machine Learning},
+      articleno = {633},
+      numpages = {10},
+      series = {ICML'20}
 }
 
 @inproceedings{jacot2018ntk,
-  title     = {Neural Tangent Kernel: Convergence and Generalization in Neural Networks},
-  author    = {Jacot, Arthur and Gabriel, Franck and Hongler, Cl{\'e}ment},
-  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
-  year      = {2018}
+      author = {Jacot, Arthur and Gabriel, Franck and Hongler, Cl{\'e}ment},
+      title = {Neural tangent kernel: convergence and generalization in neural networks},
+      year = {2018},
+      publisher = {Curran Associates Inc.},
+      address = {Red Hook, NY, USA},
+      abstract = {At initialization, artificial neural networks (ANNs) are equivalent to Gaussian processes in the infinite-width limit [12, 9], thus connecting them to kernel methods. We prove that the evolution of an ANN during training can also be described by a kernel: during gradient descent on the parameters of an ANN, the network function fθ (which maps input vectors to output vectors) follows the kernel gradient of the functional cost (which is convex, in contrast to the parameter cost) w.r.t. a new kernel: the Neural Tangent Kernel (NTK). This kernel is central to describe the generalization features of ANNs. While the NTK is random at initialization and varies during training, in the infinite-width limit it converges to an explicit limiting kernel and it stays constant during training. This makes it possible to study the training of ANNs in function space instead of parameter space. Convergence of the training can then be related to the positive-definiteness of the limiting NTK. We then focus on the setting of least-squares regression and show that in the infinite-width limit, the network function fθ follows a linear differential equation during training. The convergence is fastest along the largest kernel principal components of the input data with respect to the NTK, hence suggesting a theoretical motivation for early stopping.Finally we study the NTK numerically, observe its behavior for wide networks, and compare it to the infinite-width limit.},
+      booktitle = {Proceedings of the 32nd International Conference on Neural Information Processing Systems},
+      pages = {8580–8589},
+      numpages = {10},
+      location = {Montr{\'e}al, Canada},
+      series = {NIPS'18}
 }
 
-@article{yang2026biased,
-  title  = {Your Group-Relative Advantage Is Biased},
-  author = {Yang, Fengkai and Chen, Zherui and Wang, Xiaohan and Lu, Xiaodong and Chai, Jiajun and Yin, Guojun and Lin, Wei and Ma, Shuai and Zhuang, Fuzhen and Wang, Deqing and Yang, Yaodong and Li, Jianxin and Ban, Yikun},
-  journal = {arXiv preprint arXiv:2601.08521},
-  year   = {2026}
+@misc{yang2026biased,
+      title={Your Group-Relative Advantage Is Biased}, 
+      author={Fengkai Yang and Zherui Chen and Xiaohan Wang and Xiaodong Lu and Jiajun Chai and Guojun Yin and Wei Lin and Shuai Ma and Fuzhen Zhuang and Deqing Wang and Yaodong Yang and Jianxin Li and Yikun Ban},
+      year={2026},
+      eprint={2601.08521},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2601.08521}, 
 }
 
-@article{zeng2025shrinkage,
-  title  = {Shrinking the Variance: Shrinkage Baselines for Reinforcement Learning with Verifiable Rewards},
-  author = {Zeng, Guanning and Zhou, Zhaoyi and Arora, Daman and Zanette, Andrea},
-  journal = {arXiv preprint arXiv:2511.03710},
-  year   = {2025}
+@misc{zeng2025shrinkage,
+      title={Shrinking the Variance: Shrinkage Baselines for Reinforcement Learning with Verifiable Rewards}, 
+      author={Guanning Zeng and Zhaoyi Zhou and Daman Arora and Andrea Zanette},
+      year={2026},
+      eprint={2511.03710},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2511.03710}, 
 }
