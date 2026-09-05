@@ -120,15 +120,17 @@ survives is $p_g=\pth(g_x\mid x)$. \qed
 
 \paragraph{Validity of the leading-order threshold.} The $1/N$ correction in
 \eqref{eq:threshold} is $O(1/N)$ at fixed kernel scales, but it is small \emph{relative to the
-leading term} only when
+leading term} when
 \[
 (1-\bar V)\big(|\kappa_s-\kappa|\,p_h + \kappa_{s,g}\,p_g\big)
 \;\ll\; N\,\kappa\,p_h\,|u-\bar V| ,
 \]
 which constrains the kernel, the correct answer's own self-scale $\kappa_{s,g}p_g$, and the
-distance from the threshold, not $N$ alone. It fails outright at $u\approx\bar V$, where the
-leading term vanishes and no condition on $N$ can rescue it. A necessary part of it is
-$N\kappa/\kappa_s\gg1$. We measure $\kappa/\kappa_s$ as the mean cross-prompt gradient cosine for
+distance from the threshold, not $N$ alone; the criterion is sufficient rather than necessary,
+since it bounds the two contributions to the remainder separately while the remainder is their
+difference, and they can cancel. In particular it gives nothing at $u\approx\bar V$, where the
+leading term vanishes. Within it, and in the order-one regime for $1-\bar V$ and $|u-\bar V|$ that
+we measure in, the binding factor is $N\kappa/\kappa_s\gg1$. We measure $\kappa/\kappa_s$ as the mean cross-prompt gradient cosine for
 the leak, and it is not constant: \CohHackHiFine{} at $u=1$ gives
 $N\kappa/\kappa_s \approx \NThreshValidity{}$, but \CohHackLoFine{} at $u=\NuTwoLoU{}$ gives
 $N\kappa/\kappa_s \approx 1.1$, at which point the correction is of the same order as the leading
@@ -391,7 +393,7 @@ and mildly \emph{reduces} hacking; universality moves the drift monotonically an
 \label{fig:factorial}
 \end{figure}
 
-\paragraph{Prompt-set size (E7).} At fixed $u$ the analysis predicts no dependence on the number of prompts. Repeating the sweep at
+\paragraph{Prompt-set size (E7).} At fixed $u$ the \emph{leading} term of \eqref{eq:threshold} carries no dependence on the number of prompts; all of it sits in the $1/N$ remainder, which differs fourfold between the two arms and is, by the validity paragraph above, not negligible at these scales. Repeating the sweep at
 $N=\NuFourNSmall{}$ and $N=\NuFourNBig{}$ is consistent with that: at $u=1$ the two agree
 ($\NuFourUOneSmall{}\pm\NuFourUOneSmallSem{}$ versus $\NuFourUOneBig{}\pm\NuFourUOneBigSem{}$),
 whereas at the same block size $m=\NuFourSameM{}$ they sit at $\NuFourSameMBig{}$ against
