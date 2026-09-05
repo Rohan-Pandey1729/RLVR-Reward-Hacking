@@ -419,11 +419,10 @@ universality sweep under plain SGD.}
 
 \section{Reproducibility}
 
-All code, raw result files and figure scripts are included with the submission. A single machine
-with two CPU cores reproduces every experiment in the paper; no GPU is used. Separate modules
-define the task and verifier, the two policy classes, the objectives and exact measurement, the
-numerical verification of Proposition~\ref{prop:filter} and Lemma~\ref{lem:drift}, and the
-experiments themselves.
+Every experiment in the paper runs on a single machine with two CPU cores; no GPU is used.
+Separate modules define the task and verifier, the two policy classes, the objectives and exact
+measurement, the numerical verification of Proposition~\ref{prop:filter} and
+Lemma~\ref{lem:drift}, and the experiments themselves.
 
 \textbf{Re-running the code gets close to, but not exactly, the numbers reported here.} Given a
 stored base checkpoint the RL stage is bit-reproducible, and we have re-run cells of E1 end to end
@@ -432,7 +431,7 @@ repeated rebuilds agreeing bit for bit, but does not recover the stored checkpoi
 rebuilt base differs from it by up to about $10^{-2}$ on the reported metrics. A from-scratch run
 therefore reproduces the drifts and every conclusion drawn from them, which are an order of
 magnitude larger, but not the absolute values digit for digit. The base checkpoints are $94$\,MB
-and are available on request rather than in the submission archive. On the same footing, seeds
+and are available on request. On the same footing, seeds
 $0$--$4$ of E1 were produced by an earlier revision whose configuration records carry fewer
 fields; re-running a cell from that half under the current revision reproduces it to $10^{-8}$ and
 the stored base models are bit-identical, so the halves are pooled.
@@ -446,6 +445,6 @@ measured number quoted in the text; the hand-entered constants are the step coun
 contamination rate and the GRPO group size, which are settings rather than results, together with
 a small number of measured figures quoted in the text rather than through a macro: the clipping
 rates, $N\kappa/\kappa_s$, the seventeenfold growth of $\kappa$ and its peak at $u=0.5$, and the
-leave-one-seed-out drift of $-0.017$, all recomputed from the shipped result files, and the three
+leave-one-seed-out drift of $-0.017$, all recomputed from the raw result files, and the three
 probability gaps from the E9 reweighting attempt above, which come from a diagnostic run whose
-output is not shipped.
+output was not retained.
