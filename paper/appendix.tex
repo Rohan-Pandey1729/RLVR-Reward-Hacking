@@ -426,7 +426,14 @@ defines the task and verifier, \texttt{src/policies.py} the two policy classes,
 verification of Proposition~\ref{prop:filter} and Lemma~\ref{lem:drift}, and
 \texttt{src/exp*.py} the experiments. Seeds $0$--$4$ of E1 were produced by an earlier revision whose configuration records carry
 fewer fields. Re-running a cell from that half under the current revision reproduces it to
-$10^{-8}$ and the stored base models are bit-identical, so the halves are pooled. One cell of E1
+$10^{-8}$ and the stored base models are bit-identical, so the halves are pooled. Reproduction is
+exact in that conditional sense: given a stored base checkpoint the RL stage is bit-reproducible,
+but rebuilding a base by rerunning the supervised stage is deterministic only up to
+floating-point reduction order, and the rebuilt base moves the reported metrics by up to a few
+parts in $10^{3}$. A from-scratch run therefore reproduces the drifts and every conclusion drawn
+from them, which are one to two orders of magnitude larger, but not the absolute values digit for
+digit. The base checkpoints are $94$\,MB and are available on request rather than in the
+submission archive. One cell of E1
 (the $m=1$ condition) was run beyond the reported seed budget while a larger budget was being
 attempted; \texttt{src/figures.py} caps every E1, E4, E8, E9, E9b and E10 load at its reported seed budget
 and drops any seed not present at every universality condition, so the
