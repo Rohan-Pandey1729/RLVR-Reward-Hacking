@@ -1,0 +1,51 @@
+This is BibTeX, Version 0.99e
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: main.aux
+Reallocating 'name_of_file' (item size: 1) to 9 items.
+The style file: plainnat.bst
+Reallocating 'name_of_file' (item size: 1) to 11 items.
+Database file #1: references.bib
+Warning--string name "sept" is undefined
+--line 333 of file references.bib
+You've used 43 entries,
+            2773 wiz_defined-function locations,
+            809 strings with 19124 characters,
+and the built_in function-call counts, 38287 in all, are:
+= -- 2857
+> -- 4616
+< -- 8
++ -- 1540
+- -- 1497
+* -- 3768
+:= -- 6280
+add.period$ -- 152
+call.type$ -- 43
+change.case$ -- 628
+chr.to.int$ -- 43
+cite$ -- 86
+duplicate$ -- 899
+empty$ -- 1584
+format.name$ -- 1542
+if$ -- 7595
+int.to.chr$ -- 1
+int.to.str$ -- 1
+missing$ -- 14
+newline$ -- 235
+num.names$ -- 172
+pop$ -- 1351
+preamble$ -- 1
+purify$ -- 585
+quote$ -- 0
+skip$ -- 1189
+stack$ -- 0
+substring$ -- 249
+swap$ -- 155
+text.length$ -- 5
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 473
+warning$ -- 0
+while$ -- 137
+width$ -- 0
+write$ -- 581
+(There was 1 warning)

@@ -1,0 +1,392 @@
+\begin{thebibliography}{43}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Ackermann et~al.(2026)Ackermann, Noukhovitch, Ishida, and
+  Sugiyama]{ackermann2026gradreg}
+Johannes Ackermann, Michael Noukhovitch, Takashi Ishida, and Masashi Sugiyama.
+\newblock Gradient regularization mitigates reward hacking in reinforcement
+  learning from human feedback and verifiable rewards, 2026.
+\newblock URL \url{https://arxiv.org/abs/2602.18037}.
+
+\bibitem[Ahmadian et~al.(2024)Ahmadian, Cremer, Gallé, Fadaee, Kreutzer,
+  Pietquin, Üstün, and Hooker]{ahmadian2024rloo}
+Arash Ahmadian, Chris Cremer, Matthias Gallé, Marzieh Fadaee, Julia Kreutzer,
+  Olivier Pietquin, Ahmet Üstün, and Sara Hooker.
+\newblock Back to basics: Revisiting {REINFORCE}-style optimization for
+  learning from human feedback in {LLM}s.
+\newblock In \emph{Proceedings of the 62nd Annual Meeting of the Association
+  for Computational Linguistics (Volume 1: Long Papers)}, pages 12248--12267,
+  Bangkok, Thailand, August 2024. Association for Computational Linguistics.
+\newblock \doi{10.18653/v1/2024.acl-long.662}.
+\newblock URL \url{https://aclanthology.org/2024.acl-long.662/}.
+
+\bibitem[Cai et~al.(2026)Cai, Wang, Liu, Liu, Niu, and
+  Sugiyama]{cai2025noisyverifier}
+Xin-Qiang Cai, Wei Wang, Feng Liu, Tongliang Liu, Gang Niu, and Masashi
+  Sugiyama.
+\newblock Reinforcement learning with verifiable yet noisy rewards under
+  imperfect verifiers, 2026.
+\newblock URL \url{https://arxiv.org/abs/2510.00915}.
+
+\bibitem[Cobbe et~al.(2021)Cobbe, Kosaraju, Bavarian, Chen, Jun, Kaiser,
+  Plappert, Tworek, Hilton, Nakano, Hesse, and Schulman]{cobbe2021gsm8k}
+Karl Cobbe, Vineet Kosaraju, Mohammad Bavarian, Mark Chen, Heewoo Jun, Lukasz
+  Kaiser, Matthias Plappert, Jerry Tworek, Jacob Hilton, Reiichiro Nakano,
+  Christopher Hesse, and John Schulman.
+\newblock Training verifiers to solve math word problems, 2021.
+\newblock URL \url{https://arxiv.org/abs/2110.14168}.
+
+\bibitem[Dymetman(2026)]{dymetman2026binary}
+Marc Dymetman.
+\newblock Binary rewards and reinforcement learning: Fundamental challenges,
+  2026.
+\newblock URL \url{https://arxiv.org/abs/2605.02375}.
+
+\bibitem[Egashira et~al.(2026)Egashira, Vero, Dekoninck, Dorner, Staab, and
+  Vechev]{egashira2026delay}
+Kazuki Egashira, Mark Vero, Jasper Dekoninck, Florian~E. Dorner, Robin Staab,
+  and Martin Vechev.
+\newblock Delay, plateau, or collapse: Evaluating the impact of systematic
+  verification error on rlvr, 2026.
+\newblock URL \url{https://arxiv.org/abs/2605.02909}.
+
+\bibitem[Everitt et~al.(2017)Everitt, Krakovna, Orseau, and
+  Legg]{everitt2017corrupted}
+Tom Everitt, Victoria Krakovna, Laurent Orseau, and Shane Legg.
+\newblock Reinforcement learning with a corrupted reward channel.
+\newblock In \emph{Proceedings of the 26th International Joint Conference on
+  Artificial Intelligence}, IJCAI'17, page 4705–4713. AAAI Press, 2017.
+\newblock ISBN 9780999241103.
+
+\bibitem[Gai et~al.(2025)Gai, Zeng, Zhang, and Raghunathan]{gai2025smoothing}
+Jingchu Gai, Guanning Zeng, Huaqing Zhang, and Aditi Raghunathan.
+\newblock Differential smoothing mitigates sharpening and improves llm
+  reasoning, 2025.
+\newblock URL \url{https://arxiv.org/abs/2511.19942}.
+
+\bibitem[Gao et~al.(2023)Gao, Schulman, and Hilton]{gao2023scaling}
+Leo Gao, John Schulman, and Jacob Hilton.
+\newblock Scaling laws for reward model overoptimization.
+\newblock In \emph{Proceedings of the 40th International Conference on Machine
+  Learning}, ICML'23. JMLR.org, 2023.
+
+\bibitem[Guo et~al.(2025)Guo, Yang, Zhang, Song, Wang, Zhu, Xu, Zhang, Ma, Bi,
+  Zhang, Yu, Wu, Wu, Gou, Shao, Li, Gao, Liu, Xue, Wang, Wu, Feng, Lu, Zhao,
+  Deng, Ruan, Dai, Chen, Ji, Li, Lin, Dai, Luo, Hao, Chen, Li, Zhang, Xu, Ding,
+  Gao, Qu, Li, Guo, Li, Chen, Yuan, Tu, Qiu, Li, Cai, Ni, Liang, Chen, Dong,
+  Hu, You, Gao, Guan, Huang, Yu, Wang, Zhang, Zhao, Wang, Zhang, Xu, Xia,
+  Zhang, Zhang, Tang, Zhou, Li, Wang, Li, Tian, Huang, Zhang, Wang, Chen, Du,
+  Ge, Zhang, Pan, Wang, Chen, Jin, Chen, Lu, Zhou, Chen, Ye, Wang, Yu, Zhou,
+  Pan, Li, Zhou, Wu, Yun, Pei, Sun, Wang, Zeng, Liu, Liang, Gao, Yu, Zhang,
+  Xiao, An, Liu, Wang, Chen, Nie, Cheng, Liu, Xie, Liu, Yang, Li, Su, Lin, Li,
+  Jin, Shen, Chen, Sun, Wang, Song, Zhou, Wang, Shan, Li, Wang, Wei, Zhang, Xu,
+  Li, Zhao, Sun, Wang, Yu, Zhang, Shi, Xiong, He, Piao, Wang, Tan, Ma, Liu,
+  Guo, Ou, Wang, Gong, Zou, He, Xiong, Luo, You, Liu, Zhou, Zhu, Huang, Li,
+  Zheng, Zhu, Ma, Tang, Zha, Yan, Ren, Ren, Sha, Fu, Xu, Xie, Zhang, Hao, Ma,
+  Yan, Wu, Gu, Zhu, Liu, Li, Xie, Song, Pan, Huang, Xu, Zhang, and
+  Zhang]{deepseekai2025r1}
+Daya Guo, Dejian Yang, Haowei Zhang, Junxiao Song, Peiyi Wang, Qihao Zhu,
+  Runxin Xu, Ruoyu Zhang, Shirong Ma, Xiao Bi, Xiaokang Zhang, Xingkai Yu,
+  Yu~Wu, Z.~F. Wu, Zhibin Gou, Zhihong Shao, Zhuoshu Li, Ziyi Gao, Aixin Liu,
+  Bing Xue, Bingxuan Wang, Bochao Wu, Bei Feng, Chengda Lu, Chenggang Zhao,
+  Chengqi Deng, Chong Ruan, Damai Dai, Deli Chen, Dongjie Ji, Erhang Li,
+  Fangyun Lin, Fucong Dai, Fuli Luo, Guangbo Hao, Guanting Chen, Guowei Li,
+  H.~Zhang, Hanwei Xu, Honghui Ding, Huazuo Gao, Hui Qu, Hui Li, Jianzhong Guo,
+  Jiashi Li, Jingchang Chen, Jingyang Yuan, Jinhao Tu, Junjie Qiu, Junlong Li,
+  J.~L. Cai, Jiaqi Ni, Jian Liang, Jin Chen, Kai Dong, Kai Hu, Kaichao You,
+  Kaige Gao, Kang Guan, Kexin Huang, Kuai Yu, Lean Wang, Lecong Zhang, Liang
+  Zhao, Litong Wang, Liyue Zhang, Lei Xu, Leyi Xia, Mingchuan Zhang, Minghua
+  Zhang, Minghui Tang, Mingxu Zhou, Meng Li, Miaojun Wang, Mingming Li, Ning
+  Tian, Panpan Huang, Peng Zhang, Qiancheng Wang, Qinyu Chen, Qiushi Du, Ruiqi
+  Ge, Ruisong Zhang, Ruizhe Pan, Runji Wang, R.~J. Chen, R.~L. Jin, Ruyi Chen,
+  Shanghao Lu, Shangyan Zhou, Shanhuang Chen, Shengfeng Ye, Shiyu Wang,
+  Shuiping Yu, Shunfeng Zhou, Shuting Pan, S.~S. Li, Shuang Zhou, Shaoqing Wu,
+  Tao Yun, Tian Pei, Tianyu Sun, T.~Wang, Wangding Zeng, Wen Liu, Wenfeng
+  Liang, Wenjun Gao, Wenqin Yu, Wentao Zhang, W.~L. Xiao, Wei An, Xiaodong Liu,
+  Xiaohan Wang, Xiaokang Chen, Xiaotao Nie, Xin Cheng, Xin Liu, Xin Xie,
+  Xingchao Liu, Xinyu Yang, Xinyuan Li, Xuecheng Su, Xuheng Lin, X.~Q. Li,
+  Xiangyue Jin, Xiaojin Shen, Xiaosha Chen, Xiaowen Sun, Xiaoxiang Wang, Xinnan
+  Song, Xinyi Zhou, Xianzu Wang, Xinxia Shan, Y.~K. Li, Y.~Q. Wang, Y.~X. Wei,
+  Yang Zhang, Yanhong Xu, Yao Li, Yao Zhao, Yaofeng Sun, Yaohui Wang, Yi~Yu,
+  Yichao Zhang, Yifan Shi, Yiliang Xiong, Ying He, Yishi Piao, Yisong Wang,
+  Yixuan Tan, Yiyang Ma, Yiyuan Liu, Yongqiang Guo, Yuan Ou, Yuduan Wang, Yue
+  Gong, Yuheng Zou, Yujia He, Yunfan Xiong, Yuxiang Luo, Yuxiang You, Yuxuan
+  Liu, Yuyang Zhou, Y.~X. Zhu, Yanping Huang, Yaohui Li, Yi~Zheng, Yuchen Zhu,
+  Yunxian Ma, Ying Tang, Yukun Zha, Yuting Yan, Z.~Z. Ren, Zehui Ren, Zhangli
+  Sha, Zhe Fu, Zhean Xu, Zhenda Xie, Zhengyan Zhang, Zhewen Hao, Zhicheng Ma,
+  Zhigang Yan, Zhiyu Wu, Zihui Gu, Zijia Zhu, Zijun Liu, Zilin Li, Ziwei Xie,
+  Ziyang Song, Zizheng Pan, Zhen Huang, Zhipeng Xu, Zhongyu Zhang, and Zhen
+  Zhang.
+\newblock Deepseek-r1 incentivizes reasoning in llms through reinforcement
+  learning.
+\newblock \emph{Nature}, 645\penalty0 (8081):\penalty0 633–638, 2025.
+\newblock ISSN 1476-4687.
+\newblock \doi{10.1038/s41586-025-09422-z}.
+\newblock URL \url{http://dx.doi.org/10.1038/s41586-025-09422-z}.
+
+\bibitem[Helff et~al.(2026)Helff, Delfosse, Steinmann, Härle, Shindo,
+  Schramowski, Stammer, Kersting, and Friedrich]{helff2026gaming}
+Lukas Helff, Quentin Delfosse, David Steinmann, Ruben Härle, Hikaru Shindo,
+  Patrick Schramowski, Wolfgang Stammer, Kristian Kersting, and Felix
+  Friedrich.
+\newblock Llms gaming verifiers: Rlvr can lead to reward hacking, 2026.
+\newblock URL \url{https://arxiv.org/abs/2604.15149}.
+
+\bibitem[Huang et~al.(2026)Huang, Zeng, Zeng, Zhu, and He]{huang2025verifiers}
+Yuzhen Huang, Weihao Zeng, Xingshan Zeng, Qi~Zhu, and Junxian He.
+\newblock From accuracy to robustness: A study of rule- and model-based
+  verifiers in mathematical reasoning, 2026.
+\newblock URL \url{https://arxiv.org/abs/2505.22203}.
+
+\bibitem[Jacot et~al.(2018)Jacot, Gabriel, and Hongler]{jacot2018ntk}
+Arthur Jacot, Franck Gabriel, and Cl{\'e}ment Hongler.
+\newblock Neural tangent kernel: convergence and generalization in neural
+  networks.
+\newblock In \emph{Proceedings of the 32nd International Conference on Neural
+  Information Processing Systems}, NIPS'18, page 8580–8589, Red Hook, NY,
+  USA, 2018. Curran Associates Inc.
+
+\bibitem[Khalifa et~al.(2026)Khalifa, Khan, Tafveez, Peng, and
+  Wang]{khalifa2026countdown}
+Muhammad Khalifa, Zohaib Khan, Omer Tafveez, Hao Peng, and Lu~Wang.
+\newblock Countdown-code: A testbed for studying the emergence and
+  generalization of reward hacking in rlvr, 2026.
+\newblock URL \url{https://arxiv.org/abs/2603.07084}.
+
+\bibitem[Kingma and Ba(2015)]{kingma2015adam}
+Diederik~P. Kingma and Jimmy Ba.
+\newblock Adam: A method for stochastic optimization.
+\newblock In \emph{International Conference on Learning Representations
+  (ICLR)}, 2015.
+\newblock URL \url{https://arxiv.org/abs/1412.6980}.
+
+\bibitem[Korbak et~al.(2022)Korbak, Perez, and Buckley]{korbak2022bayesian}
+Tomasz Korbak, Ethan Perez, and Christopher~L. Buckley.
+\newblock Rl with kl penalties is better viewed as bayesian inference.
+\newblock In \emph{Conference on Empirical Methods in Natural Language
+  Processing}, 2022.
+\newblock URL \url{https://api.semanticscholar.org/CorpusID:248987624}.
+
+\bibitem[Kruszewski et~al.(2026)Kruszewski, Erbacher, Rozen, and
+  Dymetman]{kruszewski2026filtering}
+Germán Kruszewski, Pierre Erbacher, Jos Rozen, and Marc Dymetman.
+\newblock Whatever remains must be true: Filtering drives reasoning in llms,
+  shaping diversity, 2026.
+\newblock URL \url{https://arxiv.org/abs/2512.05962}.
+
+\bibitem[Lightman et~al.(2023)Lightman, Kosaraju, Burda, Edwards, Baker, Lee,
+  Leike, Schulman, Sutskever, and Cobbe]{lightman2024verify}
+Hunter Lightman, Vineet Kosaraju, Yura Burda, Harri Edwards, Bowen Baker, Teddy
+  Lee, Jan Leike, John Schulman, Ilya Sutskever, and Karl Cobbe.
+\newblock Let's verify step by step, 2023.
+\newblock URL \url{https://arxiv.org/abs/2305.20050}.
+
+\bibitem[Liu et~al.(2025)Liu, Chen, Li, Qi, Pang, Du, Lee, and
+  Lin]{liu2025drgrpo}
+Zichen Liu, Changyu Chen, Wenjun Li, Penghui Qi, Tianyu Pang, Chao Du, Wee~Sun
+  Lee, and Min Lin.
+\newblock Understanding r1-zero-like training: A critical perspective, 2025.
+\newblock URL \url{https://arxiv.org/abs/2503.20783}.
+
+\bibitem[Lochab et~al.(2026)Lochab, Li, and Zhang]{lochab2026ucpo}
+Anamika Lochab, Bolian Li, and Ruqi Zhang.
+\newblock Uniform-correct policy optimization: Breaking rlvr's indifference to
+  diversity, 2026.
+\newblock URL \url{https://arxiv.org/abs/2605.00365}.
+
+\bibitem[MacDiarmid et~al.(2025)MacDiarmid, Wright, Uesato, Benton, Kutasov,
+  Price, Bouscal, Bowman, Bricken, Cloud, Denison, Gasteiger, Greenblatt,
+  Leike, Lindsey, Mikulik, Perez, Rodrigues, Thomas, Webson, Ziegler, and
+  Hubinger]{macdiarmid2025natural}
+Monte MacDiarmid, Benjamin Wright, Jonathan Uesato, Joe Benton, Jon Kutasov,
+  Sara Price, Naia Bouscal, Sam Bowman, Trenton Bricken, Alex Cloud, Carson
+  Denison, Johannes Gasteiger, Ryan Greenblatt, Jan Leike, Jack Lindsey, Vlad
+  Mikulik, Ethan Perez, Alex Rodrigues, Drake Thomas, Albert Webson, Daniel
+  Ziegler, and Evan Hubinger.
+\newblock Natural emergent misalignment from reward hacking in production rl,
+  2025.
+\newblock URL \url{https://arxiv.org/abs/2511.18397}.
+
+\bibitem[Mei et~al.(2020)Mei, Xiao, Szepesv{\'a}ri, and
+  Schuurmans]{mei2020global}
+Jincheng Mei, Chenjun Xiao, Csaba Szepesv{\'a}ri, and Dale Schuurmans.
+\newblock On the global convergence rates of softmax policy gradient methods.
+\newblock In \emph{Proceedings of the 37th International Conference on Machine
+  Learning}, ICML'20. JMLR.org, 2020.
+
+\bibitem[Nishimura-Gasparian et~al.(2026)Nishimura-Gasparian, McCarthy, and
+  Lindner]{nishimura2026specgaming}
+Kei Nishimura-Gasparian, Robert McCarthy, and David Lindner.
+\newblock Towards understanding specification gaming in reasoning models, 2026.
+\newblock URL \url{https://arxiv.org/abs/2605.02269}.
+
+\bibitem[Ouyang et~al.(2022)Ouyang, Wu, Jiang, Almeida, Wainwright, Mishkin,
+  Zhang, Agarwal, Slama, Ray, Schulman, Hilton, Kelton, Miller, Simens, Askell,
+  Welinder, Christiano, Leike, and Lowe]{ouyang2022instructgpt}
+Long Ouyang, Jeff Wu, Xu~Jiang, Diogo Almeida, Carroll~L. Wainwright, Pamela
+  Mishkin, Chong Zhang, Sandhini Agarwal, Katarina Slama, Alex Ray, John
+  Schulman, Jacob Hilton, Fraser Kelton, Luke Miller, Maddie Simens, Amanda
+  Askell, Peter Welinder, Paul Christiano, Jan Leike, and Ryan Lowe.
+\newblock Training language models to follow instructions with human feedback.
+\newblock In \emph{Proceedings of the 36th International Conference on Neural
+  Information Processing Systems}, NIPS '22, Red Hook, NY, USA, 2022. Curran
+  Associates Inc.
+\newblock ISBN 9781713871088.
+
+\bibitem[Peters et~al.(2010)Peters, M{\"u}lling, and Altun]{peters2010reps}
+Jan Peters, Katharina M{\"u}lling, and Yasemin Altun.
+\newblock Relative entropy policy search.
+\newblock In \emph{Proceedings of the Twenty-Fourth AAAI Conference on
+  Artificial Intelligence}, AAAI'10, page 1607–1612. AAAI Press, 2010.
+
+\bibitem[Plesner et~al.(2026)Plesner, Guzmán, and
+  Athalye]{plesner2026imperfect}
+Andreas Plesner, Francisco Guzmán, and Anish Athalye.
+\newblock An imperfect verifier is good enough: Learning with noisy rewards,
+  2026.
+\newblock URL \url{https://arxiv.org/abs/2604.07666}.
+
+\bibitem[Rad et~al.(2026)Rad, Filom, Keivan, Esfahani, and
+  Kamalinejad]{rad2026rateorfate}
+Ali Rad, Khashayar Filom, Darioush Keivan, Peyman~Mohajerin Esfahani, and Ehsan
+  Kamalinejad.
+\newblock Rate or fate? rlv$^\varepsilon$r: Reinforcement learning with
+  verifiable noisy rewards, 2026.
+\newblock URL \url{https://arxiv.org/abs/2601.04411}.
+
+\bibitem[Rafailov et~al.(2023)Rafailov, Sharma, Mitchell, Ermon, Manning, and
+  Finn]{rafailov2023dpo}
+Rafael Rafailov, Archit Sharma, Eric Mitchell, Stefano Ermon, Christopher~D.
+  Manning, and Chelsea Finn.
+\newblock Direct preference optimization: your language model is secretly a
+  reward model.
+\newblock In \emph{Proceedings of the 37th International Conference on Neural
+  Information Processing Systems}, NIPS '23, Red Hook, NY, USA, 2023. Curran
+  Associates Inc.
+
+\bibitem[Schulman et~al.(2017)Schulman, Wolski, Dhariwal, Radford, and
+  Klimov]{schulman2017ppo}
+John Schulman, Filip Wolski, Prafulla Dhariwal, Alec Radford, and Oleg Klimov.
+\newblock Proximal policy optimization algorithms, 2017.
+\newblock URL \url{https://arxiv.org/abs/1707.06347}.
+
+\bibitem[Shao et~al.(2026)Shao, Li, Xin, Geng, Wang, Oh, Du, Lambert, Min,
+  Krishna, Tsvetkov, Hajishirzi, Koh, and Zettlemoyer]{shao2025spurious}
+Rulin Shao, Shuyue~Stella Li, Rui Xin, Scott Geng, Yiping Wang, Sewoong Oh,
+  Simon~Shaolei Du, Nathan Lambert, Sewon Min, Ranjay Krishna, Yulia Tsvetkov,
+  Hannaneh Hajishirzi, Pang~Wei Koh, and Luke Zettlemoyer.
+\newblock Spurious rewards: Rethinking training signals in rlvr, 2026.
+\newblock URL \url{https://arxiv.org/abs/2506.10947}.
+
+\bibitem[Shao et~al.(2024)Shao, Wang, Zhu, Xu, Song, Bi, Zhang, Zhang, Li, Wu,
+  and Guo]{shao2024deepseekmath}
+Zhihong Shao, Peiyi Wang, Qihao Zhu, Runxin Xu, Junxiao Song, Xiao Bi, Haowei
+  Zhang, Mingchuan Zhang, Y.~K. Li, Y.~Wu, and Daya Guo.
+\newblock Deepseekmath: Pushing the limits of mathematical reasoning in open
+  language models, 2024.
+\newblock URL \url{https://arxiv.org/abs/2402.03300}.
+
+\bibitem[Skalse et~al.(2022)Skalse, Howe, Krasheninnikov, and
+  Krueger]{skalse2022defining}
+Joar Skalse, Nikolaus H.~R. Howe, Dmitrii Krasheninnikov, and David Krueger.
+\newblock Defining and characterizing reward hacking.
+\newblock In \emph{Proceedings of the 36th International Conference on Neural
+  Information Processing Systems}, NIPS '22, Red Hook, NY, USA, 2022. Curran
+  Associates Inc.
+\newblock ISBN 9781713871088.
+
+\bibitem[Stiennon et~al.(2020)Stiennon, Ouyang, Wu, Ziegler, Lowe, Voss,
+  Radford, Amodei, and Christiano]{stiennon2020summarize}
+Nisan Stiennon, Long Ouyang, Jeff Wu, Daniel~M. Ziegler, Ryan Lowe, Chelsea
+  Voss, Alec Radford, Dario Amodei, and Paul Christiano.
+\newblock Learning to summarize from human feedback.
+\newblock In \emph{Proceedings of the 34th International Conference on Neural
+  Information Processing Systems}, NIPS '20, Red Hook, NY, USA, 2020. Curran
+  Associates Inc.
+\newblock ISBN 9781713829546.
+
+\bibitem[Vaswani et~al.(2017)Vaswani, Shazeer, Parmar, Uszkoreit, Jones, Gomez,
+  Kaiser, and Polosukhin]{vaswani2017attention}
+Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones,
+  Aidan~N. Gomez, {\L}ukasz Kaiser, and Illia Polosukhin.
+\newblock Attention is all you need.
+\newblock In \emph{Proceedings of the 31st International Conference on Neural
+  Information Processing Systems}, NIPS'17, page 6000–6010, Red Hook, NY,
+  USA, 2017. Curran Associates Inc.
+\newblock ISBN 9781510860964.
+
+\bibitem[Wang et~al.(2020)Wang, Liu, and Li]{wang2020perturbed}
+Jingkang Wang, Yang Liu, and Bo~Li.
+\newblock Reinforcement learning with perturbed rewards, 2020.
+\newblock URL \url{https://arxiv.org/abs/1810.01032}.
+
+\bibitem[Xu et~al.(2025)Xu, Li, Jiang, Ramasubramanian, Niu, Lin, and
+  Poovendran]{xu2025tinyv}
+Zhangchen Xu, Yuetai Li, Fengqing Jiang, Bhaskar Ramasubramanian, Luyao Niu,
+  Bill~Yuchen Lin, and Radha Poovendran.
+\newblock Tinyv: Reducing false negatives in verification improves rl for llm
+  reasoning, 2025.
+\newblock URL \url{https://arxiv.org/abs/2505.14625}.
+
+\bibitem[Yang et~al.(2026)Yang, Chen, Wang, Lu, Chai, Yin, Lin, Ma, Zhuang,
+  Wang, Yang, Li, and Ban]{yang2026biased}
+Fengkai Yang, Zherui Chen, Xiaohan Wang, Xiaodong Lu, Jiajun Chai, Guojun Yin,
+  Wei Lin, Shuai Ma, Fuzhen Zhuang, Deqing Wang, Yaodong Yang, Jianxin Li, and
+  Yikun Ban.
+\newblock Your group-relative advantage is biased, 2026.
+\newblock URL \url{https://arxiv.org/abs/2601.08521}.
+
+\bibitem[Yu et~al.(2025)Yu, Zhang, Zhu, Yuan, Zuo, Yue, Dai, Fan, Liu, Liu,
+  Liu, Lin, Lin, Ma, Sheng, Tong, Zhang, Zhang, Zhang, Zhu, Zhu, Chen, Chen,
+  Wang, Yu, Song, Wei, Zhou, Liu, Ma, Zhang, Yan, Qiao, Wu, and
+  Wang]{yu2025dapo}
+Qiying Yu, Zheng Zhang, Ruofei Zhu, Yufeng Yuan, Xiaochen Zuo, Yu~Yue, Weinan
+  Dai, Tiantian Fan, Gaohong Liu, Lingjun Liu, Xin Liu, Haibin Lin, Zhiqi Lin,
+  Bole Ma, Guangming Sheng, Yuxuan Tong, Chi Zhang, Mofan Zhang, Wang Zhang,
+  Hang Zhu, Jinhua Zhu, Jiaze Chen, Jiangjie Chen, Chengyi Wang, Hongli Yu,
+  Yuxuan Song, Xiangpeng Wei, Hao Zhou, Jingjing Liu, Wei-Ying Ma, Ya-Qin
+  Zhang, Lin Yan, Mu~Qiao, Yonghui Wu, and Mingxuan Wang.
+\newblock Dapo: An open-source llm reinforcement learning system at scale,
+  2025.
+\newblock URL \url{https://arxiv.org/abs/2503.14476}.
+
+\bibitem[Yuan et~al.(2026)Yuan, Mang, Chen, Wan, Liu, Xu, tse Huang, Wang,
+  Jiao, and He]{yuan2026miracle}
+Youliang Yuan, Qiuyang Mang, Jingbang Chen, Hong Wan, Xiaoyuan Liu, Junjielong
+  Xu, Jen tse Huang, Wenxuan Wang, Wenxiang Jiao, and Pinjia He.
+\newblock Curing miracle steps in llm mathematical reasoning with rubric
+  rewards, 2026.
+\newblock URL \url{https://arxiv.org/abs/2510.07774}.
+
+\bibitem[Yue et~al.(2025)Yue, Chen, Lu, Zhao, Wang, Yue, Song, and
+  Huang]{yue2025rlincentivize}
+Yang Yue, Zhiqi Chen, Rui Lu, Andrew Zhao, Zhaokai Wang, Yang Yue, Shiji Song,
+  and Gao Huang.
+\newblock Does reinforcement learning really incentivize reasoning capacity in
+  llms beyond the base model?, 2025.
+\newblock URL \url{https://arxiv.org/abs/2504.13837}.
+
+\bibitem[Zeng et~al.(2026)Zeng, Zhou, Arora, and Zanette]{zeng2025shrinkage}
+Guanning Zeng, Zhaoyi Zhou, Daman Arora, and Andrea Zanette.
+\newblock Shrinking the variance: Shrinkage baselines for reinforcement
+  learning with verifiable rewards, 2026.
+\newblock URL \url{https://arxiv.org/abs/2511.03710}.
+
+\bibitem[Zhang(2026)]{zhang2026leaky}
+Chuyifei Zhang.
+\newblock When the reward suite is leaky: A preregistered causal contrast of
+  natural verifier false positives in rlvr, 2026.
+\newblock URL \url{https://arxiv.org/abs/2607.11022}.
+
+\bibitem[Zhao et~al.(2026)Zhao, Liu, Yu, Kung, Chen, Mi, and
+  Yu]{zhao2025onetoken}
+Yulai Zhao, Haolin Liu, Dian Yu, Sunyuan Kung, Meijia Chen, Haitao Mi, and Dong
+  Yu.
+\newblock One token to fool llm-as-a-judge, 2026.
+\newblock URL \url{https://arxiv.org/abs/2507.08794}.
+
+\end{thebibliography}
