@@ -454,6 +454,9 @@ def fig3():
     num("MechCrossLoSem", f"{ncs[0]:.1f}"); num("MechCrossHiSem", f"{ncs[-1]:.1f}")
     num("MechTabCross", "exactly $0$" if np.max(tc) == 0 else sci(float(np.max(tc))))
     num("CohHackHi", f"{ch[-1]:+.2f}"); num("CohHackLo", f"{ch[0]:+.2f}")
+    # three-decimal forms: the appendix quotes N*kappa/kappa_s next to these, and the
+    # two-decimal display does not reproduce that ratio when multiplied out by hand.
+    num("CohHackHiFine", f"{ch[-1]:+.3f}"); num("CohHackLoFine", f"{ch[0]:+.3f}")
     num("CohGold", f"{cg.mean():+.2f}")
     if d["burn_lo"]:
         bl, _ = mm("burn_lo"); bv, _ = mm("burn_v")

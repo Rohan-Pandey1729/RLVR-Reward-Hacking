@@ -202,7 +202,7 @@ We report changes as drifts relative to each run's own base model: $\Delta\rho$ 
 
 \subsection{The filter baseline holds exactly, and gradient training departs from it}
 
-Exact mirror descent preserves $\rho$ invariance to \NullDriftMirror{} and $\Lambda$ invariance to \NullDriftMirrorLam{} over \NullMirrorSteps{} steps. Similarly, the KL-regularized optimum preserves $\rho$ invariance to \NullDriftKL{} across $\beta \in \NullBetaRange{}$, holding to floating-point zero. Lemma~\ref{lem:drift} matches finite differences to \DriftRelErr{}. The per-prompt policy's cross-prompt kernel sits at \KernelRatioTab{} against the transformer's \KernelRatioNeural{}, relative to its own self-kernel.
+Exact mirror descent preserves $\rho$ invariance to \NullDriftMirror{} and $\Lambda$ invariance to \NullDriftMirrorLam{} over \NullMirrorSteps{} steps. Similarly, the KL-regularized optimum preserves $\rho$ invariance to \NullDriftKL{} across $\beta \in \NullBetaRange{}$, holding to floating-point zero. Lemma~\ref{lem:drift} matches finite differences on the shared-parameter policy to \DriftRelErr{} relative. The per-prompt policy's cross-prompt kernel sits at \KernelRatioTab{} against the transformer's \KernelRatioNeural{}, relative to its own self-kernel.
 
 \begin{figure}[t]
 \centering
