@@ -3,7 +3,9 @@
 
 \subsection{Proposition~\ref{prop:filter}}
 
-Fix $x$. The objective $\sum_y \pi(y)r(x,y) - \beta\sum_y \pi(y)\log\frac{\pi(y)}{\pi_{\mathrm{ref}}(y)}$
+Fix $x$ and assume $\pi_{\mathrm{ref}}(\cdot\mid x)>0$, so the KL term is finite and every policy
+on the path is strictly positive. The objective
+$\sum_y \pi(y)r(x,y) - \beta\sum_y \pi(y)\log\frac{\pi(y)}{\pi_{\mathrm{ref}}(y)}$
 over the simplex is strictly concave for $\beta>0$; setting the derivative of the Lagrangian to
 zero gives $\pi^\star_\beta(y\mid x) = \pi_{\mathrm{ref}}(y\mid x)e^{r(x,y)/\beta}/Z_\beta(x)$ with
 $Z_\beta(x)=\sum_{y'}\pi_{\mathrm{ref}}(y'\mid x)e^{r(x,y')/\beta}$. For $y,y'$ with
@@ -14,23 +16,29 @@ we have $\Hset(x)\subseteq\Acc(x)$ and $r\equiv 1$ on $\Acc(x)$, so
 = \frac{e^{1/\beta}\pi_{\mathrm{ref}}(\Hset(x)\mid x)/Z_\beta(x)}{e^{1/\beta}\pi_{\mathrm{ref}}(\Acc(x)\mid x)/Z_\beta(x)}
 = \frac{\pi_{\mathrm{ref}}(\Hset(x)\mid x)}{\pi_{\mathrm{ref}}(\Acc(x)\mid x)}
 \]
-for every $x$, hence $\rho$ and $\Lambda$ (the latter whenever $\pi(\Hset(x)\mid x)>0$) are
-unchanged. For a multiplicative update $\pi_{t+1}(y\mid x)\propto\pi_t(y\mid x)e^{\eta f(r(x,y))}$
-the same cancellation applies at every step.
+for every $x$, hence $\rho$ and $\Lambda$ are unchanged; strict positivity makes $\rho$ finite,
+and $\Lambda$ too whenever $\Hset(x)\neq\emptyset$. For a multiplicative update
+$\pi_{t+1}(y\mid x)\propto\pi_t(y\mid x)e^{\eta f(r(x,y))}$ the same cancellation applies at
+every step.
 
 \paragraph{Excursion of the pooled statistic.} Write $a_x = \pi_{\mathrm{ref}}(\Acc(x)\mid x)$,
 $\rho_x = \pi_{\mathrm{ref}}(\Hset(x)\mid x)/a_x$ and $s=e^{1/\beta}$. Then
 $\pi^\star_\beta(\Acc(x)\mid x) = s\,a_x/(1-a_x+s\,a_x)$, and the pooled statistic is
 $P(s) = \sum_x \rho_x w_x(s)/\sum_x w_x(s)$ with $w_x(s)=s a_x/(1-a_x+s a_x)$. At $s=1$ (no RL)
-$P = \sum_x a_x\rho_x/\sum_x a_x$; as $s\to\infty$ every $w_x\to1$ and
-$P \to \frac1N\sum_x \rho_x = \rho(\pi_{\mathrm{ref}})$. The total excursion is therefore
+$P = \sum_x a_x\rho_x/\sum_x a_x$; as $s\to\infty$ every $w_x\to1$, provided $a_x>0$ at every
+prompt, and $P \to \frac1N\sum_x \rho_x = \rho(\pi_{\mathrm{ref}})$; a prompt of zero accepted
+mass never enters, and the limit would then be the average over the accepting prompts only.
+The total excursion is therefore
 \[
 P(\infty)-P(1) \;=\; \frac1N\sum_x \rho_x \;-\; \frac{\sum_x a_x\rho_x}{\sum_x a_x}
 \;=\; -\,\frac{\Cov_x(a_x,\rho_x)}{\mathbb{E}_x[a_x]},
 \]
 which is positive whenever pass rate and hack fraction are negatively correlated across prompts.
-The pooled statistic therefore drifts upward under pure filtering and is invariant only in the
-degenerate case $\rho_x\equiv\text{const}$. It is not an estimator of $\rho$ and we do not call it
+The pooled statistic therefore drifts upward under pure filtering, and its total excursion
+vanishes exactly when $\Cov_x(a_x,\rho_x)=0$. Constant $\rho_x$ is sufficient for that but not
+necessary: if the accepted mass $a_x$ is the same at every prompt then so is $w_x(s)$, and
+$P(s)=\frac1N\sum_x\rho_x$ for every $s>0$ however much $\rho_x$ varies, as shown by
+$a=(\tfrac12,\tfrac12)$ with $\rho=(0,1)$. It is not an estimator of $\rho$ and we do not call it
 unbiased; it is a deterministic function of the filtering path that happens to converge to $\rho$
 in the strong-RL limit.
 
@@ -56,10 +64,14 @@ verifier only through $r(x,\cdot)$. \qed
 \paragraph{Rich-get-richer under vanilla policy gradient.} For a single prompt with free logits
 $\theta_y$ and $J=\sum_y\pi_y r_y$, $\partial J/\partial\theta_z = \pi_z(r_z-J)$, so for two
 responses with $r_1=r_2=1$,
-$\frac{d}{dt}\log(\pi_1/\pi_2)=\dot\theta_1-\dot\theta_2=(\pi_1-\pi_2)(1-J)$. The odds between
-equally rewarded responses are therefore \emph{not} preserved by vanilla policy gradient, even
-with no parameter sharing; they move toward whichever response already has more mass, at a rate
-that vanishes only as $J\to1$. This is the prompt-local drift referred to in
+$\frac{d}{dt}\log(\pi_1/\pi_2)=\dot\theta_1-\dot\theta_2=(\pi_1-\pi_2)(1-J)$. In the $N$-prompt
+per-prompt-parameter setting of Corollary~\ref{cor:tabular} the objective carries a $1/N$ and
+the baseline is the prompt's own pass rate,
+$\partial J/\partial\theta_{x,z}=\frac1N\pth(z\mid x)(r(x,z)-V(x))$, so the rate quoted in
+Section~\ref{sec:theory} is $\frac1N(\pi_1-\pi_2)(1-V(x))$; the two agree at $N=1$, where $J=V$.
+The odds between equally rewarded responses are therefore \emph{not} preserved by vanilla policy
+gradient, even with no parameter sharing; they move toward whichever response already has more
+mass, at a rate that vanishes only as $V(x)\to1$. This is the prompt-local drift referred to in
 Section~\ref{sec:theory}; it is independent of $u$ by Corollary~\ref{cor:tabular}.
 
 \subsection{Proposition~\ref{prop:threshold}}
@@ -87,13 +99,23 @@ $r(x',h)=\mathbf{1}[x'\in U]$, for $x\in U$,
 \]
 With $\pth(h\mid\cdot)\equiv p_h$ and $V\equiv\bar V$ the bracket is
 $p_h[(m-1)(1-\bar V)-(N-m)\bar V] = p_h[N(u-\bar V)-(1-\bar V)]$, giving
-$\kappa p_h(u-\bar V) + \frac{p_h(1-\bar V)}{N}(\kappa_s-\kappa)$. The identical computation for
-$g_x$ with scales $(\kappa_g,\kappa_{s,g})$ and universality $u_g$ gives
-$\kappa_g p_g(u_g-\bar V) + \frac{p_g(1-\bar V)}{N}(\kappa_{s,g}-\kappa_g)$; subtracting yields
-\eqref{eq:threshold}. \qed
+$\kappa p_h(u-\bar V) + \frac{p_h(1-\bar V)}{N}(\kappa_s-\kappa)$. For $x\notin U$ the same
+computation gives $\kappa p_h(u-\bar V) - \frac{p_h\bar V}{N}(\kappa_s-\kappa)$: the leading term
+is unchanged and only the $1/N$ correction differs, its $1-\bar V$ becoming $-\bar V$. The
+identical computation for $g_x$ with scales $(\kappa_g,\kappa_{s,g})$ and universality $u_g$
+gives $\kappa_g p_g(u_g-\bar V) + \frac{p_g(1-\bar V)}{N}(\kappa_{s,g}-\kappa_g)$, so
+subtracting leaves
+\[
+\kappa\,p_h(u-\bar V) \;-\; \kappa_g\,p_g(u_g-\bar V)
+\;+\; \frac{1-\bar V}{N}\Big[(\kappa_s-\kappa)\,p_h - (\kappa_{s,g}-\kappa_g)\,p_g\Big],
+\]
+which is \eqref{eq:threshold} at $\kappa_g=0$, where the only mass on the correct answer that
+survives is $p_g=\pth(g_x\mid x)$. \qed
 
-\paragraph{Validity of the leading-order threshold.} The $O(1/N)$ terms are negligible when
-$N\kappa/\kappa_s \gg 1$. We measure $\kappa/\kappa_s$ as the mean cross-prompt gradient cosine for
+\paragraph{Validity of the leading-order threshold.} The $1/N$ correction in
+\eqref{eq:threshold} is $O(1/N)$ at fixed kernel scales, but it is small \emph{relative to the
+leading term} only when $N\kappa/\kappa_s \gg 1$, which is a condition on the kernel and not on
+$N$ alone. We measure $\kappa/\kappa_s$ as the mean cross-prompt gradient cosine for
 the leak, and it is not constant: \CohHackHi{} at $u=1$ gives
 $N\kappa/\kappa_s \approx \NThreshValidity{}$, but \CohHackLo{} at $u=\NuTwoLoU{}$ gives
 $N\kappa/\kappa_s \approx 1.1$, at which point the correction is of the same order as the leading
@@ -169,7 +191,9 @@ any per-condition calibration.
 $w_2\in\mathbb{R}^{N\times10\times10}$ with
 $\pi(y\mid x)=\mathrm{softmax}(w_1[x])_{y_1}\cdot\mathrm{softmax}(w_2[x,y_1])_{y_2}$. This
 factorisation is complete: $10$ free first-token logits plus $10\times10$ free second-token
-logits parameterise the entire $100$-dimensional simplex for each prompt. Given the base
+logits reach every strictly positive distribution on the $100$ responses for each prompt, the
+$9+10\cdot9=99$ free directions of the parameterisation matching the dimension of the simplex.
+Given the base
 transformer's exact log-probabilities we set
 $w_1 = \log\sum_{y_2}\pi(y\mid x)$ and $w_2 = \log\pi(y\mid x) - w_1$, which reproduces the base
 distribution to within $10^{-4}$ in max-norm (asserted at run time).
