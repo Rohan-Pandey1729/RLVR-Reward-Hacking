@@ -252,9 +252,9 @@ The residual gradient in E9 is that the accepted string's base mass rises from \
 \MaskFprBaseHi{}: a shared-parameter SFT represents one string demonstrated at every prompt better
 than $N$ distinct ones. We tried to remove it by reweighting the two families in the supervised
 target until their realized probabilities matched, iterating a damped fixed point. The mean gap
-closes to $6\times10^{-4}$ but the per-prompt gap does not, staying near $6\times10^{-3}$ against
-probabilities of about $1.2\times10^{-2}$: the shared network cannot represent an arbitrary
-per-prompt split. Universality and representational ease are therefore not independently
+closes, but the per-prompt gap does not: it remains the same order as the probabilities themselves,
+because the shared network cannot represent an arbitrary per-prompt split. We report this
+diagnostic qualitatively, its raw output not having been retained. Universality and representational ease are therefore not independently
 manipulable in a shared-parameter model, since sharing is the common cause of both, which is why we
 bracket the confound with two designs rather than eliminating it in one. E9's and E9b's per-prompt arms
 responding to that residual gradient is what Corollary~\ref{cor:tabular} permits, since the
@@ -424,27 +424,28 @@ Separate modules define the task and verifier, the two policy classes, the objec
 measurement, the numerical verification of Proposition~\ref{prop:filter} and
 Lemma~\ref{lem:drift}, and the experiments themselves.
 
-\textbf{Re-running the code gets close to, but not exactly, the numbers reported here.} Given a
-stored base checkpoint the RL stage is bit-reproducible, and we have re-run cells of E1 end to end
-to confirm it. Regenerating a base by rerunning the supervised stage is itself deterministic,
-repeated rebuilds agreeing bit for bit, but does not recover the stored checkpoint exactly; the
-rebuilt base differs from it by up to about $10^{-2}$ on the reported metrics. A from-scratch run
-therefore reproduces the drifts and every conclusion drawn from them, which are an order of
-magnitude larger, but not the absolute values digit for digit. The base checkpoints are $94$\,MB
-and are available on request. On the same footing, seeds
-$0$--$4$ of E1 were produced by an earlier revision whose configuration records carry fewer
-fields; re-running a cell from that half under the current revision reproduces it to $10^{-8}$ and
-the stored base models are bit-identical, so the halves are pooled.
+Reproduction holds at three levels, which we distinguish because they are not equally strong.
+From an archived base checkpoint, on the same machine and code revision, the RL stage is
+bit-reproducible in weights and in every reported metric; we re-ran cells of E1 end to end to
+confirm it. Regenerating a base by rerunning the supervised stage is itself deterministic,
+repeated rebuilds agreeing bit for bit, but does not recover a checkpoint archived under an earlier
+revision of the code and environment, the rebuilt base differing by up to about $10^{-2}$ on the
+reported metrics. A run from scratch therefore reproduces the reported drifts and the conclusions
+drawn from them, which are an order of magnitude larger, but not the archived values digit for
+digit.
 
-One cell of E1 (the $m=1$ condition) was run beyond the reported seed budget while a larger budget
-was being attempted; the figure code caps every E1, E4, E8, E9, E9b and E10 load at its reported
-seed budget and drops any seed not present at every universality condition, so the reported design
-is balanced at ten seeds for every universality condition rather than giving a few conditions more
-seeds than the rest. The same code regenerates every figure and the macro file holding every
-measured number quoted in the text; the hand-entered constants are the step count, the
-contamination rate and the GRPO group size, which are settings rather than results, together with
-a small number of measured figures quoted in the text rather than through a macro: the clipping
-rates, $N\kappa/\kappa_s$, the seventeenfold growth of $\kappa$ and its peak at $u=0.5$, and the
-leave-one-seed-out drift of $-0.017$, all recomputed from the raw result files, and the three
-probability gaps from the E9 reweighting attempt above, which come from a diagnostic run whose
-output was not retained.
+Two provenance details. Seeds $0$--$4$ of E1 come from an earlier revision whose configuration
+records carry fewer logging fields, no training setting differing; their stored base models are
+bit-identical and the current code reproduces that half to $10^{-8}$, so we pool them with the
+later seeds. The $m=1$ condition of E1 ran past the reported seed budget during an attempt to
+raise the budget for every condition, not in response to its outcome; the figure code caps every
+load at the reported budget and drops any seed absent from some condition, uniformly and
+independently of results, so the design is balanced at ten seeds throughout and the excess runs
+enter no reported statistic, tuning decision or model selection.
+
+The figure code regenerates every figure and the macro file holding every measured number quoted
+in the text. The exceptions are settings rather than results, namely the step count, the
+contamination rate and the GRPO group size, together with a few measured quantities quoted inline
+rather than through a macro: the clipping rates, $N\kappa/\kappa_s$, the growth of $\kappa$ and its
+peak at $u=0.5$, and the leave-one-seed-out drift of $-0.017$, all recomputed from the raw result
+files.
