@@ -51,17 +51,17 @@ def _arrow(ax, p0, p1, col, lw=1.5, rad=0.0, alpha=0.9, ls="-"):
 
 def main():
     accepts = [True, True, False, True, False, False, True, False]
-    fig, axes = plt.subplots(1, 2, figsize=(6.7, 2.50))
+    fig, axes = plt.subplots(1, 2, figsize=(6.7, 2.38))
 
     for ax, shared in zip(axes, (True, False)):
         ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.axis("off")
 
         xs = _prompt_row(ax, 0.775, accepts)
-        ax.text(0.5, 0.888, "prompts", ha="center", va="center",
+        ax.text(0.5, 0.888, "Prompts", ha="center", va="center",
                 fontsize=9.1, color=MUTED)
 
         if shared:
-            _theta(ax, 0.5, 0.500, 0.40, 0.115, r"one shared $\theta$")
+            _theta(ax, 0.5, 0.500, 0.40, 0.115, r"One Shared $\theta$")
             for x, acc in zip(xs, accepts):
                 col = C_SHARED if acc else C_TAB
                 _arrow(ax, (x, 0.735), (0.5 + (x - 0.5) * 0.42, 0.560), col,
@@ -70,11 +70,11 @@ def main():
                                 "\n"
                                 r"$=\frac{1}{N}\sum_{x'}\mathrm{Cov}[\,r,\,K_\theta\,]$",
                     ha="center", va="center", fontsize=8.9, color=INK)
-            ax.text(0.5, 0.045, "every prompt reaches every other: the sum runs\n"
+            ax.text(0.5, 0.045, "Every prompt reaches every other: the sum runs\n"
                                 "over all $x'$, so the net push on $h$ depends\n"
                                 "on how many prompts accept it",
                     ha="center", va="center", fontsize=8.4, color=MUTED)
-            ax.set_title("shared parameters", fontsize=10.3, color=INK, pad=5)
+            ax.set_title("Shared Parameters", fontsize=10.3, color=INK, pad=5)
         else:
             for x in xs:
                 _theta(ax, x, 0.500, 0.060, 0.085, "")
@@ -97,15 +97,15 @@ def main():
                                 "\n"
                                 r"for $x'\neq x$",
                     ha="center", va="center", fontsize=8.9, color=INK)
-            ax.text(0.5, 0.030, "no prompt reaches any other:\n"
+            ax.text(0.5, 0.030, "No prompt reaches any other:\n"
                                 "the cross-prompt term is identically\n"
                                 "zero, whatever the leak's breadth",
                     ha="center", va="center", fontsize=8.4, color=MUTED)
-            ax.set_title("per-prompt parameters", fontsize=10.3, color=INK, pad=5)
+            ax.set_title("Per-Prompt Parameters", fontsize=10.3, color=INK, pad=5)
 
     # one legend, placed in empty space, never over a mark
-    axes[0].scatter([], [], marker="s", s=26, color=C_SHARED, label=r"accepts the leak $h$")
-    axes[0].scatter([], [], marker="s", s=26, color=C_TAB, label=r"rejects $h$")
+    axes[0].scatter([], [], marker="s", s=26, color=C_SHARED, label=r"Accepts the Leak $h$")
+    axes[0].scatter([], [], marker="s", s=26, color=C_TAB, label=r"Rejects $h$")
     axes[0].legend(loc="upper left", bbox_to_anchor=(-0.03, 1.035), fontsize=8.2,
                    frameon=False, handletextpad=0.4, labelspacing=0.22, ncol=2,
                    columnspacing=1.2)

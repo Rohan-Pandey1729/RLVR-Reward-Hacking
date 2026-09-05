@@ -97,14 +97,20 @@ $r(x',h)=\mathbf{1}[x'\in U]$, for $x\in U$,
 &\quad + \frac{\kappa_s}{N}\pth(h\mid x)(1-V(x)).
 \end{aligned}
 \]
-With $\pth(h\mid\cdot)\equiv p_h$ and $V\equiv\bar V$ the bracket is
+This display and the one for $g_x$ below carry only the $\kappa$ channel: the common $b$
+contribution does not vanish from the drift of a single response, and cancels only in the
+log-odds taken at the end. With $\pth(h\mid\cdot)\equiv p_h$ and $V\equiv\bar V$ the bracket is
 $p_h[(m-1)(1-\bar V)-(N-m)\bar V] = p_h[N(u-\bar V)-(1-\bar V)]$, giving
 $\kappa p_h(u-\bar V) + \frac{p_h(1-\bar V)}{N}(\kappa_s-\kappa)$. For $x\notin U$ the same
 computation gives $\kappa p_h(u-\bar V) - \frac{p_h\bar V}{N}(\kappa_s-\kappa)$: the leading term
 is unchanged and only the $1/N$ correction differs, its $1-\bar V$ becoming $-\bar V$. The
 identical computation for $g_x$ with scales $(\kappa_g,\kappa_{s,g})$ and universality $u_g$
-gives $\kappa_g p_g(u_g-\bar V) + \frac{p_g(1-\bar V)}{N}(\kappa_{s,g}-\kappa_g)$, so
-subtracting leaves
+gives $\kappa_g p_g(u_g-\bar V) + \frac{p_g(1-\bar V)}{N}(\kappa_{s,g}-\kappa_g)$ under the
+matching homogeneity assumption $\pth(g_x\mid x')\equiv p_g$ for \emph{all} $x'$. That is a
+stronger assumption than the leak's, since it constrains the mass other prompts place on
+\emph{this} prompt's answer; it is needed only for the intermediate display, and at
+$\kappa_g=0$ every cross-prompt term disappears and only $\pth(g_x\mid x)$ is used.
+Subtracting leaves
 \[
 \kappa\,p_h(u-\bar V) \;-\; \kappa_g\,p_g(u_g-\bar V)
 \;+\; \frac{1-\bar V}{N}\Big[(\kappa_s-\kappa)\,p_h - (\kappa_{s,g}-\kappa_g)\,p_g\Big],
@@ -114,8 +120,15 @@ survives is $p_g=\pth(g_x\mid x)$. \qed
 
 \paragraph{Validity of the leading-order threshold.} The $1/N$ correction in
 \eqref{eq:threshold} is $O(1/N)$ at fixed kernel scales, but it is small \emph{relative to the
-leading term} only when $N\kappa/\kappa_s \gg 1$, which is a condition on the kernel and not on
-$N$ alone. We measure $\kappa/\kappa_s$ as the mean cross-prompt gradient cosine for
+leading term} only when
+\[
+(1-\bar V)\big(|\kappa_s-\kappa|\,p_h + \kappa_{s,g}\,p_g\big)
+\;\ll\; N\,\kappa\,p_h\,|u-\bar V| ,
+\]
+which constrains the kernel, the correct answer's own self-scale $\kappa_{s,g}p_g$, and the
+distance from the threshold, not $N$ alone. It fails outright at $u\approx\bar V$, where the
+leading term vanishes and no condition on $N$ can rescue it. A necessary part of it is
+$N\kappa/\kappa_s\gg1$. We measure $\kappa/\kappa_s$ as the mean cross-prompt gradient cosine for
 the leak, and it is not constant: \CohHackHiFine{} at $u=1$ gives
 $N\kappa/\kappa_s \approx \NThreshValidity{}$, but \CohHackLoFine{} at $u=\NuTwoLoU{}$ gives
 $N\kappa/\kappa_s \approx 1.1$, at which point the correction is of the same order as the leading
@@ -150,7 +163,11 @@ not. $u_g$ is small and non-zero, and we report it rather than assume it away.
 strings that are not the correct answer of any prompt, so a leak is never a correct answer
 anywhere and every response is unambiguously classified. Prompts are partitioned into $N/m$
 blocks; each block receives $k$ leak strings shared by all its prompts. The verifier's static
-false-positive rate is exactly $k/99$ in every condition, independent of $m$.
+false-positive rate is exactly $k/99$ in every condition, independent of $m$. Drawing without
+replacement caps what the design can express: the $N/m$ blocks consume $kN/m$ distinct strings,
+so $kN/m\leq69$. This is why the universality axis of the factorial starts at $m=8$, where its
+largest $k=8$ already needs $64$ of the $69$ available strings; at $m=4$ the same $k$ would
+need $128$. The single-$k$ sweeps are unconstrained, since $k=1$ needs only $N/m\leq64$.
 
 Blocks are contiguous in the default configuration, and with prompts enumerated first-operand-major
 a contiguous block of size $m\geq8$ is exactly a set of first operands, a property the transformer
@@ -190,9 +207,9 @@ any per-condition calibration.
 \paragraph{Tabular policy.} Free parameters $w_1\in\mathbb{R}^{N\times10}$ and
 $w_2\in\mathbb{R}^{N\times10\times10}$ with
 $\pi(y\mid x)=\mathrm{softmax}(w_1[x])_{y_1}\cdot\mathrm{softmax}(w_2[x,y_1])_{y_2}$. This
-factorisation is complete: $10$ free first-token logits plus $10\times10$ free second-token
+factorization is complete: $10$ free first-token logits plus $10\times10$ free second-token
 logits reach every strictly positive distribution on the $100$ responses for each prompt, the
-$9+10\cdot9=99$ free directions of the parameterisation matching the dimension of the simplex.
+$9+10\cdot9=99$ free directions of the parameterization matching the dimension of the simplex.
 Given the base
 transformer's exact log-probabilities we set
 $w_1 = \log\sum_{y_2}\pi(y\mid x)$ and $w_2 = \log\pi(y\mid x) - w_1$, which reproduces the base
@@ -204,7 +221,7 @@ $\nabla_\theta J = \frac1N\sum_x\sum_y\pth(y\mid x)\,[r(x,y)-V(x)]\,\nabla_\thet
 implemented as a weighted cross-entropy with detached weights. This is the infinite-group limit of
 RLOO and Dr.\ GRPO and removes sampling noise from the
 comparison. The sampled-GRPO experiment uses group size $8$, group-standard-deviation
-normalisation and one inner epoch. Optimizer Adam (default) or SGD, $400$ steps, learning-rate grid
+normalization and one inner epoch. Optimizer Adam (default) or SGD, $400$ steps, learning-rate grid
 $\{3\times10^{-4},10^{-3},3\times10^{-3},10^{-2},3\times10^{-2}\}$ for Adam and
 $\{0.3,1,3\}$ for SGD, applied identically to both policy classes in the sweeps where a grid is
 shared (Table~\ref{tab:protocol}; E3 and E5 use a fixed neural/tabular pair, E6 two). The reported operating point
@@ -221,12 +238,12 @@ $m$ prompts in $U$ and, in E9, $s_x$ on the rest, giving exactly $N$ accepted wr
 static false-positive rate of exactly $1/(|\Yset|-1)$ in every condition. E9b accepts nothing wrong
 outside $U$, so every accepted wrong string is $h$ and its base mass is identical across
 conditions, at the cost of a static false-positive
-rate equal to $u/99$ and therefore rising with $u$. Note also that only the \emph{per-prompt} mass
+rate of $1/99$ at an accepting prompt and $0$ elsewhere, so $u/99$ averaged over prompts and
+therefore rising with $u$. Note also that only the \emph{per-prompt} mass
 on the accepted string is held fixed in E9b: the aggregate accepted-wrong base mass, and with it
 base $\rho$, still scale with $u$ because fewer prompts accept anything wrong at small $m$. Both
 that and the rising rate bias E9b's slope downward, which is why the shared-versus-per-prompt
-comparison is made within the same base rather than across conditions. The rising rate which if anything biases E9b's slope downward given that a
-higher rate mildly reduces hacking in our factorial. $U$ is nested across $m$, so adjacent
+comparison is made within the same base rather than across conditions. $U$ is nested across $m$, so adjacent
 conditions differ only by which prompts switched.
 
 The residual gradient in E9 is that the accepted string's base mass rises from \MaskFprBaseLo{} to
@@ -240,7 +257,7 @@ manipulable in a shared-parameter model, since sharing is the common cause of bo
 bracket the confound with two designs rather than eliminating it in one. E9's and E9b's per-prompt arms
 responding to that residual gradient is what Corollary~\ref{cor:tabular} permits, since the
 corollary rules out $u$-dependence generated by the dynamics, not $u$-dependence inherited at
-initialisation.
+initialization.
 
 \paragraph{Per-prompt weight copies (E10).} $N$ independent copies of the same transformer, each
 initialized from the shared base checkpoint and trained on its own prompt alone with the same
@@ -252,17 +269,17 @@ per seed, which is why its slope (\SharedSlopeMatched{}) differs slightly from t
 figure quoted in Section~\ref{sec:results} (\NuTwoNeuralSlope{}).
 
 \paragraph{Full specification.} Prompts are serialized as the token sequence
-$[\textsc{bos}, a, b, y_1]$ over a vocabulary of $12$ symbols ($10$ digits plus
-\textsc{bos} and a padding symbol), with learned token and learned absolute positional
+$[\textsc{bos}, a, b, y_1]$ over a vocabulary of $11$ symbols ($10$ digits plus
+\textsc{bos}), with learned token and learned absolute positional
 embeddings, a causal mask, pre-norm blocks, $4$ heads, feed-forward width $4d = 256$ with GELU,
 final \texttt{LayerNorm}, and a $10$-way output head shared across the two response positions.
 Embeddings are initialized $\mathcal{N}(0, 0.02^2)$ and the remaining parameters use PyTorch
 defaults. The correct response for prompt $(a,b)$ is the decimal string of the \emph{product}
 $a\times b$, zero-padded to two digits, so $2\times3$ has correct response \texttt{06}; all
 products lie in $[4,81]$ and the response space is every two-digit string \texttt{00}--\texttt{99}.
-Optimisation is full-batch over all $N$ prompts with no minibatching and no gradient clipping.
+Optimization is full-batch over all $N$ prompts with no minibatching and no gradient clipping.
 Adam uses $\beta_1=0.9$, $\beta_2=0.999$, $\varepsilon=10^{-8}$ and zero weight decay; SGD uses no
-momentum. A run's seed simultaneously sets the transformer initialisation, the leak-string draw
+momentum. A run's seed simultaneously sets the transformer initialization, the leak-string draw
 and, in E4, the rollout sampling; the competence permutation is drawn from a separate fixed seed
 so difficulty is never correlated with the leak structure.
 
@@ -280,7 +297,7 @@ closed form against the frozen base, not estimated from samples.
 \paragraph{Measurement.} $\rho$, $\Lambda$ and true accuracy are computed from the exact
 enumerated distribution $\pth(\cdot\mid x)$ over all $100$ responses at all $N$ prompts, at every
 logged step; they are not Monte-Carlo estimates, and the only stochasticity is over seeds
-(transformer initialisation, leak-string draw, and rollout sampling in the GRPO condition). Two
+(transformer initialization, leak-string draw, and rollout sampling in the GRPO condition). Two
 probes are exceptions: the gradient decomposition and the coherence measurement average over a
 fixed random subsample of $24$ and $12$ prompts respectively, for cost.
 
@@ -309,7 +326,7 @@ between experiments; Table~\ref{tab:protocol} records what was actually run.
 E1 & universality, contiguous blocks & 10 & 5, shared by both arms & headline sweep \\
 E2 & universality, permuted blocks   & 3 & 4, shared by both arms & base spread \NuSixBaseSpread{} \\
 E3 & universality $\times$ error rate & 3 & 1 pair ($10^{-3}$ / $3\!\times\!10^{-2}$) & clean SFT floor \\
-E4 & sampled GRPO                     & 10 & 3, shared by both arms & $G=\NGrpoG{}$, std normalisation \\
+E4 & sampled GRPO                     & 10 & 3, shared by both arms & $G=\NGrpoG{}$, std normalization \\
 E5 & KL sweep                         & 3 & 1 pair ($10^{-3}$ / $3\!\times\!10^{-2}$) & 6 values of $\beta$ \\
 E6 & verifier hardening               & 3 & 2 & strict argmax on verifier reward \\
 E7 & prompt-set size $N\in\{16,64\}$   & 3 & 3, shared by both arms & tests $u$ versus $m$ \\
@@ -333,7 +350,7 @@ for each arm.}
 \includegraphics[width=\linewidth]{../figures/fig3_mechanism.pdf}
 \caption{Mechanism. Left: the cross-prompt component of the exact drift of $\log\pth(h\mid x)$ at
 the base model (Lemma~\ref{lem:drift}), identically zero for per-prompt parameters as
-Corollary~\ref{cor:tabular} requires. Centre: mean pairwise cosine between per-prompt gradients,
+Corollary~\ref{cor:tabular} requires. Center: mean pairwise cosine between per-prompt gradients,
 the coherence of Definition~\ref{def:coherent}, measured rather than assumed. Right: contiguous
 versus randomized block membership.}
 \label{fig:mechanism}
@@ -342,7 +359,7 @@ versus randomized block membership.}
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\linewidth]{../figures/fig4_practice.pdf}
-\caption{Practice. Left: sampled GRPO reproduces the pattern. Centre: a KL penalty pulls the policy
+\caption{Practice. Left: sampled GRPO reproduces the pattern. Center: a KL penalty pulls the policy
 back toward the filter baseline; the low-$u$ side is resolved, the $u=1$ side is within noise. Right: two verifier patches that improve the
 measured false-positive rate identically buy very different true accuracy.}
 \label{fig:practice}
