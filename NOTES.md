@@ -39,7 +39,7 @@ The accepted draft said two things the data do not support, and the reviewers fo
    it, with the shared model amplifying as strongly as in the headline sweep at the next learning
    rate (+0.44 vs +0.60). A line fitted through a flat negative run that jumps at the last point
    has a small slope, which is how the wrong conclusion arose. The claim is withdrawn and the
-   correction is stated in the paper (Section 6.5, contribution 2).
+   correction is stated in the paper (Section 6.3, contribution 2).
 2. **"A property of the verifier's errors decides the outcome."** Not quite: the blind base and
    the headline base differ in *where* their mass on the leak sits (`u_eff` = `u` for the blind
    base; 0.09 / 0.23 / 0.68 / 1.00 at `u` = 1/64, 1/16, 1/4, 1 for the headline base), and that is
@@ -51,17 +51,28 @@ regenerated base models, a learning-rate-robustness figure was added, a direct p
 Prop. 2 was added, the missing citations were added, and the prose was rewritten in the plain
 register of the two example papers.
 
+3. **Final camera-ready pass (2026-11-06).** The main text now carries five figures instead of
+   three: an overview schematic of the environment and the mechanism (Fig. 1), the headline
+   sweep (Fig. 2), the slope at every learning rate (Fig. 3), a two-row mechanism figure with the
+   cross-prompt term, coherence, per-prompt copies, both frozen-base controls and `u_eff` at the
+   base (Fig. 4), and a two-row practice figure with GRPO, SGD, the KL sweep and verifier
+   hardening (Fig. 5). The appendix keeps the probe, the factorial and the Adam grid. The
+   abstract was restored to the structure of the reviewed abstract (same opening, the filter null
+   model, the decomposition, the controls, the hardening consequence) with the withdrawn
+   two-stage sentence replaced by the mass-placement reading and the step-size caveat. Prose was
+   tightened to fit nine content pages with the extra figures; no number changed.
+
 ### Reviewer points and where they are answered
 
 | Reviewer point | What we did | Where |
 |---|---|---|
-| pm4V-1, d6TQ-2, meta: fixed-base controls contradict "verifier property decides"; identify the representation difference before claiming "two-stage" | Per-`u` paired re-analysis of E9/E9b; two-stage claim withdrawn; `u_eff` measured for both bases; representation compared directly at `u = 1` (coherence 0.255 vs 0.294, mass on `h` 0.0151 vs 0.0355) | §6.5, Fig. 3, App. C |
-| pm4V-2: low-`u` suppression and the missing `u = 1` amplification depend on the learning-rate rule; the rise with `u` is the trustworthy result | New figure: universality slope at every LR for Adam, GRPO, SGD, both arms (positive with CI excluding zero at 10 of 11 settings; per-prompt slope ≈ 0 everywhere); both verifier-saturating Adam LRs reported (`u = 1`: +0.028 at 1e-3, +0.600 with 10/10 seeds at 3e-3); step-size caveat in abstract, contributions, limitations | §6.3, Fig. 2, App. D Table 2 |
-| pm4V-3, d6TQ-1: raw-`u` threshold mispredicts the crossings; separate instantaneous prediction from final drift | Prop. 2 restated in terms of `u_eff`; raw-`u` threshold removed from abstract and contributions; new probe E11 compares the coherent-channel prediction with the exact cross-prompt log-odds drift along early SGD steps and reports the residual | §4, App. C, Fig. 8 |
+| pm4V-1, d6TQ-2, meta: fixed-base controls contradict "verifier property decides"; identify the representation difference before claiming "two-stage" | Per-`u` paired re-analysis of E9/E9b; two-stage claim withdrawn; `u_eff` measured for both bases; representation compared directly at `u = 1` (coherence 0.255 vs 0.294, mass on `h` 0.0151 vs 0.0355) | §6.3, Fig. 4 (bottom), App. C |
+| pm4V-2: low-`u` suppression and the missing `u = 1` amplification depend on the learning-rate rule; the rise with `u` is the trustworthy result | New figure: universality slope at every LR for Adam, GRPO, SGD, both arms (positive with CI excluding zero at 10 of 11 settings; per-prompt slope ≈ 0 everywhere); both verifier-saturating Adam LRs reported (`u = 1`: +0.028 at 1e-3, +0.600 with 10/10 seeds at 3e-3); step-size caveat in abstract, contributions, limitations | §6.1, Fig. 3, App. D Table 2 |
+| pm4V-3, d6TQ-1: raw-`u` threshold mispredicts the crossings; separate instantaneous prediction from final drift | Prop. 2 restated in terms of `u_eff`; raw-`u` threshold removed from abstract and contributions; new probe E11 compares the coherent-channel prediction with the exact cross-prompt log-odds drift along early SGD steps and reports the residual | §4, App. C, Fig. 6 |
 | pm4V-4, d6TQ-3: the reconciliation of the two literatures is argued, not measured | Stated as a hypothesis; says what would test it (per-prompt hack fraction on released data; cross-prompt gradient cosine of accepted wrong responses on a real model); Egashira's relative-error leaks explained through coherence rather than string identity | §7 |
 | pm4V-5: Lemma 1 is known (Tomihari; Ren & Sutherland); amplification half is coherent gradients (Chatterjee); cite Echo Chamber | All cited; Lemma 1 labelled "known"; contribution framed around the RL-specific push-down through the baseline and its two-sidedness | §2, §4 |
-| pm4V-6, d6TQ-4, d6TQ-Q2: three-seed claims; E6 used a different operating rule and no test; "29 points manufactured by RL" assumes additivity; were both patches run from the same checkpoint? | E2, E3, E5, E6, E7 re-run at ten seeds; E6 from the identical checkpoint per seed (base accuracy identical by construction), standard operating rule, both LRs stored and reported, paired within-seed gaps with bootstrap CIs; the decomposition is stated as "available without sharing" vs "requires sharing if the effects add" | §6.7, App. B, App. D |
-| pm4V-7: the "wrong sign" audit claim is a design artefact (base hack mass fixed at `eps` for every `k`) | Removed; the `k` trend is described as a property of the design | §6.2, App. B |
+| pm4V-6, d6TQ-4, d6TQ-Q2: three-seed claims; E6 used a different operating rule and no test; "29 points manufactured by RL" assumes additivity; were both patches run from the same checkpoint? | E2, E3, E5, E6, E7 re-run at ten seeds; E6 from the identical checkpoint per seed (base accuracy identical by construction), standard operating rule, both LRs stored and reported, paired within-seed gaps with bootstrap CIs; the decomposition is stated as "available without sharing" vs "requires sharing if the effects add" | §6.5, Fig. 5 (bottom), App. B |
+| pm4V-7: the "wrong sign" audit claim is a design artefact (base hack mass fixed at `eps` for every `k`) | Removed; the `k` trend is described as a property of the design | §6, App. B, App. D |
 | d6TQ-Q3: kernel entries can be negative; when is `u_eff` in [0, 1]? | Assumption stated; measured: 13% of same-string entries negative at the base models, 9% of the weight | §4, App. C |
 | q735, meta: toy scale, one architecture | Limitations paragraph; future-work pointer to the measurable quantity on real models | §7 |
 | Camera-ready | `\usepackage[final,dblblindworkshop]{neurips_2026}`, workshop title footnote, author block from OpenReview, 9 content pages, no overfull boxes | `paper/main.tex` |
@@ -97,7 +108,7 @@ baseline, immune to that.
 **Why select the learning rate by verifier reward, and why also report every learning rate?**
 It is the criterion a practitioner has. The rule (smallest LR within 1e-3 of the best final
 verifier reward) is conservative with respect to our hypothesis, and reviewer pm4V was right
-that it decides how the low-`u` end looks; hence Fig. 2 and Table 2 report everything.
+that it decides how the low-`u` end looks; hence Fig. 3 and Table 2 report everything.
 
 **Why the randomised-block control (E2)?** With prompts enumerated first-operand-major, a
 contiguous block of size ≥ 8 is "first operand = a", one input token. The sweep is repeated with
@@ -147,7 +158,7 @@ Other headline numbers:
 - **The `u = 1` endpoint under Adam at the selected operating point is inside its own error bar.**
   Final hack fractions span 0.02–0.56; 16% of prompts flip at `u = 1` vs 2% at `u = 1/64`, so
   `drho` approaches zero while `dLambda` stays negative. The decisive sign change is carried by
-  GRPO, SGD and Adam at 3e-3. All of this is in §6.2–6.3.
+  GRPO, SGD and Adam at 3e-3. All of this is in §6 and §6.1.
 - **The hardening gap at the conservative operating point is small.** The old 40 ± 16 (three
   seeds) came from an effectively higher learning rate for one arm. With the standard rule and
   the same checkpoint it is 8 ± 2 points, of which the per-prompt policy already shows 6. The
@@ -166,7 +177,12 @@ Every number in the paper is a macro written by `src/figures.py` into `paper/num
 (`??`), TeX errors and overfull boxes. Two adversarial reviews of the original code and
 derivations preceded the first version; this round re-derived Prop. 2 in the `u_eff` form,
 checked the E6 code path (both patches from one checkpoint per seed, both learning rates stored),
-and verified the four new citations against arXiv.
+and verified the four new citations against arXiv. The final pass re-ran `figures.py` and
+confirmed that every macro value is unchanged (three macros were added: the median `u = 1` seed,
+the count of verifier-saturating Adam learning rates, and `N kappa / kappa_s` at low `u`), that
+no `
+ef` is unresolved, that the build has no overfull boxes, and that every number quoted in
+the main text matches `results/numbers.json`.
 
 ## Before submitting
 
@@ -178,7 +194,7 @@ and verified the four new citations against arXiv.
 - [ ] **LLM-use sentence** at the end of §7 ("LLMs assisted with experiment design and manuscript
       preparation; every number comes from the released code"): keep, edit or remove.
 - [ ] **Rebuild once** with `PYTHON=/path/to/python bash build.sh` after any edit and confirm
-      content still ends on page 9 (there are about two lines of slack).
+      content still ends on page 9 (there are about four lines of slack).
 - [ ] Push `src/` and `results/` to a public repo and put the link in App. E.
 - [ ] `paper/checklist.tex` ships with the template if the workshop wants it.
 - [x] Official `neurips_2026.sty`, `final` option, `\workshoptitle{}` set, nine content pages.

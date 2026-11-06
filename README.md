@@ -38,9 +38,12 @@ src/exp4_scaling.py        E7: prompt-set size
 src/exp9_maskonly.py       E9 / E9b: frozen base, mask-only controls
 src/exp10_copies.py        E10: per-prompt copies of the same transformer
 src/exp12_threshold.py     E11: u_eff at the base; predicted vs exact drift along SGD
-src/mechfig.py          the mechanism schematic, drawn by figures.py
+src/mechfig.py          the overview schematic (environment and mechanism, Figure 1), drawn by figures.py
 src/figures.py          regenerates every figure, paper/numbers.tex and paper/lrtable.tex
-figures/                the figures, as PNG files written by figures.py
+figures/                the figures, as PNG files written by figures.py:
+                        fig0_overview, fig1_universality, fig2_lr, fig3_mechanism and
+                        fig4_practice in the main text; fig5_probe, fig6_field,
+                        fig7_factorial and fig8_appendix in the appendix
 paper/                  LaTeX source
 results/                raw result files (jsonl / json) read by figures.py
 requirements.txt        the Python dependencies, pinned to the versions the paper was built with
@@ -82,7 +85,8 @@ prompt at every logged step. No metric reported in the paper is a Monte-Carlo es
 stochasticity is across seeds (transformer init, leak-string draw, and rollout sampling in the
 GRPO condition). `src/figures.py` writes every number quoted in the paper into
 `paper/numbers.tex` (and the learning-rate table into `paper/lrtable.tex`), so nothing is
-transcribed by hand.
+transcribed by hand. The two-row figures (`fig3_mechanism`, `fig4_practice`) are assembled
+from the same panel functions as the appendix figures, so a panel is drawn once.
 
 ## LaTeX
 

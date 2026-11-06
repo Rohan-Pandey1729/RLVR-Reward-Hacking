@@ -11,6 +11,20 @@ from each run's own base model:
 Proposition 1 makes d_rho and d_Lambda exactly zero for KL-regularised / multiplicative
 updates, so they measure departure from the filter baseline and are immune to any residual
 mismatch in the base model across conditions.
+
+Figures, in the order they appear in the paper:
+
+    fig0_overview      the environment's universality knob and the mechanism (mechfig.py)
+    fig1_universality  the headline sweep (E1, E2)
+    fig2_lr            the universality slope at every learning rate (E1, E4, E8)
+    fig3_mechanism     top: cross-prompt term, coherence, per-prompt copies (theory, E10)
+                       bottom: frozen-base controls and u_eff at the base (E9, E9b, E11)
+    fig4_practice      top: sampled GRPO, plain SGD, KL penalty (E4, E8, E5)
+                       bottom: the two verifier patches (E6)
+    fig5_probe         the threshold probe (E11)                              [appendix]
+    fig6_field         the universality x error-rate factorial as a field (E3) [appendix]
+    fig7_factorial     the same factorial seed by seed (E3)                   [appendix]
+    fig8_appendix      Adam grid, trajectories, prompt-set size, KL accuracy  [appendix]
 """
 from __future__ import annotations
 
@@ -42,6 +56,7 @@ FLOOR = 1e-30
 LAM_CLIP = 20.0
 NUM = {}
 CENSOR = []
+PANEL_H = 1.65          # canvas height of a one-row, three-panel figure (prints at 0.8x)
 
 
 def num(k, v):
@@ -177,6 +192,41 @@ def fmt_cross(c):
     return f"$u={c:.2f}$" if c is not None else "not within the swept range"
 
 
+def bootci(v, n=10000, seed=0):
+    v = np.asarray(v, dtype=float)
+    if len(v) < 2:
+        return (float("nan"), float("nan"))
+    bs = np.random.default_rng(seed).choice(v, size=(n, len(v)), replace=True).mean(1)
+    return float(np.percentile(bs, 2.5)), float(np.percentile(bs, 97.5))
+
+
+def ci_str(c):
+    return f"[{c[0]:+.3f}, {c[1]:+.3f}]"
+
+
+def select_run(runs, arm, tol=REWARD_TOL):
+    """The paper's operating rule applied to a dict of stored runs: the smallest learning
+    rate whose final verifier reward is within `tol` of the best, for the given arm."""
+    lrkey = "lr_neural" if arm == "neural" else "lr_tabular"
+    top = max(r[arm][-1]["leaky_reward"] for r in runs.values())
+    near = [r for r in runs.values() if r[arm][-1]["leaky_reward"] >= top - tol]
+    return min(near, key=lambda r: r[lrkey])
+
+
+def sweep_panel(ax, arms, N, key="d_rho", dy=0.035, offsets=(-0.14, 0.14)):
+    """A universality sweep: every seed as a dot, the mean over seeds on top, one series per arm.
+    `arms` is a list of (selection, arm, colour, marker, label)."""
+    if key == "d_rho":
+        ax.axhline(0, **BASELINE)
+    for (by, which, col, mk, lab), off in zip(arms, offsets):
+        x, mu, se = series(by, which, key)
+        lx = np.log2(x / N) + off
+        for xi, v in zip(lx, seed_values(by, which, key)):
+            seed_dots(ax, xi, v, col, dy=dy, dx=0.075, s=5)
+        mean_line(ax, lx, mu, col, mk, label=lab, yerr=se)
+    u_axis(ax)
+
+
 # ======================================================================================
 def fig1():
     rows = load_capped("exp2_adam_shard*.jsonl")
@@ -214,7 +264,7 @@ def fig1():
     arms.append(("Per-prompt", bt, "tabular", C_TAB, M_TAB))
     dodge = np.linspace(-0.27, 0.27, len(arms))
 
-    fig, axes = plt.subplots(1, 3, figsize=(FIG_W, 1.88), width_ratios=[1, 1.3, 1],
+    fig, axes = plt.subplots(1, 3, figsize=(FIG_W, PANEL_H), width_ratios=[1, 1.3, 1],
                              layout="constrained")
 
     # left: each condition as an arrow from its own base model to where training ended
@@ -233,10 +283,11 @@ def fig1():
     ax.set_ylim(0, 0.38)
     ax.yaxis.set_major_locator(plt.MultipleLocator(0.1))
     ax.set_ylabel(r"Hack fraction $\rho$")
+    ax.set_title("Base model to final")
 
     # centre and right: every seed, with the mean over seeds on top
-    for ax, key, dy, ylabel in ((axes[1], "d_rho", 0.03, r"Drift $\Delta\rho$"),
-                                (axes[2], "acc", 0.03, "True accuracy")):
+    for ax, key, dy, ylabel, title in ((axes[1], "d_rho", 0.03, r"Drift $\Delta\rho$", "Drift from the base"),
+                                       (axes[2], "acc", 0.03, "True accuracy", "Accuracy")):
         for (name, by, which, col, mk), off in zip(arms, dodge):
             x, mu, se = series(by, which, key)
             lx = np.log2(x / N) + off
@@ -244,6 +295,7 @@ def fig1():
                 seed_dots(ax, xi, v, col, dy=dy, dx=0.075, s=5)
             mean_line(ax, lx, mu, col, mk, label=name, yerr=se)
         ax.set_ylabel(ylabel)
+        ax.set_title(title)
     axes[1].axhline(0, **BASELINE)
     axes[1].yaxis.set_major_locator(plt.MultipleLocator(0.25))
     for ax in axes:
@@ -273,6 +325,7 @@ def fig1():
     # per-seed spread at u=1 (the outcome is bimodal, not merely noisy)
     hi_vals = sorted(val(r, "neural", "rho") for r in bn[(xm[-1],)].values())
     num("NuTwoHiSeedList", ", ".join(f"{v:.2f}" for v in hi_vals))
+    num("NuTwoHiSeedMedian", f"{np.median(hi_vals):.2f}")
     num("NuTwoTabLoDR", f"{dt[0]:+.3f}"); num("NuTwoTabHiDR", f"{dt[-1]:+.3f}")
     num("NuTwoNeuralLoDL", f"{ln[0]:+.1f}"); num("NuTwoNeuralHiDL", f"{ln[-1]:+.1f}")
     num("NuTwoTabLoDL", f"{lt[0]:+.1f}"); num("NuTwoTabHiDL", f"{lt[-1]:+.1f}")
@@ -308,10 +361,12 @@ def fig1():
         num("NuSixNSeeds", f"{len(b6[(x6[-1],)])}")
 
 
-def fig2():
+# ======================================================================================
+def fig_factorial():
+    """The universality x error-rate factorial, seed by seed (appendix)."""
     rows = load("exp3cf_shard*.jsonl")
     if not rows:
-        print("fig2: no data"); return
+        print("factorial: no data"); return
     N = rows[0]["config"]["N"]
     bn = best_by_reward(rows, ["m", "k"], "neural")
     ks = sorted({c[1] for c in bn}); ms = sorted({c[0] for c in bn})
@@ -360,7 +415,7 @@ def fig2():
     axes[1].set_xticks(range(len(ks)), [f"{fprs[k]*100:.1f}" for k in ks])
     axes[1].set_xlabel("Static false-positive rate (%)")
     axes[1].set_title("Grouped by error rate")
-    save(fig, "fig2_factorial")
+    save(fig, "fig7_factorial")
 
     ys, Ms, Ks, Bs = [], [], [], []
     for (m, k), d in bn.items():
@@ -386,470 +441,7 @@ def fig2():
     num("NuThreeLoU", f"{ms[0]/N:.3f}")
 
 
-def fig3():
-    path = os.path.join(RES, "theory.json")
-    if not os.path.exists(path):
-        print("fig3: no theory data"); return
-    th = json.load(open(path))
-    fig, axes = plt.subplots(1, 3, figsize=(FIG_W, 2.2), layout="constrained")
-    N = 64.0
-
-    d = defaultdict(lambda: defaultdict(list))
-    for rec in th["T3b"]:
-        dn, dt = rec["decomp_neural"], rec["decomp_tabular"]
-        d["n_cross"][rec["m"]].append(dn["hack_cross"])
-        d["n_own"][rec["m"]].append(dn["hack_own"])
-        d["t_cross"][rec["m"]].append(abs(dt["hack_cross"]) + abs(dt["gold_cross"]))
-        d["coh_h"][rec["m"]].append(rec["coherence"]["hack_coh"])
-        d["coh_g"][rec["m"]].append(rec["coherence"]["gold_coh"])
-    for rec in th.get("T3c", []):
-        dd = rec["decomp"]
-        d["burn_lo"][rec["m"]].append(dd["hack_cross"] - dd["gold_cross"])
-        d["burn_v"][rec["m"]].append(rec["leaky"])
-    ms = np.array(sorted(d["coh_h"]), float)
-
-    def mm(key):
-        src = d[key]
-        return (np.array([np.mean(src[m]) for m in ms]),
-                np.array([np.std(src[m], ddof=1) / np.sqrt(len(src[m])) if len(src[m]) > 1
-                          else 0.0 for m in ms]))
-
-    lu = np.log2(ms / N)
-
-    def seeds(ax, key, off, col, dy):
-        for x, m in zip(lu + off, ms):
-            seed_dots(ax, x, d[key][m], col, dy=dy, dx=0.1, s=7, alpha=0.6)
-
-    # ---- panel 1: the cross-prompt term, the only channel universality can act through.
-    # A lollipop from zero, because zero is the value Corollary 1 predicts without sharing.
-    ax = axes[0]
-    nc, ncs = mm("n_cross"); tc, _ = mm("t_cross")
-    ax.axhline(0, **BASELINE)
-    ax.vlines(lu - 0.13, 0, nc, color=C_SHARED, lw=1.3, zorder=2)
-    seeds(ax, "n_cross", -0.13, C_SHARED, 0.9)
-    mean_line(ax, lu - 0.13, nc, C_SHARED, M_SHARED, "Shared", yerr=ncs, ls="none")
-    mean_line(ax, lu + 0.13, tc, C_TAB, M_TAB, "Per-prompt", ls="none")
-    ax.set_ylim(top=24)
-    ax.set_ylabel(r"Cross-prompt drift of $h$")
-    ax.set_title("Cross-prompt term")
-    ax.legend(loc="upper center", ncol=2, frameon=False, handlelength=0.5, handletextpad=0.3,
-              columnspacing=0.8, borderpad=0.2)
-
-    # ---- panel 2: coherence
-    ax = axes[1]
-    ch, chs = mm("coh_h"); cg, _ = mm("coh_g")
-    ax.axhline(0, **BASELINE)
-    seeds(ax, "coh_h", 0, C_SHARED, 0.014)
-    seeds(ax, "coh_g", 0, C_ALT, 0.014)
-    mean_line(ax, lu, ch, C_SHARED, M_SHARED, "Leak", yerr=chs)
-    mean_line(ax, lu, cg, C_ALT, M_TAB, "Correct")
-    ax.set_ylabel("Gradient cosine")
-    ax.set_title("Coherence")
-    ax.legend(loc="upper left", frameon=False)
-
-    # ---- panel 3: block-structure control
-    ax = axes[2]
-    rows6 = load("exp6_shard*.jsonl"); rows2 = load_capped("exp2_adam_shard*.jsonl")
-    if rows6 and rows2:
-        b6 = best_by_reward(rows6, ["m"], "neural"); b2 = best_by_reward(rows2, ["m"], "neural")
-        x6, d6, s6 = series(b6, "neural", "d_rho"); x2, d2, s2 = series(b2, "neural", "d_rho")
-        ax.axhline(0, **BASELINE)
-        mean_line(ax, np.log2(x2 / N) - 0.12, d2, C_SHARED, M_SHARED, "Contiguous", yerr=s2)
-        mean_line(ax, np.log2(x6 / N) + 0.12, d6, C_PERM, M_PERM, "Permuted", yerr=s6)
-        ax.set_ylabel(r"Drift $\Delta\rho$")
-        ax.set_title("Block structure")
-        ax.legend(loc="upper left", frameon=False)
-    for ax in axes:
-        u_axis(ax)
-    save(fig, "fig3_mechanism")
-
-    num("MechCrossLo", f"{nc[0]:.1f}"); num("MechCrossHi", f"{nc[-1]:.1f}")
-    num("MechCrossLoSem", f"{ncs[0]:.1f}"); num("MechCrossHiSem", f"{ncs[-1]:.1f}")
-    num("MechTabCross", "exactly $0$" if np.max(tc) == 0 else sci(float(np.max(tc))))
-    num("CohHackHi", f"{ch[-1]:+.2f}"); num("CohHackLo", f"{ch[0]:+.2f}")
-    # three-decimal forms: the appendix quotes N*kappa/kappa_s next to these, and the
-    # two-decimal display does not reproduce that ratio when multiplied out by hand.
-    num("CohHackHiFine", f"{ch[-1]:+.3f}"); num("CohHackLoFine", f"{ch[0]:+.3f}")
-    num("CohGold", f"{cg.mean():+.2f}")
-    if d["burn_lo"]:
-        bl, _ = mm("burn_lo"); bv, _ = mm("burn_v")
-        num("BurnVbar", f"{bv.mean():.3f}"); num("BurnSteps", th["T3c"][0]["burn"])
-        num("BurnLoMin", f"{bl.min():+.3f}"); num("BurnLoMax", f"{bl.max():+.3f}")
-    num("NullDriftMirror", sci(th["T2"]["max_abs_dev"]))
-    tr = th["T2"]["traj"]
-    num("NullDriftMirrorPooled", f"{tr[-1]['hack_frac'] - tr[0]['hack_frac']:+.3f}")
-    num("NullDriftMirrorLam", sci(th["T2"]["max_logodds_dev"]))
-    num("NullDriftKL", sci(th["T1"]["max_abs_dev"]))
-    num("DriftRelErr", sci(th["T3a"]["transformer"]["max_rel_err"]))
-    num("NullMirrorSteps", tr[-1]["step"])
-    num("NullBetaRange",
-        f"$[{min(r['beta'] for r in th['T1']['rows'])}, {max(r['beta'] for r in th['T1']['rows'])}]$")
-    kt = th["T3a"].get("kernel_transformer"); kb = th["T3a"].get("kernel_tabular")
-    if kt and kb:
-        num("KernelRatioNeural", f"{kt['ratio']:.3f}")
-        num("KernelRatioTab", sci(kb["ratio"]) if kb["ratio"] > 0 else "exactly $0$")
-    num("NThreshValidity", f"{64 * ch[-1]:.0f}")
-    num("ThreshCorrection", f"{(1 - tr[0]['leaky_reward']) / (64 * max(ch[-1], 1e-6)):.2f}")
-
-
-def fig4():
-    fig = plt.figure(figsize=(FIG_W, 4.75), layout="constrained")
-    top, bottom = fig.subfigures(2, 1, height_ratios=[1.1, 1])
-    axes = top.subplots(1, 3)
-    r5a = load_capped("exp5a_shard*.jsonl")
-    if r5a:
-        N = r5a[0]["config"]["N"]
-        bn = best_by_reward(r5a, ["m"], "neural")
-        bt = best_by_reward(r5a, ["m"], "tabular")
-        xm, dn, sn = series(bn, "neural", "d_rho")
-        xt, dt, st = series(bt, "tabular", "d_rho")
-        _, rn, _ = series(bn, "neural", "rho")
-        ax = axes[0]
-        ax.axhline(0, **BASELINE)
-        for by, which, x, mu, se, col, mk, lab, off in (
-                (bn, "neural", xm, dn, sn, C_SHARED, M_SHARED, "Shared", -0.14),
-                (bt, "tabular", xt, dt, st, C_TAB, M_TAB, "Per-prompt", 0.14)):
-            lx = np.log2(x / N) + off
-            for xi, v in zip(lx, seed_values(by, which, "d_rho")):
-                seed_dots(ax, xi, v, col, dy=0.035, dx=0.075, s=5)
-            mean_line(ax, lx, mu, col, mk, label=lab, yerr=se)
-        u_axis(ax)
-        ax.set_ylabel(r"Drift $\Delta\rho$")
-        ax.set_title("Sampled GRPO")
-        num("NuFiveALo", f"{rn[0]:.3f}"); num("NuFiveAHi", f"{rn[-1]:.3f}")
-        num("NuFiveADLo", f"{dn[0]:+.3f}"); num("NuFiveADHi", f"{dn[-1]:+.3f}")
-        num("NuFiveADLoSem", f"{sn[0]:.3f}"); num("NuFiveADHiSem", f"{sn[-1]:.3f}")
-        num("NuFiveANSeeds", f"{len({r['config']['seed'] for r in r5a})}")
-        num("NuFiveACrossU", fmt_cross(crossing(xm / N, dn, 0.0)))
-
-    r5b = load("exp5b_shard*.jsonl")
-    if r5b:
-        by = defaultdict(lambda: defaultdict(list))
-        acc = defaultdict(lambda: defaultdict(list))
-        lky = defaultdict(lambda: defaultdict(list))
-        seen = set()
-        for r in r5b:
-            c = r["config"]
-            key = (c["m"], c["beta"], c["seed"])
-            if key in seen:
-                continue
-            seen.add(key)
-            by[c["m"]][c["beta"]].append(val(r, "neural", "d_rho"))
-            acc[c["m"]][c["beta"]].append(val(r, "neural", "acc"))
-            lky[c["m"]][c["beta"]].append(val(r, "neural", "lky"))
-        # beta = 0 cannot sit on a log axis, so the grid is drawn evenly by its index: its steps
-        # are close to geometric, and no value has to stand in for zero
-        betas = sorted(by[min(by)])
-        u_cols = u_colors([m / 64 for m in by])
-        for ax, src, dy, ylabel, title in ((axes[1], by, 0.03, r"Drift $\Delta\rho$", "Drift under KL"),
-                                           (axes[2], acc, 0.03, "True accuracy", "Accuracy under KL")):
-            if src is by:
-                ax.axhline(0, **BASELINE)
-            for m, mk, off in zip(sorted(src), "v^", (-0.13, 0.13)):
-                xs = np.arange(len(betas)) + off
-                for x, b in zip(xs, betas):
-                    seed_dots(ax, x, src[m][b], u_cols[m / 64], dy=dy, dx=0.06, s=5)
-                mean_line(ax, xs, [np.mean(src[m][b]) for b in betas], u_cols[m / 64], mk,
-                          label=rf"Shared, $u={u_label(m / 64)}$",
-                          yerr=[np.std(src[m][b], ddof=1) / np.sqrt(len(src[m][b])) for b in betas])
-            ax.set_xticks(range(0, len(betas), 2), [f"{b:g}" for b in betas[::2]])
-            ax.set_xticks(range(len(betas)), minor=True)
-            ax.set_xlabel(r"KL coefficient $\beta$")
-            ax.set_ylabel(ylabel)
-            ax.set_title(title)
-        hi, lo = max(by), min(by)
-        b0, bmax = min(by[hi]), max(by[hi])
-        num("NuFiveBNSeeds", f"{len({r['config']['seed'] for r in r5b})}")
-        num("NuFiveBBeta", f"{bmax:g}")
-        num("NuFiveBDRSeriesHi",
-            ", ".join(f"{np.mean(by[hi][b]):+.3f}" for b in sorted(by[hi])))
-        for tag, mm_ in [("Hi", hi), ("Lo", lo)]:
-            num(f"NuFiveBDRNoKL{tag}", f"{np.mean(by[mm_][b0]):+.3f}")
-            num(f"NuFiveBDRKL{tag}", f"{np.mean(by[mm_][bmax]):+.3f}")
-            num(f"NuFiveBAccNoKL{tag}", f"{np.mean(acc[mm_][b0]):.3f}")
-            num(f"NuFiveBAccKL{tag}", f"{np.mean(acc[mm_][bmax]):.3f}")
-            num(f"NuFiveBLkyNoKL{tag}", f"{np.mean(lky[mm_][b0]):.3f}")
-            num(f"NuFiveBLkyKL{tag}", f"{np.mean(lky[mm_][bmax]):.3f}")
-
-    h1, l1 = axes[0].get_legend_handles_labels()
-    h2, l2 = axes[1].get_legend_handles_labels()
-    top.legend(h1 + h2, l1 + l2, loc="outside lower center", ncol=4, frameon=False)
-    hardening_panel(bottom.subplots(1, 3, sharex=True, sharey=True))
-    save(fig, "fig4_practice")
-
-
-def fig5():
-    rows = load_capped("exp2_adam_shard*.jsonl")
-    if not rows:
-        return
-    N = rows[0]["config"]["N"]
-    fig = plt.figure(figsize=(FIG_W, 4.5), layout="constrained")
-    top, bottom = fig.subfigures(2, 1, height_ratios=[1, 1])
-    heat_axes = top.subplots(1, 2, sharey=True)
-    axes = bottom.subplots(1, 3)
-
-    # every learning rate and universality at once, for both arms, as signed fields on one scale
-    lrs = sorted({r["config"]["lr_neural"] for r in rows})
-    ms = sorted({r["config"]["m"] for r in rows})
-    field = {}
-    for arm, lrkey in (("neural", "lr_neural"), ("tabular", "lr_tabular")):
-        d = defaultdict(list)
-        for r in rows:
-            d[(r["config"][lrkey], r["config"]["m"])].append(val(r, arm, "d_rho"))
-        field[arm] = np.array([[np.mean(d[(lr, m)]) for m in ms] for lr in lrs])
-    lim = max(np.abs(f).max() for f in field.values())
-    norm = plt.Normalize(-lim, lim)
-    for ax, arm, title in zip(heat_axes, ("neural", "tabular"), ("Shared", "Per-prompt")):
-        im = heat(ax, field[arm], norm, "RdBu_r", fmt="{:.2f}", fontsize=8)
-        ax.set_xticks(range(len(ms)), [u_label(m / N) for m in ms])
-        ax.set_xlabel(r"Leak universality $u$")
-        ax.set_title(title)
-    heat_axes[0].set_yticks(range(len(lrs)), [lr_label(lr) for lr in lrs])
-    heat_axes[0].set_ylabel("Adam learning rate")
-    top.colorbar(im, ax=heat_axes, label=r"Mean drift $\Delta\rho$")
-
-    # trajectories: colour is the arm, line style the condition, thin lines the seeds
-    ax = axes[0]
-    bn = best_by_reward(rows, ["m"], "neural"); bt = best_by_reward(rows, ["m"], "tabular")
-    for cell, ls in (((1,), "--"), ((N,), "-")):
-        for by, which, col in ((bn, "neural", C_SHARED), (bt, "tabular", C_TAB)):
-            if cell in by:
-                recs = list(by[cell].values())
-                steps = [x["step"] for x in recs[0][which]]
-                ys = np.array([[x["mean_hack_frac"] for x in rc[which]] for rc in recs])
-                ax.plot(steps, ys.T, color=col, ls=ls, lw=0.5, alpha=0.3, zorder=2)
-                ax.plot(steps, ys.mean(0), color=col, ls=ls, lw=1.6, zorder=3)
-    ax.set_xlabel("RL step"); ax.set_ylabel(r"Hack fraction $\rho$")
-    ax.set_title("Trajectories")
-
-    # prompt-set-size sweep: does the effect track u or m?
-    ax = axes[1]
-    rows4 = load("exp4_shard*.jsonl")
-    if rows4:
-        b4 = best_by_reward(rows4, ["N", "m"], "neural")
-        by = defaultdict(dict); sem = defaultdict(dict)
-        for (Nn, m), dd in b4.items():
-            v = [val(r, "neural", "d_rho") for r in dd.values()]
-            by[Nn][m / Nn] = float(np.mean(v))
-            sem[Nn][m / Nn] = (float(np.std(v, ddof=1) / np.sqrt(len(v))) if len(v) > 1 else 0.0)
-        ax.axhline(0, **BASELINE)
-        for Nn, col, mk, off in ((16, C_ALT, M_PERM, -0.13), (64, C_SHARED, M_SHARED, 0.13)):
-            us = np.array(sorted(by[Nn]))
-            for x, uu in zip(np.log2(us) + off, us):
-                v = [val(r, "neural", "d_rho") for r in b4[(Nn, round(uu * Nn))].values()]
-                seed_dots(ax, x, v, col, dy=0.009, dx=0.075, s=5)
-            mean_line(ax, np.log2(us) + off, [by[Nn][x] for x in us], col, mk, label=f"$N={Nn}$",
-                      yerr=[sem[Nn][x] for x in us])
-        u_axis(ax)
-        ax.set_ylabel(r"Drift $\Delta\rho$"); ax.set_title("Prompt-set size")
-        small, big = min(by), max(by)
-        if 1.0 not in by[small] or 1.0 not in by[big] or (small / big) not in by[big]:
-            print("fig5: prompt-set sweep incomplete"); small = big = None
-    if rows4 and small is not None:
-        num("NuFourNSmall", f"{int(small)}"); num("NuFourNBig", f"{int(big)}")
-        num("NuFourNSeeds", f"{len({r['config']['seed'] for r in rows4})}")
-        num("NuFourUOneSmall", f"{by[small][1.0]:+.3f}"); num("NuFourUOneSmallSem", f"{sem[small][1.0]:.3f}")
-        num("NuFourUOneBig", f"{by[big][1.0]:+.3f}"); num("NuFourUOneBigSem", f"{sem[big][1.0]:.3f}")
-        mm = int(small)   # same block size m = N_small, different u
-        num("NuFourSameM", f"{mm}")
-        num("NuFourSameMBig", f"{by[big][mm / big]:+.3f}")
-        shared_u = sorted(set(by[small]) & set(by[big]))
-        num("NuFourMatchedGap", f"{max(abs(by[small][x] - by[big][x]) for x in shared_u):.3f}")
-        num("NuFourNShared", f"{len(shared_u)}")
-        num("NuFourMatchedGapLo", f"{max(abs(by[small][x] - by[big][x]) for x in shared_u[:3]):.3f}")
-
-    ax = axes[2]
-    rs = load_capped("exp2_sgd_shard*.jsonl")
-    if rs:
-        b1 = best_by_reward(rs, ["m"], "neural"); b2 = best_by_reward(rs, ["m"], "tabular")
-        xm, dn, sn = series(b1, "neural", "d_rho")
-        xt, dt, st = series(b2, "tabular", "d_rho")
-        ax.axhline(0, **BASELINE)
-        for by, which, x, mu, se, col, mk, lab, off in (
-                (b1, "neural", xm, dn, sn, C_SHARED, M_SHARED, "Shared", -0.13),
-                (b2, "tabular", xt, dt, st, C_TAB, M_TAB, "Per-prompt", 0.13)):
-            lx = np.log2(x / N) + off
-            for xi, v in zip(lx, seed_values(by, which, "d_rho")):
-                seed_dots(ax, xi, v, col, dy=0.04, dx=0.075, s=5)
-            mean_line(ax, lx, mu, col, mk, label=lab, yerr=se)
-        u_axis(ax)
-        ax.set_ylabel(r"Drift $\Delta\rho$"); ax.set_title("Plain SGD")
-        num("NuTwoSgdNeuralHi", f"{dn[-1]:+.3f}"); num("NuTwoSgdNeuralLo", f"{dn[0]:+.3f}")
-        num("NuTwoSgdTabHi", f"{dt[-1]:+.3f}"); num("NuTwoSgdTabLo", f"{dt[0]:+.3f}")
-        num("NuTwoSgdTabSlope", f"{slope_per_doubling(xt, dt):+.3f}")
-        num("NuTwoSgdNeuralSlope", f"{slope_per_doubling(xm, dn):+.3f}")
-        _, rn_, _ = series(b1, "neural", "rho"); _, an_, _ = series(b1, "neural", "acc")
-        _, rt_, _ = series(b2, "tabular", "rho"); _, at_, _ = series(b2, "tabular", "acc")
-        num("NuTwoSgdNeuralLoRho", f"{rn_[0]:.3f}"); num("NuTwoSgdNeuralHiRho", f"{rn_[-1]:.3f}")
-        num("NuTwoSgdTabLoRho", f"{rt_[0]:.3f}"); num("NuTwoSgdTabHiRho", f"{rt_[-1]:.3f}")
-        num("NuTwoSgdNeuralLoAcc", f"{an_[0]:.3f}"); num("NuTwoSgdNeuralHiAcc", f"{an_[-1]:.3f}")
-        num("NuTwoSgdTabHiAcc", f"{at_[-1]:.3f}")
-        num("NuTwoSgdCrossU", fmt_cross(crossing(xm / N, dn, 0.0)))
-    line = lambda col, mk=None, ls="-": plt.Line2D([], [], color=col, marker=mk, ms=4.5, ls=ls,
-                                                   mec="white", mew=0.5)
-    bottom.legend([line(C_SHARED, M_SHARED), line(C_TAB, M_TAB), line(C_ALT, M_PERM),
-                   line(C_NULL, ls="--"), line(C_NULL)],
-                  ["Shared", "Per-prompt", r"Shared, $N=16$", rf"$u={u_label(1 / N)}$", r"$u=1$"],
-                  loc="outside lower center", ncol=5, frameon=False)
-    save(fig, "fig5_appendix")
-
-
-# ======================================================================================
-def fig6():
-    """The three causal controls: what sharing does, and where it has to happen."""
-    import numpy as _np
-
-    def sel(rows, arm, tol=REWARD_TOL):
-        by = defaultdict(list)
-        for r in rows:
-            by[(r["config"]["m"], r["config"]["seed"])].append(r)
-        # Keep only seeds present at EVERY m in this sweep: a half-finished seed would
-        # otherwise contribute to some conditions and not others and skew the comparison.
-        ms = {k[0] for k in by}
-        seeds = {k[1] for k in by}
-        full = {sd for sd in seeds if all((m, sd) in by for m in ms)}
-        by = {k: v for k, v in by.items() if k[1] in full}
-        out = {}
-        for k, rs in by.items():
-            best = max(x[arm][-1]["leaky_reward"] for x in rs)
-            ok = [x for x in rs if x[arm][-1]["leaky_reward"] >= best - tol]
-            out[k] = min(ok, key=lambda x: x["config"]["lr_neural"])
-        return out
-
-    def dr(s, arm, m):
-        ks = sorted(k for k in s if k[0] == m)
-        return [s[k][arm][-1]["mean_hack_frac"] - s[k]["base"]["mean_hack_frac"] for k in ks]
-
-    def bootci(v, n=10000, seed=0):
-        v = _np.asarray(v, dtype=float)
-        if len(v) < 2:
-            return (float("nan"), float("nan"))
-        bs = _np.random.default_rng(seed).choice(v, size=(n, len(v)), replace=True).mean(1)
-        return float(_np.percentile(bs, 2.5)), float(_np.percentile(bs, 97.5))
-
-    def slopeci(s, arm, ms):
-        seeds = sorted({k[1] for k in s})
-        out = []
-        for sd in seeds:
-            if not all((m, sd) in s for m in ms):
-                continue
-            xs = _np.log2(ms)
-            ys = [s[(m, sd)][arm][-1]["mean_hack_frac"] - s[(m, sd)]["base"]["mean_hack_frac"]
-                  for m in ms]
-            out.append(_np.polyfit(xs, ys, 1)[0])
-        return float(_np.mean(out)), bootci(out)
-
-    r9 = load_capped("exp9_shard*.jsonl")
-    r9b = load_capped("exp9b_shard*.jsonl", cap=5)
-    r10 = load_capped("exp10_shard*.jsonl")
-    r1 = [r for r in load_capped("exp2_adam_shard*.jsonl")
-          if r["config"]["m"] in (1, 4, 16, 64)]
-    if not (r9 and r9b and r10 and r1):
-        print("fig6: missing data"); return
-    N = r9[0]["config"]["N"]
-    MS_ALL = [1, 2, 4, 8, 16, 32, 64]
-    MS_10 = [1, 4, 16, 64]
-
-    s9n, s9t = sel(r9, "neural"), sel(r9, "tabular")
-    s9bn, s9bt = sel(r9b, "neural"), sel(r9b, "tabular")
-    s10 = sel(r10, "copies")
-    s1 = sel(r1, "neural")
-
-    shared = lambda s: (s, "neural", C_SHARED, M_SHARED, "Shared")
-    tabular = lambda s: (s, "tabular", C_TAB, M_TAB, "Per-prompt")
-    copies = (s10, "copies", C_COPIES, M_COPIES, "Per-prompt copies")
-    fig, axes = plt.subplots(1, 3, figsize=(FIG_W, 2.0), layout="constrained")
-    for ax, title, ms, arms in zip(axes, ("Sharing removed", "Fixed error rate", "Fixed leak mass"),
-                                   (MS_10, MS_ALL, MS_ALL),
-                                   ((shared(s1), copies), (shared(s9n), tabular(s9t)),
-                                    (shared(s9bn), tabular(s9bt)))):
-        ax.axhline(0, **BASELINE)
-        lu = _np.log2(_np.array(ms) / N)
-        span = max(abs(v) for s_, a_, *_ in arms for m in ms for v in dr(s_, a_, m))
-        for (s_, arm, col, mk, lab), off in zip(arms, (-0.14, 0.14)):
-            vals = [dr(s_, arm, m) for m in ms]
-            mu = _np.array([_np.mean(v) for v in vals])
-            ci = _np.array([bootci(v) for v in vals])
-            for x, v in zip(lu + off, vals):
-                seed_dots(ax, x, v, col, dy=0.035 * span, dx=0.075, s=5)
-            mean_line(ax, lu + off, mu, col, mk, label=lab,
-                      yerr=[mu - ci[:, 0], ci[:, 1] - mu])
-        u_axis(ax)
-        ax.set_title(title)
-        ax.yaxis.set_major_locator(plt.MaxNLocator(nbins=4, steps=[1, 2, 5, 10]))
-    axes[0].set_ylabel(r"Drift $\Delta\rho$")
-    handles = dict(zip(*reversed(axes[0].get_legend_handles_labels())))
-    handles.update(zip(*reversed(axes[1].get_legend_handles_labels())))
-    order = ("Shared", "Per-prompt", "Per-prompt copies")
-    top_legend(fig, [handles[k] for k in order], order)
-    save(fig, "fig6_controls")
-
-    m10, c10 = slopeci(s10, "copies", MS_10)
-    m1, c1 = slopeci(s1, "neural", MS_10)
-    m9, c9 = slopeci(s9n, "neural", MS_ALL)
-    m9t, c9t = slopeci(s9t, "tabular", MS_ALL)
-    m9b, c9b = slopeci(s9bn, "neural", MS_ALL)
-    m9bt, c9bt = slopeci(s9bt, "tabular", MS_ALL)
-    ci = lambda c: f"[{c[0]:+.4f}, {c[1]:+.4f}]"
-    num("CopiesSlope", f"{m10:+.4f}");   num("CopiesSlopeCI", ci(c10))
-
-    # The statistically correct comparison is the PAIRED difference in slope between the
-    # shared model and its per-prompt copies on the same seed, not two marginal CIs.
-    def per_seed_slopes(sdict, arm, ms):
-        out = {}
-        for sd in sorted({k[1] for k in sdict}):
-            if not all((m, sd) in sdict for m in ms):
-                continue
-            ys = [sdict[(m, sd)][arm][-1]["mean_hack_frac"] - sdict[(m, sd)]["base"]["mean_hack_frac"]
-                  for m in ms]
-            out[sd] = float(_np.polyfit(_np.log2(ms), ys, 1)[0])
-        return out
-    ps_c = per_seed_slopes(s10, "copies", MS_10)
-    ps_s = per_seed_slopes(s1, "neural", MS_10)
-    common = sorted(set(ps_c) & set(ps_s))
-    if len(common) >= 3:
-        d = _np.array([ps_s[k] - ps_c[k] for k in common])
-        num("CopiesPairedDiff", f"{d.mean():+.4f}")
-        num("CopiesPairedDiffCI", ci(bootci(d)))
-        num("CopiesPairedN", f"{len(d)}")
-        se = d.std(ddof=1) / _np.sqrt(len(d))
-        num("CopiesPairedT", f"{d.mean()/se:.2f}")
-
-    # The same paired comparison for the two mask-only controls.  Quoting two marginal
-    # estimates there while quoting a paired one for E10 would be inconsistent, and the
-    # paired interval is the statistic that answers "is this just an underpowered null".
-    for tag, sn, st, an, at, ms in (("MaskFprPaired", s9n, s9t, "neural", "tabular", MS_ALL),
-                                    ("MaskMassPaired", s9bn, s9bt, "neural", "tabular", MS_ALL)):
-        pn = per_seed_slopes(sn, an, ms)
-        pt = per_seed_slopes(st, at, ms)
-        com = sorted(set(pn) & set(pt))
-        if len(com) >= 3:
-            dd = _np.array([pn[k] - pt[k] for k in com])
-            num(tag + "Diff", f"{dd.mean():+.4f}")
-            num(tag + "DiffCI", ci(bootci(dd)))
-            num(tag + "N", f"{len(dd)}")
-    num("SharedSlopeMatched", f"{m1:+.4f}"); num("SharedSlopeMatchedCI", ci(c1))
-    num("MaskFprSlope", f"{m9:+.4f}");   num("MaskFprSlopeCI", ci(c9))
-    num("MaskFprSlopeTab", f"{m9t:+.4f}"); num("MaskFprSlopeTabCI", ci(c9t))
-    num("MaskMassSlope", f"{m9b:+.4f}"); num("MaskMassSlopeCI", ci(c9b))
-    num("MaskMassSlopeTab", f"{m9bt:+.4f}"); num("MaskMassSlopeTabCI", ci(c9bt))
-    num("CopiesHiDR", f"{_np.mean(dr(s10,'copies',64)):+.3f}")
-    num("CopiesHiAcc", f"{_np.mean([s10[k]['copies'][-1]['acc'] for k in s10 if k[0]==64]):.3f}")
-    num("CopiesLoDR", f"{_np.mean(dr(s10,'copies',1)):+.3f}")
-    num("MaskFprBaseLo", f"{_np.mean([s9n[k]['base']['hack_mass'] for k in s9n if k[0]==1]):.4f}")
-    num("MaskFprBaseHi", f"{_np.mean([s9n[k]['base']['hack_mass'] for k in s9n if k[0]==64]):.4f}")
-    num("MaskMassHiDR", f"{_np.mean(dr(s9bn,'neural',64)):+.4f}")
-    num("MaskMassMidDR", f"{_np.mean(dr(s9bn,'neural',32)):+.4f}")
-    num("NCopiesSeeds", f"{len({k[1] for k in s10})}")
-    num("NMaskSeeds", f"{len({k[1] for k in s9n})}")
-    num("NMaskMassSeeds", f"{len({k[1] for k in s9bn})}")
-
-
-
-
-
-# ======================================================================================
-def fig7():
+def fig_field():
     """The factorial as a field: the gradient runs along universality, not error rate.
 
     Grouped series make the reader hold four trends in their head and compare slopes.
@@ -858,7 +450,7 @@ def fig7():
     """
     rows = load("exp3cf_shard*.jsonl")
     if not rows:
-        print("fig7: no data"); return
+        print("field: no data"); return
     N = rows[0]["config"]["N"]
     bn = best_by_reward(rows, ["m", "k"], "neural")
     ks = sorted({c[1] for c in bn}); ms = sorted({c[0] for c in bn})
@@ -899,34 +491,475 @@ def fig7():
                        f"error rate {pct('NuThreeEtaK')}", ha="center", va="center",
              transform=axC.transAxes)
     fig.colorbar(im, ax=[axH, axR, axB, axC], label=r"Log-odds drift $\Delta\Lambda$")
-    save(fig, "fig7_field")
+    save(fig, "fig6_field")
     num("FactorialLoU", f"{np.nanmean(G[0, :]):.2f}")
     num("FactorialHiU", f"{np.nanmean(G[-1, :]):.2f}")
 
 
+# ======================================================================================
+# the causal controls: E9, E9b (frozen base), E10 (per-prompt copies) and the matched E1 cells
+# ======================================================================================
+_CTL = None
+
+
+def sel_full(rows, arm, tol=REWARD_TOL):
+    """The operating rule per (m, seed), keeping only seeds present at EVERY m in the sweep:
+    a half-finished seed would otherwise contribute to some conditions and not others."""
+    by = defaultdict(list)
+    for r in rows:
+        by[(r["config"]["m"], r["config"]["seed"])].append(r)
+    ms = {k[0] for k in by}
+    seeds = {k[1] for k in by}
+    full = {sd for sd in seeds if all((m, sd) in by for m in ms)}
+    by = {k: v for k, v in by.items() if k[1] in full}
+    out = {}
+    for k, rs in by.items():
+        best = max(x[arm][-1]["leaky_reward"] for x in rs)
+        ok = [x for x in rs if x[arm][-1]["leaky_reward"] >= best - tol]
+        out[k] = min(ok, key=lambda x: x["config"]["lr_neural"])
+    return out
+
+
+def dr(s, arm, m):
+    ks = sorted(k for k in s if k[0] == m)
+    return [s[k][arm][-1]["mean_hack_frac"] - s[k]["base"]["mean_hack_frac"] for k in ks]
+
+
+def per_seed_slopes(sdict, arm, ms):
+    out = {}
+    for sd in sorted({k[1] for k in sdict}):
+        if not all((m, sd) in sdict for m in ms):
+            continue
+        ys = [sdict[(m, sd)][arm][-1]["mean_hack_frac"] - sdict[(m, sd)]["base"]["mean_hack_frac"]
+              for m in ms]
+        out[sd] = float(np.polyfit(np.log2(ms), ys, 1)[0])
+    return out
+
+
+def slopeci(s, arm, ms):
+    out = list(per_seed_slopes(s, arm, ms).values())
+    return float(np.mean(out)), bootci(out)
+
+
+def controls_data():
+    global _CTL
+    if _CTL is not None:
+        return _CTL
+    r9 = load_capped("exp9_shard*.jsonl")
+    r9b = load_capped("exp9b_shard*.jsonl", cap=5)
+    r10 = load_capped("exp10_shard*.jsonl")
+    r1 = [r for r in load_capped("exp2_adam_shard*.jsonl") if r["config"]["m"] in (1, 4, 16, 64)]
+    if not (r9 and r9b and r10 and r1):
+        print("controls: missing data"); _CTL = {}; return _CTL
+    _CTL = dict(N=r9[0]["config"]["N"], MS_ALL=[1, 2, 4, 8, 16, 32, 64], MS_10=[1, 4, 16, 64],
+                s9n=sel_full(r9, "neural"), s9t=sel_full(r9, "tabular"),
+                s9bn=sel_full(r9b, "neural"), s9bt=sel_full(r9b, "tabular"),
+                s10=sel_full(r10, "copies"), s1=sel_full(r1, "neural"))
+    return _CTL
+
+
+def control_panel(ax, title, ms, arms, N):
+    """A universality sweep of drift with bootstrap intervals; `arms` is a list of
+    (selection, arm, colour, marker, label)."""
+    ax.axhline(0, **BASELINE)
+    lu = np.log2(np.array(ms) / N)
+    span = max(abs(v) for s_, a_, *_ in arms for m in ms for v in dr(s_, a_, m))
+    for (s_, arm, col, mk, lab), off in zip(arms, (-0.14, 0.14)):
+        vals = [dr(s_, arm, m) for m in ms]
+        mu = np.array([np.mean(v) for v in vals])
+        ci = np.array([bootci(v) for v in vals])
+        for x, v in zip(lu + off, vals):
+            seed_dots(ax, x, v, col, dy=0.035 * span, dx=0.075, s=5)
+        mean_line(ax, lu + off, mu, col, mk, label=lab, yerr=[mu - ci[:, 0], ci[:, 1] - mu])
+    u_axis(ax)
+    ax.set_title(title)
+    ax.yaxis.set_major_locator(plt.MaxNLocator(nbins=4, steps=[1, 2, 5, 10]))
+
+
+def controls_numbers(ctl):
+    s9n, s9t, s9bn, s9bt, s10, s1 = (ctl[k] for k in ("s9n", "s9t", "s9bn", "s9bt", "s10", "s1"))
+    MS_ALL, MS_10 = ctl["MS_ALL"], ctl["MS_10"]
+    m10, c10 = slopeci(s10, "copies", MS_10)
+    m1, c1 = slopeci(s1, "neural", MS_10)
+    m9, c9 = slopeci(s9n, "neural", MS_ALL)
+    m9t, c9t = slopeci(s9t, "tabular", MS_ALL)
+    m9b, c9b = slopeci(s9bn, "neural", MS_ALL)
+    m9bt, c9bt = slopeci(s9bt, "tabular", MS_ALL)
+    ci = lambda c: f"[{c[0]:+.4f}, {c[1]:+.4f}]"
+    num("CopiesSlope", f"{m10:+.4f}");   num("CopiesSlopeCI", ci(c10))
+
+    # The statistically correct comparison is the PAIRED difference in slope between the
+    # shared model and its per-prompt copies on the same seed, not two marginal CIs.
+    ps_c = per_seed_slopes(s10, "copies", MS_10)
+    ps_s = per_seed_slopes(s1, "neural", MS_10)
+    common = sorted(set(ps_c) & set(ps_s))
+    if len(common) >= 3:
+        d = np.array([ps_s[k] - ps_c[k] for k in common])
+        num("CopiesPairedDiff", f"{d.mean():+.4f}")
+        num("CopiesPairedDiffCI", ci(bootci(d)))
+        num("CopiesPairedN", f"{len(d)}")
+        se = d.std(ddof=1) / np.sqrt(len(d))
+        num("CopiesPairedT", f"{d.mean()/se:.2f}")
+
+    # The same paired comparison for the two mask-only controls.  Quoting two marginal
+    # estimates there while quoting a paired one for E10 would be inconsistent, and the
+    # paired interval is the statistic that answers "is this just an underpowered null".
+    for tag, sn, st, an, at, ms in (("MaskFprPaired", s9n, s9t, "neural", "tabular", MS_ALL),
+                                    ("MaskMassPaired", s9bn, s9bt, "neural", "tabular", MS_ALL)):
+        pn = per_seed_slopes(sn, an, ms)
+        pt = per_seed_slopes(st, at, ms)
+        com = sorted(set(pn) & set(pt))
+        if len(com) >= 3:
+            dd = np.array([pn[k] - pt[k] for k in com])
+            num(tag + "Diff", f"{dd.mean():+.4f}")
+            num(tag + "DiffCI", ci(bootci(dd)))
+            num(tag + "N", f"{len(dd)}")
+    num("SharedSlopeMatched", f"{m1:+.4f}"); num("SharedSlopeMatchedCI", ci(c1))
+    num("MaskFprSlope", f"{m9:+.4f}");   num("MaskFprSlopeCI", ci(c9))
+    num("MaskFprSlopeTab", f"{m9t:+.4f}"); num("MaskFprSlopeTabCI", ci(c9t))
+    num("MaskMassSlope", f"{m9b:+.4f}"); num("MaskMassSlopeCI", ci(c9b))
+    num("MaskMassSlopeTab", f"{m9bt:+.4f}"); num("MaskMassSlopeTabCI", ci(c9bt))
+    num("CopiesHiDR", f"{np.mean(dr(s10,'copies',64)):+.3f}")
+    num("CopiesHiAcc", f"{np.mean([s10[k]['copies'][-1]['acc'] for k in s10 if k[0]==64]):.3f}")
+    num("CopiesLoDR", f"{np.mean(dr(s10,'copies',1)):+.3f}")
+    num("MaskFprBaseLo", f"{np.mean([s9n[k]['base']['hack_mass'] for k in s9n if k[0]==1]):.4f}")
+    num("MaskFprBaseHi", f"{np.mean([s9n[k]['base']['hack_mass'] for k in s9n if k[0]==64]):.4f}")
+    num("MaskMassHiDR", f"{np.mean(dr(s9bn,'neural',64)):+.4f}")
+    num("MaskMassMidDR", f"{np.mean(dr(s9bn,'neural',32)):+.4f}")
+    num("NCopiesSeeds", f"{len({k[1] for k in s10})}")
+    num("NMaskSeeds", f"{len({k[1] for k in s9n})}")
+    num("NMaskMassSeeds", f"{len({k[1] for k in s9bn})}")
+
+
+def channel_panels(axes):
+    """Sharing is the channel: the cross-prompt term and the gradient coherence at the base
+    model (Lemma 1, Corollary 1), and the shared model against per-prompt copies of itself.
+    Returns {label: handle} for the figure legend."""
+    path = os.path.join(RES, "theory.json")
+    if not os.path.exists(path):
+        print("channel: no theory data"); return {}
+    th = json.load(open(path))
+    N = 64.0
+
+    d = defaultdict(lambda: defaultdict(list))
+    for rec in th["T3b"]:
+        dn, dt = rec["decomp_neural"], rec["decomp_tabular"]
+        d["n_cross"][rec["m"]].append(dn["hack_cross"])
+        d["n_own"][rec["m"]].append(dn["hack_own"])
+        d["t_cross"][rec["m"]].append(abs(dt["hack_cross"]) + abs(dt["gold_cross"]))
+        d["coh_h"][rec["m"]].append(rec["coherence"]["hack_coh"])
+        d["coh_g"][rec["m"]].append(rec["coherence"]["gold_coh"])
+    for rec in th.get("T3c", []):
+        dd = rec["decomp"]
+        d["burn_lo"][rec["m"]].append(dd["hack_cross"] - dd["gold_cross"])
+        d["burn_v"][rec["m"]].append(rec["leaky"])
+    ms = np.array(sorted(d["coh_h"]), float)
+
+    def mm(key):
+        src = d[key]
+        return (np.array([np.mean(src[m]) for m in ms]),
+                np.array([np.std(src[m], ddof=1) / np.sqrt(len(src[m])) if len(src[m]) > 1
+                          else 0.0 for m in ms]))
+
+    lu = np.log2(ms / N)
+
+    def seeds(ax, key, off, col, dy):
+        for x, m in zip(lu + off, ms):
+            seed_dots(ax, x, d[key][m], col, dy=dy, dx=0.1, s=7, alpha=0.6)
+
+    # ---- panel 1: the cross-prompt term, the only channel universality can act through.
+    # A lollipop from zero, because zero is the value Corollary 1 predicts without sharing.
+    ax = axes[0]
+    nc, ncs = mm("n_cross"); tc, _ = mm("t_cross")
+    ax.axhline(0, **BASELINE)
+    ax.vlines(lu - 0.13, 0, nc, color=C_SHARED, lw=1.3, zorder=2)
+    seeds(ax, "n_cross", -0.13, C_SHARED, 0.9)
+    mean_line(ax, lu - 0.13, nc, C_SHARED, M_SHARED, "Shared", yerr=ncs, ls="none")
+    mean_line(ax, lu + 0.13, tc, C_TAB, M_TAB, "Per-prompt", ls="none")
+    ax.set_ylim(top=24)
+    ax.set_ylabel(r"Cross-prompt drift of $h$")
+    ax.set_title("Cross-prompt term")
+
+    # ---- panel 2: coherence
+    ax = axes[1]
+    ch, chs = mm("coh_h"); cg, _ = mm("coh_g")
+    ax.axhline(0, **BASELINE)
+    seeds(ax, "coh_h", 0, C_SHARED, 0.014)
+    seeds(ax, "coh_g", 0, C_ALT, 0.014)
+    mean_line(ax, lu, ch, C_SHARED, M_SHARED, "Wrong answer $h$", yerr=chs)
+    mean_line(ax, lu, cg, C_ALT, M_TAB, "Correct answer")
+    ax.set_ylabel("Gradient cosine")
+    ax.set_title("Coherence")
+    ax.legend(loc="upper left", frameon=False)
+
+    # ---- panel 3: the shared transformer against per-prompt copies of itself (E10)
+    ax = axes[2]
+    ctl = controls_data()
+    if ctl:
+        control_panel(ax, "Sharing removed", ctl["MS_10"],
+                      ((ctl["s1"], "neural", C_SHARED, M_SHARED, "Shared"),
+                       (ctl["s10"], "copies", C_COPIES, M_COPIES, "Per-prompt copies")), ctl["N"])
+        ax.set_ylabel(r"Drift $\Delta\rho$")
+    for ax in axes[:2]:
+        u_axis(ax)
+    handles = dict(zip(*reversed(axes[0].get_legend_handles_labels())))
+    handles.update(zip(*reversed(axes[2].get_legend_handles_labels())))
+
+    num("MechCrossLo", f"{nc[0]:.1f}"); num("MechCrossHi", f"{nc[-1]:.1f}")
+    num("MechCrossLoSem", f"{ncs[0]:.1f}"); num("MechCrossHiSem", f"{ncs[-1]:.1f}")
+    num("MechTabCross", "exactly $0$" if np.max(tc) == 0 else sci(float(np.max(tc))))
+    num("CohHackHi", f"{ch[-1]:+.2f}"); num("CohHackLo", f"{ch[0]:+.2f}")
+    # three-decimal forms: the appendix quotes N*kappa/kappa_s next to these, and the
+    # two-decimal display does not reproduce that ratio when multiplied out by hand.
+    num("CohHackHiFine", f"{ch[-1]:+.3f}"); num("CohHackLoFine", f"{ch[0]:+.3f}")
+    num("CohGold", f"{cg.mean():+.2f}")
+    if d["burn_lo"]:
+        bl, _ = mm("burn_lo"); bv, _ = mm("burn_v")
+        num("BurnVbar", f"{bv.mean():.3f}"); num("BurnSteps", th["T3c"][0]["burn"])
+        num("BurnLoMin", f"{bl.min():+.3f}"); num("BurnLoMax", f"{bl.max():+.3f}")
+    num("NullDriftMirror", sci(th["T2"]["max_abs_dev"]))
+    tr = th["T2"]["traj"]
+    num("NullDriftMirrorPooled", f"{tr[-1]['hack_frac'] - tr[0]['hack_frac']:+.3f}")
+    num("NullDriftMirrorLam", sci(th["T2"]["max_logodds_dev"]))
+    num("NullDriftKL", sci(th["T1"]["max_abs_dev"]))
+    num("DriftRelErr", sci(th["T3a"]["transformer"]["max_rel_err"]))
+    num("NullMirrorSteps", tr[-1]["step"])
+    num("NullBetaRange",
+        f"$[{min(r['beta'] for r in th['T1']['rows'])}, {max(r['beta'] for r in th['T1']['rows'])}]$")
+    kt = th["T3a"].get("kernel_transformer"); kb = th["T3a"].get("kernel_tabular")
+    if kt and kb:
+        num("KernelRatioNeural", f"{kt['ratio']:.3f}")
+        num("KernelRatioTab", sci(kb["ratio"]) if kb["ratio"] > 0 else "exactly $0$")
+    num("NThreshValidity", f"{64 * ch[-1]:.0f}")
+    num("NThreshValidityLo", f"{64 * ch[0]:.1f}")
+    num("ThreshCorrection", f"{(1 - tr[0]['leaky_reward']) / (64 * max(ch[-1], 1e-6)):.2f}")
+    return handles
+
 
 # ======================================================================================
-# Camera-ready additions
+# the threshold probe (E11): u_eff at the base, and predicted against exact drift
 # ======================================================================================
-def bootci(v, n=10000, seed=0):
-    v = np.asarray(v, dtype=float)
-    if len(v) < 2:
-        return (float("nan"), float("nan"))
-    bs = np.random.default_rng(seed).choice(v, size=(n, len(v)), replace=True).mean(1)
-    return float(np.percentile(bs, 2.5)), float(np.percentile(bs, 97.5))
+_PROBE = None
 
 
-def ci_str(c):
-    return f"[{c[0]:+.3f}, {c[1]:+.3f}]"
+def probe_data():
+    global _PROBE
+    if _PROBE is None:
+        files = sorted(glob.glob(os.path.join(RES, "exp12_seed*.json")))
+        _PROBE = [json.load(open(p)) for p in files]
+    return _PROBE
 
 
-def select_run(runs, arm, tol=REWARD_TOL):
-    """The paper's operating rule applied to a dict of stored runs: the smallest learning
-    rate whose final verifier reward is within `tol` of the best, for the given arm."""
-    lrkey = "lr_neural" if arm == "neural" else "lr_tabular"
-    top = max(r[arm][-1]["leaky_reward"] for r in runs.values())
-    near = [r for r in runs.values() if r[arm][-1]["leaky_reward"] >= top - tol]
-    return min(near, key=lambda r: r[lrkey])
+def cond_mean(probes, key):
+    v = [q[key] for q in probes if np.isfinite(q[key])]
+    return float(np.mean(v)) if v else float("nan")
+
+
+def ueff_series():
+    """{m: [per-seed u_eff]} in the kernel-weighted and mass-only readings, for the headline
+    bases (E1) and the frozen blind base (E9); also writes the Ueff macros."""
+    res = probe_data()
+    if not res:
+        return None
+    ue1 = defaultdict(list); um1 = defaultdict(list); ue9 = defaultdict(list); um9 = defaultdict(list)
+    for r in res:
+        for c in r["E1"]:
+            b = c["traj"][0]["probes"]
+            ue1[c["m"]].append(cond_mean(b, "ueff_kernel")); um1[c["m"]].append(cond_mean(b, "ueff_mass"))
+        for c in r["E9"]:
+            ue9[c["m"]].append(cond_mean(c["probes"], "ueff_kernel"))
+            um9[c["m"]].append(cond_mean(c["probes"], "ueff_mass"))
+    for m in sorted(ue1):
+        tag = {1: "Lo", 4: "Four", 16: "Sixteen", 64: "Hi"}.get(m, f"M{m}")
+        num(f"UeffEOne{tag}", f"{np.mean(ue1[m]):.2f}"); num(f"UeffMassEOne{tag}", f"{np.mean(um1[m]):.2f}")
+    for m in sorted(ue9):
+        tag = {1: "Lo", 4: "Four", 16: "Sixteen", 64: "Hi"}.get(m, f"M{m}")
+        num(f"UeffENine{tag}", f"{np.mean(ue9[m]):.2f}"); num(f"UeffMassENine{tag}", f"{np.mean(um9[m]):.2f}")
+    return ue1, um1, ue9, um9
+
+
+def ueff_panel(ax):
+    """u_eff against raw u at the base model, both readings, both bases."""
+    data = ueff_series()
+    if data is None:
+        return
+    ue1, um1, ue9, um9 = data
+    N = 64.0
+    grid = np.linspace(-6, 0, 100)
+    ax.plot(grid, 2.0 ** grid, **BASELINE, label=r"$u_{\mathrm{eff}}=u$")
+    for src, col, mk, ls, lab in ((um1, C_SHARED, "o", "-", "Headline: mass"),
+                                  (ue1, C_SHARED, "^", "--", "Headline: kernel"),
+                                  (um9, C_ALT, "s", "-", "Blind: mass"),
+                                  (ue9, C_ALT, "D", "--", "Blind: kernel")):
+        ms_ = sorted(src)
+        lx = np.log2(np.array(ms_) / N)
+        for x, m in zip(lx, ms_):
+            seed_dots(ax, x, src[m], col, dy=0.02, dx=0.09, s=5)
+        mean_line(ax, lx, [np.mean(src[m]) for m in ms_], col, mk, label=lab, ls=ls)
+    u_axis(ax)
+    ax.set_ylim(0, 1.05)
+    ax.set_ylabel(r"$u_{\mathrm{eff}}$ at the base")
+    ax.set_title("Where the mass sits")
+    return ax.get_legend_handles_labels()
+
+
+def controls_panels(axes):
+    """What the base model contributes: the two frozen-base controls (E9, E9b) and u_eff.
+    Returns the (handles, labels) of the u_eff panel, whose legend the caller places."""
+    ctl = controls_data()
+    if not ctl:
+        return None
+    N = ctl["N"]
+    control_panel(axes[0], "Fixed error rate", ctl["MS_ALL"],
+                  ((ctl["s9n"], "neural", C_SHARED, M_SHARED, "Shared"),
+                   (ctl["s9t"], "tabular", C_TAB, M_TAB, "Per-prompt")), N)
+    control_panel(axes[1], "Fixed leak mass", ctl["MS_ALL"],
+                  ((ctl["s9bn"], "neural", C_SHARED, M_SHARED, "Shared"),
+                   (ctl["s9bt"], "tabular", C_TAB, M_TAB, "Per-prompt")), N)
+    axes[0].set_ylabel(r"Drift $\Delta\rho$")
+    leg = ueff_panel(axes[2])
+    controls_numbers(ctl)
+    return leg
+
+
+def fig_mechanism():
+    """Two rows: sharing is the channel (top), and what the base model contributes (bottom)."""
+    fig = plt.figure(figsize=(FIG_W, 2 * PANEL_H + 0.25), layout="constrained")
+    top, bottom = fig.subfigures(2, 1, height_ratios=[PANEL_H, PANEL_H + 0.25])
+    handles = channel_panels(top.subplots(1, 3))
+    order = [k for k in ("Shared", "Per-prompt", "Per-prompt copies") if k in handles]
+    if order:
+        top.legend([handles[k] for k in order], order, loc="outside upper center",
+                   ncol=len(order), frameon=False)
+    leg = controls_panels(bottom.subplots(1, 3))
+    if leg:
+        # the u_eff panel's curves fill it, so its legend goes in a band below the figure
+        bottom.legend(*leg, loc="outside lower center", ncol=5, frameon=False, handlelength=1.7,
+                      columnspacing=1.2, fontsize="small")
+    save(fig, "fig3_mechanism")
+
+
+# ======================================================================================
+# robustness: sampled GRPO, plain SGD and the KL penalty; verifier hardening
+# ======================================================================================
+_KL = None
+
+
+def kl_data():
+    """E5, de-duplicated by (m, beta, seed); writes the NuFiveB macros."""
+    global _KL
+    if _KL is not None:
+        return _KL
+    r5b = load("exp5b_shard*.jsonl")
+    if not r5b:
+        _KL = {}; return _KL
+    by = defaultdict(lambda: defaultdict(list))
+    acc = defaultdict(lambda: defaultdict(list))
+    lky = defaultdict(lambda: defaultdict(list))
+    seen = set()
+    for r in r5b:
+        c = r["config"]
+        key = (c["m"], c["beta"], c["seed"])
+        if key in seen:
+            continue
+        seen.add(key)
+        by[c["m"]][c["beta"]].append(val(r, "neural", "d_rho"))
+        acc[c["m"]][c["beta"]].append(val(r, "neural", "acc"))
+        lky[c["m"]][c["beta"]].append(val(r, "neural", "lky"))
+    betas = sorted(by[min(by)])
+    hi, lo = max(by), min(by)
+    b0, bmax = min(by[hi]), max(by[hi])
+    num("NuFiveBNSeeds", f"{len({r['config']['seed'] for r in r5b})}")
+    num("NuFiveBBeta", f"{bmax:g}")
+    num("NuFiveBDRSeriesHi", ", ".join(f"{np.mean(by[hi][b]):+.3f}" for b in sorted(by[hi])))
+    for tag, mm_ in [("Hi", hi), ("Lo", lo)]:
+        num(f"NuFiveBDRNoKL{tag}", f"{np.mean(by[mm_][b0]):+.3f}")
+        num(f"NuFiveBDRKL{tag}", f"{np.mean(by[mm_][bmax]):+.3f}")
+        num(f"NuFiveBAccNoKL{tag}", f"{np.mean(acc[mm_][b0]):.3f}")
+        num(f"NuFiveBAccKL{tag}", f"{np.mean(acc[mm_][bmax]):.3f}")
+        num(f"NuFiveBLkyNoKL{tag}", f"{np.mean(lky[mm_][b0]):.3f}")
+        num(f"NuFiveBLkyKL{tag}", f"{np.mean(lky[mm_][bmax]):.3f}")
+    _KL = dict(by=by, acc=acc, lky=lky, betas=betas)
+    return _KL
+
+
+def kl_panel(ax, kl, key):
+    """Drift (key='d_rho') or true accuracy (key='acc') against the KL coefficient, at the two
+    ends of the universality sweep.  beta = 0 cannot sit on a log axis, so the grid is drawn
+    evenly by its index: its steps are close to geometric, and no value has to stand in for 0."""
+    src = kl["by"] if key == "d_rho" else kl["acc"]
+    betas = kl["betas"]
+    u_cols = u_colors([m / 64 for m in src])
+    if key == "d_rho":
+        ax.axhline(0, **BASELINE)
+    for m, mk, off in zip(sorted(src), "v^", (-0.13, 0.13)):
+        xs = np.arange(len(betas)) + off
+        for x, b in zip(xs, betas):
+            seed_dots(ax, x, src[m][b], u_cols[m / 64], dy=0.03, dx=0.06, s=5)
+        mean_line(ax, xs, [np.mean(src[m][b]) for b in betas], u_cols[m / 64], mk,
+                  label=rf"Shared, $u={u_label(m / 64)}$",
+                  yerr=[np.std(src[m][b], ddof=1) / np.sqrt(len(src[m][b])) for b in betas])
+    ax.set_xticks(range(0, len(betas), 2), [f"{b:g}" for b in betas[::2]])
+    ax.set_xticks(range(len(betas)), minor=True)
+    ax.set_xlabel(r"KL coefficient $\beta$")
+    ax.set_ylabel(r"Drift $\Delta\rho$" if key == "d_rho" else "True accuracy")
+    ax.set_title("Drift under KL" if key == "d_rho" else "Accuracy under KL")
+
+
+def grpo_panel(ax):
+    r5a = load_capped("exp5a_shard*.jsonl")
+    if not r5a:
+        print("grpo: no data"); return
+    N = r5a[0]["config"]["N"]
+    bn = best_by_reward(r5a, ["m"], "neural")
+    bt = best_by_reward(r5a, ["m"], "tabular")
+    xm, dn, sn = series(bn, "neural", "d_rho")
+    _, rn, _ = series(bn, "neural", "rho")
+    sweep_panel(ax, ((bn, "neural", C_SHARED, M_SHARED, "Shared"),
+                     (bt, "tabular", C_TAB, M_TAB, "Per-prompt")), N)
+    ax.set_ylabel(r"Drift $\Delta\rho$")
+    ax.set_title("Sampled GRPO")
+    num("NuFiveALo", f"{rn[0]:.3f}"); num("NuFiveAHi", f"{rn[-1]:.3f}")
+    num("NuFiveADLo", f"{dn[0]:+.3f}"); num("NuFiveADHi", f"{dn[-1]:+.3f}")
+    num("NuFiveADLoSem", f"{sn[0]:.3f}"); num("NuFiveADHiSem", f"{sn[-1]:.3f}")
+    num("NuFiveANSeeds", f"{len({r['config']['seed'] for r in r5a})}")
+    num("NuFiveACrossU", fmt_cross(crossing(xm / N, dn, 0.0)))
+
+
+def sgd_panel(ax):
+    rs = load_capped("exp2_sgd_shard*.jsonl")
+    if not rs:
+        print("sgd: no data"); return
+    N = rs[0]["config"]["N"]
+    b1 = best_by_reward(rs, ["m"], "neural"); b2 = best_by_reward(rs, ["m"], "tabular")
+    xm, dn, sn = series(b1, "neural", "d_rho")
+    xt, dt, st = series(b2, "tabular", "d_rho")
+    sweep_panel(ax, ((b1, "neural", C_SHARED, M_SHARED, "Shared"),
+                     (b2, "tabular", C_TAB, M_TAB, "Per-prompt")), N, dy=0.04, offsets=(-0.13, 0.13))
+    ax.set_ylabel(r"Drift $\Delta\rho$"); ax.set_title("Plain SGD")
+    num("NuTwoSgdNeuralHi", f"{dn[-1]:+.3f}"); num("NuTwoSgdNeuralLo", f"{dn[0]:+.3f}")
+    num("NuTwoSgdTabHi", f"{dt[-1]:+.3f}"); num("NuTwoSgdTabLo", f"{dt[0]:+.3f}")
+    num("NuTwoSgdTabSlope", f"{slope_per_doubling(xt, dt):+.3f}")
+    num("NuTwoSgdNeuralSlope", f"{slope_per_doubling(xm, dn):+.3f}")
+    _, rn_, _ = series(b1, "neural", "rho"); _, an_, _ = series(b1, "neural", "acc")
+    _, rt_, _ = series(b2, "tabular", "rho"); _, at_, _ = series(b2, "tabular", "acc")
+    num("NuTwoSgdNeuralLoRho", f"{rn_[0]:.3f}"); num("NuTwoSgdNeuralHiRho", f"{rn_[-1]:.3f}")
+    num("NuTwoSgdTabLoRho", f"{rt_[0]:.3f}"); num("NuTwoSgdTabHiRho", f"{rt_[-1]:.3f}")
+    num("NuTwoSgdNeuralLoAcc", f"{an_[0]:.3f}"); num("NuTwoSgdNeuralHiAcc", f"{an_[-1]:.3f}")
+    num("NuTwoSgdTabHiAcc", f"{at_[-1]:.3f}")
+    num("NuTwoSgdCrossU", fmt_cross(crossing(xm / N, dn, 0.0)))
+
+
+def robustness_panels(axes):
+    """The effect under sampled GRPO, under plain SGD, and with a KL penalty."""
+    grpo_panel(axes[0])
+    sgd_panel(axes[1])
+    kl = kl_data()
+    if kl:
+        kl_panel(axes[2], kl, "d_rho")
+    h1, l1 = axes[0].get_legend_handles_labels()
+    h2, l2 = axes[2].get_legend_handles_labels()
+    return h1 + h2, l1 + l2
 
 
 def hardening_panel(axes):
@@ -1014,6 +1047,117 @@ def hardening_panel(axes):
     num("NuFiveCLrSharedNLo", f"{sum(v == lo_lr for v in picks)}"); num("NuFiveCLrSharedN", f"{len(picks)}")
 
 
+def fig_practice():
+    """Two rows: other optimizers and the KL penalty (top), and the two verifier patches
+    (bottom)."""
+    fig = plt.figure(figsize=(FIG_W, PANEL_H + 1.85), layout="constrained")
+    top, bottom = fig.subfigures(2, 1, height_ratios=[PANEL_H, 1.85])
+    h, l = robustness_panels(top.subplots(1, 3))
+    top.legend(h, l, loc="outside upper center", ncol=len(h), frameon=False)
+    hardening_panel(bottom.subplots(1, 3, sharex=True, sharey=True))
+    save(fig, "fig4_practice")
+
+
+# ======================================================================================
+def fig_appendix():
+    """The Adam grid for both arms, hack-fraction trajectories, the prompt-set-size sweep and
+    accuracy under the KL penalty."""
+    rows = load_capped("exp2_adam_shard*.jsonl")
+    if not rows:
+        return
+    N = rows[0]["config"]["N"]
+    fig = plt.figure(figsize=(FIG_W, 4.5), layout="constrained")
+    top, bottom = fig.subfigures(2, 1, height_ratios=[1, 1])
+    heat_axes = top.subplots(1, 2, sharey=True)
+    axes = bottom.subplots(1, 3)
+
+    # every learning rate and universality at once, for both arms, as signed fields on one scale
+    lrs = sorted({r["config"]["lr_neural"] for r in rows})
+    ms = sorted({r["config"]["m"] for r in rows})
+    field = {}
+    for arm, lrkey in (("neural", "lr_neural"), ("tabular", "lr_tabular")):
+        d = defaultdict(list)
+        for r in rows:
+            d[(r["config"][lrkey], r["config"]["m"])].append(val(r, arm, "d_rho"))
+        field[arm] = np.array([[np.mean(d[(lr, m)]) for m in ms] for lr in lrs])
+    lim = max(np.abs(f).max() for f in field.values())
+    norm = plt.Normalize(-lim, lim)
+    for ax, arm, title in zip(heat_axes, ("neural", "tabular"), ("Shared", "Per-prompt")):
+        im = heat(ax, field[arm], norm, "RdBu_r", fmt="{:.2f}", fontsize=8)
+        ax.set_xticks(range(len(ms)), [u_label(m / N) for m in ms])
+        ax.set_xlabel(r"Leak universality $u$")
+        ax.set_title(title)
+    heat_axes[0].set_yticks(range(len(lrs)), [lr_label(lr) for lr in lrs])
+    heat_axes[0].set_ylabel("Adam learning rate")
+    top.colorbar(im, ax=heat_axes, label=r"Mean drift $\Delta\rho$")
+
+    # trajectories: colour is the arm, line style the condition, thin lines the seeds
+    ax = axes[0]
+    bn = best_by_reward(rows, ["m"], "neural"); bt = best_by_reward(rows, ["m"], "tabular")
+    for cell, ls in (((1,), "--"), ((N,), "-")):
+        for by, which, col in ((bn, "neural", C_SHARED), (bt, "tabular", C_TAB)):
+            if cell in by:
+                recs = list(by[cell].values())
+                steps = [x["step"] for x in recs[0][which]]
+                ys = np.array([[x["mean_hack_frac"] for x in rc[which]] for rc in recs])
+                ax.plot(steps, ys.T, color=col, ls=ls, lw=0.5, alpha=0.3, zorder=2)
+                ax.plot(steps, ys.mean(0), color=col, ls=ls, lw=1.6, zorder=3)
+    ax.set_xlabel("RL step"); ax.set_ylabel(r"Hack fraction $\rho$")
+    ax.set_title("Trajectories")
+
+    # prompt-set-size sweep: does the effect track u or m?
+    ax = axes[1]
+    rows4 = load("exp4_shard*.jsonl")
+    small = big = None
+    if rows4:
+        b4 = best_by_reward(rows4, ["N", "m"], "neural")
+        by = defaultdict(dict); sem = defaultdict(dict)
+        for (Nn, m), dd in b4.items():
+            v = [val(r, "neural", "d_rho") for r in dd.values()]
+            by[Nn][m / Nn] = float(np.mean(v))
+            sem[Nn][m / Nn] = (float(np.std(v, ddof=1) / np.sqrt(len(v))) if len(v) > 1 else 0.0)
+        ax.axhline(0, **BASELINE)
+        for Nn, col, mk, off in ((16, C_ALT, M_PERM, -0.13), (64, C_SHARED, M_SHARED, 0.13)):
+            us = np.array(sorted(by[Nn]))
+            for x, uu in zip(np.log2(us) + off, us):
+                v = [val(r, "neural", "d_rho") for r in b4[(Nn, round(uu * Nn))].values()]
+                seed_dots(ax, x, v, col, dy=0.009, dx=0.075, s=5)
+            mean_line(ax, np.log2(us) + off, [by[Nn][x] for x in us], col, mk, label=f"$N={Nn}$",
+                      yerr=[sem[Nn][x] for x in us])
+        u_axis(ax)
+        ax.set_ylabel(r"Drift $\Delta\rho$"); ax.set_title("Prompt-set size")
+        small, big = min(by), max(by)
+        if 1.0 not in by[small] or 1.0 not in by[big] or (small / big) not in by[big]:
+            print("appendix: prompt-set sweep incomplete"); small = big = None
+    if rows4 and small is not None:
+        num("NuFourNSmall", f"{int(small)}"); num("NuFourNBig", f"{int(big)}")
+        num("NuFourNSeeds", f"{len({r['config']['seed'] for r in rows4})}")
+        num("NuFourUOneSmall", f"{by[small][1.0]:+.3f}"); num("NuFourUOneSmallSem", f"{sem[small][1.0]:.3f}")
+        num("NuFourUOneBig", f"{by[big][1.0]:+.3f}"); num("NuFourUOneBigSem", f"{sem[big][1.0]:.3f}")
+        mm = int(small)   # same block size m = N_small, different u
+        num("NuFourSameM", f"{mm}")
+        num("NuFourSameMBig", f"{by[big][mm / big]:+.3f}")
+        shared_u = sorted(set(by[small]) & set(by[big]))
+        num("NuFourMatchedGap", f"{max(abs(by[small][x] - by[big][x]) for x in shared_u):.3f}")
+        num("NuFourNShared", f"{len(shared_u)}")
+        num("NuFourMatchedGapLo", f"{max(abs(by[small][x] - by[big][x]) for x in shared_u[:3]):.3f}")
+
+    # accuracy under the KL penalty (its drift panel is in the main text)
+    ax = axes[2]
+    kl = kl_data()
+    if kl:
+        kl_panel(ax, kl, "acc")
+        ax.legend(loc="lower left", frameon=False, fontsize="small")
+    line = lambda col, mk=None, ls="-": plt.Line2D([], [], color=col, marker=mk, ms=4.5, ls=ls,
+                                                   mec="white", mew=0.5)
+    bottom.legend([line(C_SHARED, M_SHARED), line(C_TAB, M_TAB), line(C_ALT, M_PERM),
+                   line(C_NULL, ls="--"), line(C_NULL)],
+                  ["Shared", "Per-prompt", r"Shared, $N=16$", rf"$u={u_label(1 / N)}$", r"$u=1$"],
+                  loc="outside lower center", ncol=5, frameon=False)
+    save(fig, "fig8_appendix")
+
+
+# ======================================================================================
 def per_lr_slopes(rows, arm, lrkey):
     """{lr: (mean slope per doubling, CI, dRho at smallest u, dRho at u=1, seeds positive at
     u=1, seeds negative at smallest u, verifier reward at u=1, accuracy at the two ends)}."""
@@ -1041,20 +1185,21 @@ def per_lr_slopes(rows, arm, lrkey):
     return out
 
 
-def fig8():
+def fig_lr():
     """The universality slope at every learning rate, for all three optimizers and both arms."""
     sets = [("Adam", "Adam", load_capped("exp2_adam_shard*.jsonl")),
             ("Grpo", "Sampled GRPO", load_capped("exp5a_shard*.jsonl")),
             ("Sgd", "Plain SGD", load_capped("exp2_sgd_shard*.jsonl"))]
     sets = [(k, t, r) for k, t, r in sets if r]
     if not sets:
-        print("fig8: no data"); return
-    fig, axes = plt.subplots(1, len(sets), figsize=(FIG_W, 1.8), sharey=True, layout="constrained",
+        print("lr: no data"); return
+    fig, axes = plt.subplots(1, len(sets), figsize=(FIG_W, 1.65), sharey=True, layout="constrained",
                              width_ratios=[len({r["config"]["lr_neural"] for r in rows})
                                            for _, _, rows in sets])
     axes = np.atleast_1d(axes)
     table = []
     n_pos_ci, n_lr = 0, 0
+    n_sat = 0           # Adam learning rates whose final reward at u = 1 is within the rule's tolerance of the best
     for ax, (key, title, rows) in zip(axes, sets):
         ax.axhline(0, **BASELINE)
         for arm, lrkey, col, mk, lab, off in (("neural", "lr_neural", C_SHARED, M_SHARED, "Shared", -0.19),
@@ -1075,6 +1220,9 @@ def fig8():
                 if arm == "neural":
                     n_lr += 1; n_pos_ci += int(e["ci"][0] > 0)
                 table.append((title, arm, lr, e, diverged))
+            if arm == "neural" and key == "Adam":
+                best = max(st[lr]["lky_hi"] for lr in lrs)
+                n_sat = sum(st[lr]["lky_hi"] >= best - REWARD_TOL for lr in lrs)
             # macros for the text: the two largest-reward Adam points and the low-u sign
             for rank, lr in enumerate(lrs):
                 tag = f"{key}{'ABCDEFG'[rank]}"      # macro names cannot contain digits
@@ -1097,8 +1245,9 @@ def fig8():
                 ax.text(i - 0.19, max(st[lr]["slopes"]) + 0.012, "diverged", ha="center", va="bottom")
     axes[0].set_ylabel(r"Slope of $\Delta\rho$")
     top_legend(fig)
-    save(fig, "fig8_lr")
+    save(fig, "fig2_lr")
     num("LrNPosCI", f"{n_pos_ci}"); num("LrNTotal", f"{n_lr}")
+    num("LrAdamNSat", {2: "Two", 3: "Three", 4: "Four"}.get(n_sat, str(n_sat)))   # sentence-initial
     # appendix table body
     lines = []
     for title, arm, lr, e, diverged in table:
@@ -1119,25 +1268,11 @@ def controls_per_u():
     """Per-universality paired comparison of the two mask-only controls.  The accepted
     version summarised each control by a linear slope in log2 m, which averages a step-shaped
     curve into a small number; the paired difference at each u is what the design measures."""
-    def sel(rows, arm, tol=REWARD_TOL):
-        by = defaultdict(list)
-        for r in rows:
-            by[(r["config"]["m"], r["config"]["seed"])].append(r)
-        ms = {k[0] for k in by}; seeds = {k[1] for k in by}
-        full = {sd for sd in seeds if all((m, sd) in by for m in ms)}
-        out = {}
-        for k, rs in by.items():
-            if k[1] not in full:
-                continue
-            best = max(x[arm][-1]["leaky_reward"] for x in rs)
-            ok = [x for x in rs if x[arm][-1]["leaky_reward"] >= best - tol]
-            out[k] = min(ok, key=lambda x: x["config"]["lr_neural"])
-        return out
     for tag, pat, cap in (("MaskFpr", "exp9_shard*.jsonl", 10), ("MaskMass", "exp9b_shard*.jsonl", 5)):
         rows = load_capped(pat, cap=cap)
         if not rows:
             continue
-        sn, st = sel(rows, "neural"), sel(rows, "tabular")
+        sn, st = sel_full(rows, "neural"), sel_full(rows, "tabular")
         ms = sorted({k[0] for k in sn}); seeds = sorted({k[1] for k in sn})
         N = rows[0]["config"]["N"]
         n_excl = 0
@@ -1166,56 +1301,22 @@ def controls_per_u():
                 num(f"{tag}{name}HiN", f"{len(d)}")
 
 
-def fig9():
-    """The threshold probe (E11): u_eff at the base, and predicted versus exact instantaneous
-    drift along plain SGD."""
-    files = sorted(glob.glob(os.path.join(RES, "exp12_seed*.json")))
-    if not files:
-        print("fig9: no data"); return
-    res = [json.load(open(p)) for p in files]
+def fig_probe():
+    """The threshold probe (E11): predicted against exact instantaneous drift along plain SGD.
+    The u_eff panel of the same experiment is in the main text (fig4_controls)."""
+    res = probe_data()
+    if not res:
+        print("probe: no data"); return
     N = 64.0
+    ms1 = sorted({c["m"] for r in res for c in r["E1"]})
+    ueff_series()
 
-    def cond_mean(probes, key):
-        v = [q[key] for q in probes if np.isfinite(q[key])]
-        return float(np.mean(v)) if v else float("nan")
+    fig = plt.figure(figsize=(FIG_W, 4.3), layout="constrained")
+    top, bottom = fig.subfigures(2, 1, height_ratios=[1.05, 1])
+    gs = top.add_gridspec(1, 3, width_ratios=[1, 2.2, 1])
+    ax_sign = top.add_subplot(gs[0, 1])
 
-    # ---- panel 1: u_eff against u at the base, E1 and E9
-    ue1 = defaultdict(list); um1 = defaultdict(list); ue9 = defaultdict(list); um9 = defaultdict(list)
-    for r in res:
-        for c in r["E1"]:
-            b = c["traj"][0]["probes"]
-            ue1[c["m"]].append(cond_mean(b, "ueff_kernel")); um1[c["m"]].append(cond_mean(b, "ueff_mass"))
-        for c in r["E9"]:
-            ue9[c["m"]].append(cond_mean(c["probes"], "ueff_kernel"))
-            um9[c["m"]].append(cond_mean(c["probes"], "ueff_mass"))
-    ms1 = sorted(ue1); ms9 = sorted(ue9)
-    fig = plt.figure(figsize=(FIG_W, 4.75), layout="constrained")
-    top, bottom = fig.subfigures(2, 1, height_ratios=[1.2, 1])
-    ax, ax_sign = top.subplots(1, 2)
-    grid = np.linspace(-6, 0, 100)
-    ax.plot(grid, 2.0 ** grid, **BASELINE, label=r"$u_{\mathrm{eff}}=u$")
-    for src, col, mk, ls, lab in ((um1, C_SHARED, "o", "-", "Headline, mass"),
-                                  (ue1, C_SHARED, "^", "--", "Headline, kernel"),
-                                  (um9, C_ALT, "s", "-", "Blind, mass"),
-                                  (ue9, C_ALT, "D", "--", "Blind, kernel")):
-        ms_ = sorted(src)
-        lx = np.log2(np.array(ms_) / N)
-        for x, m in zip(lx, ms_):
-            seed_dots(ax, x, src[m], col, dy=0.02, dx=0.09, s=5)
-        mean_line(ax, lx, [np.mean(src[m]) for m in ms_], col, mk, label=lab, ls=ls)
-    u_axis(ax)
-    ax.set_ylim(0, 1.05)
-    ax.set_ylabel(r"$u_{\mathrm{eff}}$ at the base")
-    ax.set_title("Where the mass sits")
-    under_legend(ax, ncol=2, columnspacing=1.0, handlelength=1.4)
-    for m in ms1:
-        tag = {1: "Lo", 4: "Four", 16: "Sixteen", 64: "Hi"}.get(m, f"M{m}")
-        num(f"UeffEOne{tag}", f"{np.mean(ue1[m]):.2f}"); num(f"UeffMassEOne{tag}", f"{np.mean(um1[m]):.2f}")
-    for m in ms9:
-        tag = {1: "Lo", 4: "Four", 16: "Sixteen", 64: "Hi"}.get(m, f"M{m}")
-        num(f"UeffENine{tag}", f"{np.mean(ue9[m]):.2f}"); num(f"UeffMassENine{tag}", f"{np.mean(um9[m]):.2f}")
-
-    # ---- panel 2: sign agreement along SGD, per probed prompt and per condition mean
+    # ---- top: sign agreement along SGD, per probed prompt and per condition mean
     agree_pts, agree_lead, resid_share, pts = [], [], [], []
     steps = res[0]["probe_steps"]
     by_step = {t: {"coh": [], "lead": []} for t in steps}
@@ -1255,7 +1356,7 @@ def fig9():
     ax.set_ylim(20, 100)
     ax.set_xlabel("SGD step"); ax.set_ylabel("Same sign (%)")
     ax.set_title("Prediction against exact drift")
-    under_legend(ax, ncol=2, columnspacing=1.0, handlelength=1.4)
+    ax.legend(loc="lower right", frameon=False, ncol=1, fontsize="small")
 
     # ---- bottom row: every probed prompt, prediction against exact, one panel per universality.
     # The shaded quadrants are where the two agree in sign, which is what each title reports.
@@ -1278,7 +1379,7 @@ def fig9():
     ax.set_yticks([-100, -10, -1, 0, 1, 10, 100], signed([-100, -10, -1, 0, 1, 10, 100]))
     facets[0].set_ylabel("Exact cross-prompt drift")
     bottom.supxlabel("Coherent-kernel prediction", fontsize="medium")
-    save(fig, "fig9_threshold")
+    save(fig, "fig5_probe")
 
     sign_pts = float(np.mean([np.sign(a_) == np.sign(b_) for a_, b_, _, _ in pts])) if pts else float("nan")
     sign_lead_pts = float(np.mean([np.sign(b_) == np.sign(l_) for _, b_, _, l_ in pts])) if pts else float("nan")
@@ -1321,7 +1422,8 @@ if __name__ == "__main__":
     import torch
     from policies import TransformerPolicy
     from env import build_prompts, gold_universality
-    fig1(); fig2(); fig3(); fig4(); fig5(); fig6(); fig7(); fig8(); fig9(); controls_per_u()
+    fig1(); fig_factorial(); fig_field(); fig_mechanism(); fig_practice(); fig_appendix()
+    fig_lr(); fig_probe(); controls_per_u()
     import mechfig; mechfig.main()
     num("NSteps", 400); num("NEps", "0.03"); num("NGrpoG", 8)
     num("NParams", f"{sum(p.numel() for p in TransformerPolicy(build_prompts(8)).parameters()):,}")
