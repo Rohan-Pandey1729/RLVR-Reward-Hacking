@@ -16,7 +16,7 @@ OUT = os.path.join(os.path.dirname(__file__), "..", "results")
 os.makedirs(OUT, exist_ok=True)
 
 GRID = {4: [1, 2, 4, 8, 16], 8: [1, 2, 4, 8, 16, 32, 64]}
-SEEDS = [0, 1, 2]
+SEEDS = list(range(10))   # camera-ready: ten seeds
 LRS = [3e-4, 1e-3, 3e-3]
 
 
@@ -26,15 +26,18 @@ def main():
     ap.add_argument("--nshards", type=int, default=1)
     ap.add_argument("--threads", type=int, default=1)
     ap.add_argument("--steps", type=int, default=400)
+    ap.add_argument("--seeds", type=str, default="0,1,2,3,4,5,6,7,8,9")
     a = ap.parse_args()
     torch.set_num_threads(a.threads)
 
-    bases = [(no, m, s) for no, ms in GRID.items() for m in ms for s in SEEDS][a.shard::a.nshards]
+    seeds = [int(x) for x in a.seeds.split(",")]
+    bases = [(no, m, s) for no, ms in GRID.items() for m in ms for s in seeds][a.shard::a.nshards]
     jobs = [(no, m, s, lr) for (no, m, s) in bases for lr in LRS]
     path = os.path.join(OUT, f"exp4_shard{a.shard}.jsonl")
     done = set()
-    if os.path.exists(path):
-        for line in open(path):
+    import glob as _glob
+    for q in _glob.glob(os.path.join(OUT, "exp4_shard*.jsonl")):
+        for line in open(q):
             c = json.loads(line)["config"]
             if c.get("steps") == a.steps:  # a cell run at another budget is not this cell
                 done.add((c["n_operands"], c["m"], c["seed"], c["lr_neural"]))

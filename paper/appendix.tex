@@ -3,448 +3,190 @@
 
 \subsection{Proposition~\ref{prop:filter}}
 
-Fix $x$ and assume $\pi_{\mathrm{ref}}(\cdot\mid x)>0$, so the KL term is finite and every policy
-on the path is strictly positive. The objective
-$\sum_y \pi(y)r(x,y) - \beta\sum_y \pi(y)\log\frac{\pi(y)}{\pi_{\mathrm{ref}}(y)}$
-over the simplex is strictly concave for $\beta>0$; setting the derivative of the Lagrangian to
-zero gives $\pi^\star_\beta(y\mid x) = \pi_{\mathrm{ref}}(y\mid x)e^{r(x,y)/\beta}/Z_\beta(x)$ with
-$Z_\beta(x)=\sum_{y'}\pi_{\mathrm{ref}}(y'\mid x)e^{r(x,y')/\beta}$. For $y,y'$ with
-$r(x,y)=r(x,y')$ the normalizer and the exponential factor cancel in the ratio. Since $r\geq c$
-we have $\Hset(x)\subseteq\Acc(x)$ and $r\equiv 1$ on $\Acc(x)$, so
+Fix $x$ and assume $\pi_{\mathrm{ref}}(\cdot\mid x)>0$, so the KL term is finite and every policy on the path is strictly positive. The objective $\sum_y \pi(y)r(x,y) - \beta\sum_y \pi(y)\log\frac{\pi(y)}{\pi_{\mathrm{ref}}(y)}$ over the simplex is strictly concave for $\beta>0$; setting the derivative of the Lagrangian to zero gives $\pi^\star_\beta(y\mid x) = \pi_{\mathrm{ref}}(y\mid x)e^{r(x,y)/\beta}/Z_\beta(x)$ with $Z_\beta(x)=\sum_{y'}\pi_{\mathrm{ref}}(y'\mid x)e^{r(x,y')/\beta}$. For $y,y'$ with $r(x,y)=r(x,y')$ the normalizer and the exponential factor cancel in the ratio. Since $r\geq c$ we have $\Hset(x)\subseteq\Acc(x)$ and $r\equiv 1$ on $\Acc(x)$, so
 \[
 \frac{\pi^\star_\beta(\Hset(x)\mid x)}{\pi^\star_\beta(\Acc(x)\mid x)}
 = \frac{e^{1/\beta}\pi_{\mathrm{ref}}(\Hset(x)\mid x)/Z_\beta(x)}{e^{1/\beta}\pi_{\mathrm{ref}}(\Acc(x)\mid x)/Z_\beta(x)}
 = \frac{\pi_{\mathrm{ref}}(\Hset(x)\mid x)}{\pi_{\mathrm{ref}}(\Acc(x)\mid x)}
 \]
-for every $x$, hence $\rho$ and $\Lambda$ are unchanged; strict positivity makes $\rho$ finite,
-and $\Lambda$ too whenever $\Hset(x)\neq\emptyset$. For a multiplicative update
-$\pi_{t+1}(y\mid x)\propto\pi_t(y\mid x)e^{\eta f(r(x,y))}$ the same cancellation applies at
-every step.
+for every $x$, hence $\rho$ and $\Lambda$ are unchanged. For a multiplicative update $\pi_{t+1}(y\mid x)\propto\pi_t(y\mid x)e^{\eta f(r(x,y))}$ the same cancellation applies at every step.
 
-\paragraph{Excursion of the pooled statistic.} Write $a_x = \pi_{\mathrm{ref}}(\Acc(x)\mid x)$,
-$\rho_x = \pi_{\mathrm{ref}}(\Hset(x)\mid x)/a_x$ and $s=e^{1/\beta}$. Then
-$\pi^\star_\beta(\Acc(x)\mid x) = s\,a_x/(1-a_x+s\,a_x)$, and the pooled statistic is
-$P(s) = \sum_x \rho_x w_x(s)/\sum_x w_x(s)$ with $w_x(s)=s a_x/(1-a_x+s a_x)$. At $s=1$ (no RL)
-$P = \sum_x a_x\rho_x/\sum_x a_x$; as $s\to\infty$ every $w_x\to1$, provided $a_x>0$ at every
-prompt, and $P \to \frac1N\sum_x \rho_x = \rho(\pi_{\mathrm{ref}})$; a prompt of zero accepted
-mass never enters, and the limit would then be the average over the accepting prompts only.
-The total excursion is therefore
+\paragraph{Excursion of the pooled statistic.} Write $a_x = \pi_{\mathrm{ref}}(\Acc(x)\mid x)$, $\rho_x = \pi_{\mathrm{ref}}(\Hset(x)\mid x)/a_x$ and $s=e^{1/\beta}$. Then $\pi^\star_\beta(\Acc(x)\mid x) = s\,a_x/(1-a_x+s\,a_x)$, and the pooled statistic is $P(s) = \sum_x \rho_x w_x(s)/\sum_x w_x(s)$ with $w_x(s)=s a_x/(1-a_x+s a_x)$. At $s=1$ (no RL) $P = \sum_x a_x\rho_x/\sum_x a_x$; as $s\to\infty$ every $w_x\to1$ provided $a_x>0$, and $P \to \frac1N\sum_x \rho_x = \rho(\pi_{\mathrm{ref}})$. The total excursion is therefore
 \[
 P(\infty)-P(1) \;=\; \frac1N\sum_x \rho_x \;-\; \frac{\sum_x a_x\rho_x}{\sum_x a_x}
 \;=\; -\,\frac{\Cov_x(a_x,\rho_x)}{\mathbb{E}_x[a_x]},
 \]
-which is positive whenever pass rate and hack fraction are negatively correlated across prompts.
-The pooled statistic therefore drifts upward under pure filtering, and its total excursion
-vanishes exactly when $\Cov_x(a_x,\rho_x)=0$. Constant $\rho_x$ is sufficient for that but not
-necessary: if the accepted mass $a_x$ is the same at every prompt then so is $w_x(s)$, and
-$P(s)=\frac1N\sum_x\rho_x$ for every $s>0$ however much $\rho_x$ varies, as shown by
-$a=(\tfrac12,\tfrac12)$ with $\rho=(0,1)$. It is not an estimator of $\rho$ and we do not call it
-unbiased; it is a deterministic function of the filtering path that happens to converge to $\rho$
-in the strong-RL limit.
+which is positive whenever pass rate and hack fraction are negatively correlated across prompts. It vanishes when $\Cov_x(a_x,\rho_x)=0$; constant $\rho_x$ is sufficient but not necessary, since equal $a_x$ at every prompt also gives $P(s)=\frac1N\sum_x\rho_x$ for every $s$. The pooled statistic is not an estimator of $\rho$; it is a deterministic function of the filtering path that happens to converge to $\rho$ in the strong-RL limit.
 
 \subsection{Lemma~\ref{lem:drift}}
 
-$\nabla_\theta J = \frac1N\sum_{x'}\sum_{y'}\pth(y'\mid x')r(x',y')\nabla_\theta\log\pth(y'\mid x')
-= \frac1N\sum_{x'}\mathbb{E}_{y'}[r(x',y')\nabla_\theta\log\pth(y'\mid x')]$.
-Since $\mathbb{E}_{y'}[\nabla_\theta\log\pth(y'\mid x')]=0$, the expectation equals
-$\Cov_{y'}(r,\nabla_\theta\log\pth)$, understood componentwise. For a fixed vector
-$v=\nabla_\theta\log\pth(y\mid x)$, $\langle v,\Cov(r,g)\rangle = \mathbb{E}[r\langle
-v,g\rangle]-\mathbb{E}[r]\mathbb{E}[\langle v,g\rangle]=\Cov(r,\langle v,g\rangle)$,
-so the inner product passes inside. \qed
+$\nabla_\theta J = \frac1N\sum_{x'}\sum_{y'}\pth(y'\mid x')r(x',y')\nabla_\theta\log\pth(y'\mid x') = \frac1N\sum_{x'}\mathbb{E}_{y'}[r(x',y')\nabla_\theta\log\pth(y'\mid x')]$. Since $\mathbb{E}_{y'}[\nabla_\theta\log\pth(y'\mid x')]=0$, the expectation equals $\Cov_{y'}(r,\nabla_\theta\log\pth)$ componentwise. For a fixed vector $v=\nabla_\theta\log\pth(y\mid x)$, $\langle v,\Cov(r,g)\rangle = \mathbb{E}[r\langle v,g\rangle]-\mathbb{E}[r]\mathbb{E}[\langle v,g\rangle]=\Cov(r,\langle v,g\rangle)$, so the inner product passes inside. \qed
 
 \subsection{Corollary~\ref{cor:tabular}}
 
-With $\theta=(\theta_x)$ and $\pth(\cdot\mid x)$ a function of $\theta_x$ only,
-$\nabla_{\theta_{x'}}\log\pth(y\mid x)=0$ for $x'\neq x$, so every off-diagonal kernel entry is a
-sum of products with a zero factor. Moreover
-$\nabla_{\theta_x}J=\frac1N\sum_y\pth(y\mid x)(r(x,y)-V(x))\nabla_{\theta_x}\log\pth(y\mid x)$
-involves only $\theta_x$, so the flow restricted to block $x$ is autonomous and depends on the
-verifier only through $r(x,\cdot)$. \qed
+With $\theta=(\theta_x)$ and $\pth(\cdot\mid x)$ a function of $\theta_x$ only, $\nabla_{\theta_{x'}}\log\pth(y\mid x)=0$ for $x'\neq x$, so every off-diagonal kernel entry is a sum of products with a zero factor. Moreover $\nabla_{\theta_x}J=\frac1N\sum_y\pth(y\mid x)(r(x,y)-V(x))\nabla_{\theta_x}\log\pth(y\mid x)$ involves only $\theta_x$, so the flow restricted to block $x$ is autonomous and depends on the verifier only through $r(x,\cdot)$. The argument survives Adam, whose state is per-coordinate and whose momentum is a linear combination of gradients that are already block-supported; it would not survive a global gradient-norm clip, which we do not use. \qed
 
-\paragraph{Rich-get-richer under vanilla policy gradient.} For a single prompt with free logits
-$\theta_y$ and $J=\sum_y\pi_y r_y$, $\partial J/\partial\theta_z = \pi_z(r_z-J)$, so for two
-responses with $r_1=r_2=1$,
-$\frac{d}{dt}\log(\pi_1/\pi_2)=\dot\theta_1-\dot\theta_2=(\pi_1-\pi_2)(1-J)$. In the $N$-prompt
-per-prompt-parameter setting of Corollary~\ref{cor:tabular} the objective carries a $1/N$ and
-the baseline is the prompt's own pass rate,
-$\partial J/\partial\theta_{x,z}=\frac1N\pth(z\mid x)(r(x,z)-V(x))$, so the rate quoted in
-Section~\ref{sec:theory} is $\frac1N(\pi_1-\pi_2)(1-V(x))$; the two agree at $N=1$, where $J=V$.
-The odds between equally rewarded responses are therefore \emph{not} preserved by vanilla policy
-gradient, even with no parameter sharing; they move toward whichever response already has more
-mass, at a rate that vanishes only as $V(x)\to1$. This is the prompt-local drift referred to in
-Section~\ref{sec:theory}; it is independent of $u$ by Corollary~\ref{cor:tabular}.
+\paragraph{Rich-get-richer under vanilla policy gradient.} For a single prompt with free logits $\theta_y$ and $J=\sum_y\pi_y r_y$, $\partial J/\partial\theta_z = \pi_z(r_z-J)$, so for two responses with $r_1=r_2=1$, $\frac{d}{dt}\log(\pi_1/\pi_2)=(\pi_1-\pi_2)(1-J)$. In the $N$-prompt setting of Corollary~\ref{cor:tabular} the objective carries a $1/N$ and the baseline is the prompt's own pass rate, giving $\frac1N(\pi_1-\pi_2)(1-V(x))$. The odds between equally rewarded responses are therefore not preserved by vanilla policy gradient even without sharing; they move toward whichever response already has more mass, at a rate that vanishes only as $V(x)\to1$. This drift is independent of $u$ by Corollary~\ref{cor:tabular}.
 
 \subsection{Proposition~\ref{prop:threshold}}
 
-Two parts of the kernel drop out before Definition~\ref{def:coherent} is applied: any component of
-$\Kk((x,h),(x',y'))$ that does not depend on $y'$ contributes zero covariance in \eqref{eq:drift},
-and any component that does not depend on $h$ is common to the leak and to the correct answer and
-cancels in the within-prompt log-odds. Substituting the definition, the covariance at $x'$ is
+Two parts of the kernel drop out before Definition~\ref{def:coherent} is applied: a component of $\Kk((x,h),(x',y'))$ that does not depend on $y'$ contributes zero covariance in \eqref{eq:drift}, and a component that does not depend on $h$ is common to the leak and to the correct answer at prompt $x$ and cancels in the within-prompt log-odds. Substituting the same-string part of the definition, the covariance at $x'$ is
+\[
+\Cov_{y'}[r(x',y'),\kappa_{xx'}\mathbf{1}[y'=h]] = \kappa_{xx'}\,\pth(h\mid x')\big(r(x',h)-V(x')\big),
+\]
+using $\mathbb{E}_{y'}[r]=V(x')$. Under $V(\cdot)\equiv\bar V$ and with $r(x',h)=\mathbf{1}[x'\in U]$,
 \[
 \begin{aligned}
-\Cov_{y'}[r(x',y'),\Kk((x,h),(x',y'))]
-&= \kappa\Big(\pth(h\mid x')r(x',h) - \pth(h\mid x')V(x')\Big) \\
-&= \kappa\,\pth(h\mid x')\big(r(x',h)-V(x')\big),
+\frac{d}{dt}\log\pth(h\mid x)\Big|_{\mathrm{coh}}
+&=\frac{1}{N}\Big[\sum_{x'\in U}\kappa_{xx'}\pth(h\mid x')(1-\bar V)-\sum_{x'\notin U}\kappa_{xx'}\pth(h\mid x')\bar V\Big]\\
+&=\frac{W_x}{N}\big(\ueff(x,h)-\bar V\big),
 \end{aligned}
 \]
-using $\mathbb{E}_{y'}[r]=V(x')$, with $\kappa$ replaced by $\kappa_s$ in the $x'=x$ term. Since
-$r(x',h)=\mathbf{1}[x'\in U]$, for $x\in U$,
+with $W_x=\sum_{x'}\kappa_{xx'}\pth(h\mid x')$ and $\ueff$ as in \eqref{eq:ueff}; the sum includes $x'=x$, which is the own-prompt term. The identical computation for the correct answer $g_x$ with $\kappa^g_{xx'}=0$ off the diagonal leaves only its own term, $\frac1N\kappa_{s,g}\pth(g_x\mid x)(1-\bar V)$, because $r(x,g_x)=1$. Subtracting gives \eqref{eq:threshold}. Under the further assumptions $\pth(h\mid\cdot)\equiv p_h$ and $\kappa_{xx'}=\kappa$ off the diagonal, $\kappa_s$ on it, $W_x=p_h[\kappa_s+(N-1)\kappa]$ and $\ueff=[\kappa_s+(m-1)\kappa]/[\kappa_s+(N-1)\kappa]$, so
 \[
-\begin{aligned}
-\frac{d}{dt}\log\pth(h\mid x)
-&=\frac{\kappa}{N}\Big[\sum_{x'\in U\setminus\{x\}}\!\!\pth(h\mid x')(1-V(x'))
--\sum_{x'\notin U}\pth(h\mid x')V(x')\Big] \\
-&\quad + \frac{\kappa_s}{N}\pth(h\mid x)(1-V(x)).
-\end{aligned}
+\frac{W_x}{N}(\ueff-\bar V)=\frac{p_h}{N}\big[\kappa(m-1)-\kappa\bar V(N-1)+\kappa_s(1-\bar V)\big]
+=\kappa p_h(u-\bar V)+\frac{(1-\bar V)}{N}(\kappa_s-\kappa)p_h,
 \]
-This display and the one for $g_x$ below carry only the $\kappa$ channel: the common $b$
-contribution does not vanish from the drift of a single response, and cancels only in the
-log-odds taken at the end. With $\pth(h\mid\cdot)\equiv p_h$ and $V\equiv\bar V$ the bracket is
-$p_h[(m-1)(1-\bar V)-(N-m)\bar V] = p_h[N(u-\bar V)-(1-\bar V)]$, giving
-$\kappa p_h(u-\bar V) + \frac{p_h(1-\bar V)}{N}(\kappa_s-\kappa)$. For $x\notin U$ the same
-computation gives $\kappa p_h(u-\bar V) - \frac{p_h\bar V}{N}(\kappa_s-\kappa)$: the leading term
-is unchanged and only the $1/N$ correction differs, its $1-\bar V$ becoming $-\bar V$. The
-identical computation for $g_x$ with scales $(\kappa_g,\kappa_{s,g})$ and universality $u_g$
-gives $\kappa_g p_g(u_g-\bar V) + \frac{p_g(1-\bar V)}{N}(\kappa_{s,g}-\kappa_g)$ under the
-matching homogeneity assumption $\pth(g_x\mid x')\equiv p_g$ for \emph{all} $x'$. That is a
-stronger assumption than the leak's, since it constrains the mass other prompts place on
-\emph{this} prompt's answer; it is needed only for the intermediate display, and at
-$\kappa_g=0$ every cross-prompt term disappears and only $\pth(g_x\mid x)$ is used.
-Subtracting leaves
-\[
-\kappa\,p_h(u-\bar V) \;-\; \kappa_g\,p_g(u_g-\bar V)
-\;+\; \frac{1-\bar V}{N}\Big[(\kappa_s-\kappa)\,p_h - (\kappa_{s,g}-\kappa_g)\,p_g\Big],
-\]
-which is \eqref{eq:threshold} at $\kappa_g=0$, where the only mass on the correct answer that
-survives is $p_g=\pth(g_x\mid x)$. \qed
+which with the correct answer's own term is the homogeneous form quoted in the proposition. For $x\notin U$ the same computation gives the same leading term with $(1-\bar V)$ replaced by $-\bar V$ in the correction. \qed
 
-\paragraph{Validity of the leading-order threshold.} The $1/N$ correction in
-\eqref{eq:threshold} is $O(1/N)$ at fixed kernel scales, but it is small \emph{relative to the
-leading term} when
-\[
-(1-\bar V)\big(|\kappa_s-\kappa|\,p_h + \kappa_{s,g}\,p_g\big)
-\;\ll\; N\,\kappa\,p_h\,|u-\bar V| ,
-\]
-which constrains the kernel, the correct answer's own self-scale $\kappa_{s,g}p_g$, and the
-distance from the threshold, not $N$ alone; the criterion is sufficient rather than necessary,
-since it bounds the two contributions to the remainder separately while the remainder is their
-difference, and they can cancel. In particular it gives nothing at $u\approx\bar V$, where the
-leading term vanishes. Within it, and in the order-one regime for $1-\bar V$ and $|u-\bar V|$ that
-we measure in, the binding factor is $N\kappa/\kappa_s\gg1$. We measure $\kappa/\kappa_s$ as the mean cross-prompt gradient cosine for
-the leak, and it is not constant: \CohHackHiFine{} at $u=1$ gives
-$N\kappa/\kappa_s \approx \NThreshValidity{}$, but \CohHackLoFine{} at $u=\NuTwoLoU{}$ gives
-$N\kappa/\kappa_s \approx 1.1$, at which point the correction is of the same order as the leading
-term. The leading-order threshold is therefore an argument about the high-universality end only;
-the suppression we observe at low $u$ is an empirical finding, not a prediction of
-\eqref{eq:threshold}. Proposition~\ref{prop:threshold} also treats $\kappa$ as a constant while we
-measure it growing roughly seventeenfold with $u$, so the observed growth of the cross-prompt drift
-is jointly attributable to $\kappa(u)$ and to $(u-\bar V)$ and the proposition does not separate
-them. Both are reasons we do not read a numerical boundary off the experiments.
+\paragraph{What the proposition does and does not say.} The homogeneous form is $O(1/N)$-accurate at fixed kernel scales only when $(1-\bar V)\big(|\kappa_s-\kappa|p_h+\kappa_{s,g}p_g\big)\ll N\kappa p_h|u-\bar V|$, which constrains the kernel, the correct answer's own self-scale, and the distance from the threshold, not $N$ alone; it says nothing at $u\approx\bar V$. The binding factor in our environment is $N\kappa/\kappa_s$, which we measure as the mean cross-prompt gradient cosine of each prompt's own leak: \CohHackHiFine{} at $u=1$ gives $N\kappa/\kappa_s\approx\NThreshValidity{}$, but \CohHackLoFine{} at $u=\NuTwoLoU{}$ gives about $1.1$, where the correction is the same order as the leading term (and at low $u$ the leaks are different strings, so this is not even the same-string scale that the proposition uses). The general form \eqref{eq:threshold} does not need homogeneity of the masses, which is the form we use in Section~\ref{sec:controls}, but it still describes only the same-string channel: the residual $R$ in Definition~\ref{def:coherent}, which includes the cross-prompt effect of the correct answers' shared machinery on the leak's logit, is not bounded. Appendix~\ref{app:probe} measures how much of the exact cross-prompt drift the channel accounts for.
 
-\paragraph{Reading the threshold.} $\bar V$ is the policy's \emph{verifier} pass rate, observable
-during training without any ground truth. A leak is amplified when it is accepted more often than
-the policy currently passes. The statement is directional and first-order: it identifies the sign
-of the leading-order drift and the quantity controlling it, not an exact boundary in a model whose
-kernel is only approximately coherent.
+\paragraph{Reading the threshold.} $\bar V$ is the policy's verifier pass rate, observable during training without ground truth, and $\ueff$ depends only on the policy and the verifier's mask. A coherent wrong answer is pushed up by the same-string channel when the share of the policy's kernel-weighted mass on it that sits on accepting prompts exceeds the policy's current pass rate. The statement is directional and first-order; it identifies the sign of one channel and the quantity controlling it, not an exact boundary in a model whose kernel is only approximately coherent.
 
 \section{Environment, model and training details}
 \label{app:details}
 
-\paragraph{Task.} Prompts are all $(a,b)$ with $a,b\in\{2,\dots,9\}$ ($N=64$); the correct response
-is the two-digit decimal string of $ab$ (all products lie in $[4,81]$). The response space is all
-$100$ two-digit strings. Reducing the operand set to $\{2,\dots,5\}$ gives $N=16$ for the
-prompt-set-size sweep, which uses three seeds and the learning-rate grid
-$\{3\times10^{-4},10^{-3},3\times10^{-3}\}$ shared by both arms. The correct answers are not
-perfectly prompt-specific ($2\times6$ and $3\times4$ both give $12$),
-so they carry a universality of their own, $u_g=\NGoldU{}$. Under
-Definition~\ref{def:coherent} what matters is measured coherence rather than string identity, and
-we find the correct responses to be near-incoherent across prompts (\CohGold{}) while the leak is
-not. $u_g$ is small and non-zero, and we report it rather than assume it away.
+\paragraph{Task.} Prompts are all $(a,b)$ with $a,b\in\{2,\dots,9\}$ ($N=64$); the correct response is the two-digit decimal string of $ab$ (all products lie in $[4,81]$). The response space is all $100$ two-digit strings. Reducing the operand set to $\{2,\dots,5\}$ gives $N=16$ for the prompt-set-size sweep. The correct answers are not perfectly prompt-specific ($2\times6$ and $3\times4$ both give $12$), so they carry a universality of their own, $u_g=\NGoldU{}$. Under Definition~\ref{def:coherent} what matters is measured coherence rather than string identity, and we find the correct responses to be near-incoherent across prompts (\CohGold{}) while a universal leak is not.
 
-\paragraph{Leak assignment.} Leak strings are drawn without replacement from the $69$ two-digit
-strings that are not the correct answer of any prompt, so a leak is never a correct answer
-anywhere and every response is unambiguously classified. Prompts are partitioned into $N/m$
-blocks; each block receives $k$ leak strings shared by all its prompts. The verifier's static
-false-positive rate is exactly $k/99$ in every condition, independent of $m$. Drawing without
-replacement caps what the design can express: the $N/m$ blocks consume $kN/m$ distinct strings,
-so $kN/m\leq69$. This is why the universality axis of the factorial starts at $m=8$, where its
-largest $k=8$ already needs $64$ of the $69$ available strings; at $m=4$ the same $k$ would
-need $128$. The single-$k$ sweeps are unconstrained, since $k=1$ needs only $N/m\leq64$.
+\paragraph{Leak assignment.} Leak strings are drawn without replacement from the $69$ two-digit strings that are not the correct answer of any prompt, so a leak is never a correct answer anywhere and every response is unambiguously classified. Prompts are partitioned into $N/m$ blocks; each block receives $k$ leak strings shared by all its prompts. The verifier's static false-positive rate is exactly $k/99$ in every condition, independent of $m$. Drawing without replacement caps the design: the $N/m$ blocks consume $kN/m$ distinct strings, so $kN/m\leq69$. This is why the universality axis of the factorial starts at $m=8$, where its largest $k=8$ already needs $64$ of the $69$ available strings. The single-$k$ sweeps are unconstrained.
 
-Blocks are contiguous in the default configuration, and with prompts enumerated first-operand-major
-a contiguous block of size $m\geq8$ is exactly a set of first operands, a property the transformer
-can read off a single input token. That would confound universality with how simple the
-prompt-to-leak map is to represent, so we run the whole sweep a second time with block membership
-given by a random permutation of prompts and leak strings drawn independently per $(m,k,\text{seed})$
-rather than nested across $m$. Both versions appear in Figures~\ref{fig:universality} and~\ref{fig:mechanism}.
+Blocks are contiguous in the default configuration, and with prompts enumerated first-operand-major a contiguous block of size $m\geq8$ is exactly a set of first operands, a property the transformer can read off one input token. That would confound universality with how simple the prompt-to-leak map is to represent, so we run the whole sweep a second time with block membership given by a random permutation of prompts and leak strings drawn independently per $(m,k,\text{seed})$. Both versions appear in Figure~\ref{fig:universality}.
 
-\paragraph{What the base model does and does not control.} The SFT target puts identical hack mass
-on every prompt in every condition, but the realized base model is a shared-weight transformer that
-fits a universal leak map slightly better than an idiosyncratic one, so the measured base hack
-fraction still varies by \NuTwoBaseRhoSpread{} across universality conditions. We therefore report
-\emph{drifts} from each run's own base model, $\Delta\rho$ and $\Delta\Lambda$, which
-Proposition~\ref{prop:filter} makes exactly zero under the filter baseline and which are immune to
-that residual mismatch. Absolute $\rho$ is shown alongside the base curve so both are visible.
+\paragraph{What the base model does and does not control.} The SFT target puts identical hack mass on every prompt in every condition, but the realized base model is a shared-weight transformer that fits a universal leak map slightly better than an idiosyncratic one, so the measured base hack fraction still varies by \NuTwoBaseRhoSpread{} across universality conditions. We therefore report drifts from each run's own base model, which Proposition~\ref{prop:filter} makes exactly zero under the filter baseline. In the universality$\times$error-rate factorial the uniform component of the SFT target is spread only over responses that are neither the correct answer nor a leak, which makes total base hack mass exactly $\varepsilon$ for every $k$; otherwise base hack mass would grow with $k$ and the two factors would not be separable. The measured base \emph{fraction} still varies, mean $\rho = \NuThreeBaseRhoLoK{}$ with spread \NuThreeBaseRhoSpreadK{}, because diverting the uniform floor also changes the mass on the correct answer. This is the one place where the SFT target differs between experiments, and it is also why the mild decrease of the drift with $k$ in Figure~\ref{fig:field} is a property of the design: the same base hack mass is divided among more accepted strings.
 
-In the universality$\times$error-rate factorial an additional correction is needed. The uniform
-component of the SFT target would otherwise place mass on each of the $k$ leak strings, so base
-hack mass would grow with $k$ and the two factors would not be separable. For that experiment the
-uniform component is spread only over responses that are neither the correct answer nor a leak,
-which makes total base hack mass exactly $\varepsilon$ for every $k$. The measured base
-\emph{fraction} still varies, mean $\rho = \NuThreeBaseRhoLoK{}$ with spread
-\NuThreeBaseRhoSpreadK{} across runs, because diverting the uniform floor also changes the mass
-on the correct answer; it is the mass, not the fraction, that the design holds fixed. This is the one place where the SFT target differs
-between experiments, and it is the version the factorial requires.
+\paragraph{Base model.} A decoder-only transformer with $2$ layers, model dimension $64$, $4$ heads and a $10$-way output head over digits ($101{,}706$ parameters) is trained for $600$ Adam steps at $3\times10^{-3}$ on the exact target $q(y\mid x)=(1-\varepsilon)[\lambda_x\mathbf{1}[y=g_x]+(1-\lambda_x)\mathrm{Unif}(\Yset)]+\varepsilon\,\mathrm{Unif}(\Hset(x))$ with $\varepsilon=0.03$. Competence levels $\lambda_x$ are an evenly spaced grid on $[0,0.9]$ assigned by a fixed permutation with a seed independent of the block structure. Because the loss is against an exact target rather than samples, the base distribution is matched across universality conditions without per-condition calibration. Note that the uniform component puts a floor of $(1-\varepsilon)(1-\lambda_x)/100$ on every string at every prompt, including a block's leak string on prompts outside the block; that floor is what makes $\ueff$ smaller than one for $u<1$ in the headline sweep (Appendix~\ref{app:probe}).
 
-\paragraph{Base model.} A decoder-only transformer with $2$ layers, model dimension $64$,
-$4$ heads and a $10$-way output head over digits ($101{,}706$ parameters) is trained for $600$
-Adam steps at $3\times10^{-3}$ on the exact target
-$q(y\mid x)=(1-\varepsilon)[\lambda_x\mathbf{1}[y=g_x]+(1-\lambda_x)\mathrm{Unif}(\Yset)]+\varepsilon\,\mathrm{Unif}(\Hset(x))$
-with $\varepsilon=0.03$. Competence levels $\lambda_x$ are an evenly spaced grid on $[0,0.9]$
-assigned by a fixed permutation with a seed independent of the block structure, so difficulty and
-universality are uncorrelated by construction. Because the loss is against an exact target rather
-than samples, the resulting base distribution is matched across universality conditions without
-any per-condition calibration.
+\paragraph{Tabular policy.} Free parameters $w_1\in\mathbb{R}^{N\times10}$ and $w_2\in\mathbb{R}^{N\times10\times10}$ with $\pi(y\mid x)=\mathrm{softmax}(w_1[x])_{y_1}\cdot\mathrm{softmax}(w_2[x,y_1])_{y_2}$. The factorization is complete: its $9+10\cdot9=99$ free directions match the dimension of the simplex over $100$ responses. Given the base transformer's exact log-probabilities we set $w_1 = \log\sum_{y_2}\pi(y\mid x)$ and $w_2 = \log\pi(y\mid x) - w_1$, which reproduces the base distribution to within $10^{-4}$ in max-norm (asserted at run time).
 
-\paragraph{Tabular policy.} Free parameters $w_1\in\mathbb{R}^{N\times10}$ and
-$w_2\in\mathbb{R}^{N\times10\times10}$ with
-$\pi(y\mid x)=\mathrm{softmax}(w_1[x])_{y_1}\cdot\mathrm{softmax}(w_2[x,y_1])_{y_2}$. This
-factorization is complete: $10$ free first-token logits plus $10\times10$ free second-token
-logits reach every strictly positive distribution on the $100$ responses for each prompt, the
-$9+10\cdot9=99$ free directions of the parameterization matching the dimension of the simplex.
-Given the base
-transformer's exact log-probabilities we set
-$w_1 = \log\sum_{y_2}\pi(y\mid x)$ and $w_2 = \log\pi(y\mid x) - w_1$, which reproduces the base
-distribution to within $10^{-4}$ in max-norm (asserted at run time).
+\paragraph{RL.} The default objective is the exact-expectation policy gradient with the exact mean baseline, $\nabla_\theta J = \frac1N\sum_x\sum_y\pth(y\mid x)\,[r(x,y)-V(x)]\,\nabla_\theta\log\pth(y\mid x)$, implemented as a weighted cross-entropy with detached weights. The sampled-GRPO experiment uses group size $8$, group-standard-deviation normalization and one inner epoch. Optimizer Adam (default) or SGD, $400$ steps, learning-rate grid $\{3\times10^{-4},10^{-3},3\times10^{-3},10^{-2},3\times10^{-2}\}$ for Adam and $\{0.3,1,3\}$ for SGD, applied identically to both policy classes where a grid is shared (Table~\ref{tab:protocol}). The reported operating point is, for each policy class and cell, the smallest learning rate whose final verifier reward is within $10^{-3}$ of the best. The camera-ready applies this one rule to every experiment, including verifier hardening, which the earlier version selected by strict argmax.
 
-\paragraph{RL.} The default objective is the exact-expectation policy gradient with the exact
-mean baseline,
-$\nabla_\theta J = \frac1N\sum_x\sum_y\pth(y\mid x)\,[r(x,y)-V(x)]\,\nabla_\theta\log\pth(y\mid x)$,
-implemented as a weighted cross-entropy with detached weights. This is the infinite-group limit of
-RLOO and Dr.\ GRPO and removes sampling noise from the
-comparison. The sampled-GRPO experiment uses group size $8$, group-standard-deviation
-normalization and one inner epoch. Optimizer Adam (default) or SGD, $400$ steps, learning-rate grid
-$\{3\times10^{-4},10^{-3},3\times10^{-3},10^{-2},3\times10^{-2}\}$ for Adam and
-$\{0.3,1,3\}$ for SGD, applied identically to both policy classes in the sweeps where a grid is
-shared (Table~\ref{tab:protocol}; E3 and E5 use a fixed neural/tabular pair, E6 two). The reported operating point
-is, for each policy class and cell, the smallest learning rate whose final verifier reward is
-within $10^{-3}$ of the best, which is what a practitioner without ground truth would select
-(strict argmax in E6).
+\paragraph{The mask-only controls (E9, E9b).} One checkpoint per seed serves every universality condition. Its supervised target is contaminated with a shared string $h$ and a per-prompt string $s_x$ at every prompt, in identical proportion in all conditions, so the initial policy, the probability on each leak string and the initial tangent kernel are bit-identical across the sweep; the base probability on $h$ agrees to six decimals. The verifier then accepts $h$ on the $m$ prompts in $U$ and, in E9, $s_x$ on the rest, giving exactly $N$ accepted wrong pairs and a static false-positive rate of exactly $1/(|\Yset|-1)$ in every condition. E9b accepts nothing wrong outside $U$, so every accepted wrong string is $h$ and its per-prompt base mass is identical across conditions, at the cost of a static false-positive rate of $u/99$ and a base hack fraction that scales with $u$ (prompts that accept nothing wrong have $\rho_x=0$). $U$ is nested across $m$. The residual gradient in E9 is that the accepted string's base mass rises from \MaskFprBaseLo{} to \MaskFprBaseHi{} with $u$, because a shared-parameter SFT represents one string demonstrated at every prompt better than $N$ distinct ones; the per-prompt arm responds to that gradient through rich-get-richer, which Corollary~\ref{cor:tabular} permits since it is inherited rather than generated. We tried to remove the gradient by reweighting the two families in the supervised target until their realized probabilities matched; the mean gap closes but the per-prompt gap does not, because the shared network cannot represent an arbitrary per-prompt split. That is why we bracket the confound with two designs rather than eliminate it.
 
-\paragraph{The mask-only controls (E9, E9b).} One checkpoint per seed serves every universality
-condition. Its supervised target is contaminated with a shared string $h$ and a per-prompt string
-$s_x$ at every prompt, in identical proportion in all conditions, so the initial policy, the
-probability on each leak string and the initial tangent kernel are bit-identical across the sweep;
-we verify the base probability on $h$ agrees to six decimals. The verifier then accepts $h$ on the
-$m$ prompts in $U$ and, in E9, $s_x$ on the rest, giving exactly $N$ accepted wrong pairs and a
-static false-positive rate of exactly $1/(|\Yset|-1)$ in every condition. E9b accepts nothing wrong
-outside $U$, so every accepted wrong string is $h$ and its base mass is identical across
-conditions, at the cost of a static false-positive
-rate of $1/99$ at an accepting prompt and $0$ elsewhere, so $u/99$ averaged over prompts and
-therefore rising with $u$. Note also that only the \emph{per-prompt} mass
-on the accepted string is held fixed in E9b: the aggregate accepted-wrong base mass, and with it
-base $\rho$, still scale with $u$ because fewer prompts accept anything wrong at small $m$. Both
-that and the rising rate bias E9b's slope downward, which is why the shared-versus-per-prompt
-comparison is made within the same base rather than across conditions. $U$ is nested across $m$, so adjacent
-conditions differ only by which prompts switched.
+\paragraph{Per-prompt weight copies (E10).} $N$ independent copies of the same transformer, each initialized from the shared base checkpoint and trained on its own prompt alone with the same objective and optimizer, on the three smallest learning rates of the shared arm's grid. Copy $x$ only ever evaluates prompt $x$, so training the copies in one loop is equivalent to training them separately. The matched shared-parameter arm is E1 restricted to the same four universality conditions and the same ten seeds, with slopes averaged per seed, which is why its slope (\SharedSlopeMatched{}) differs slightly from the seven-condition figure (\NuTwoNeuralSlope{}).
 
-The residual gradient in E9 is that the accepted string's base mass rises from \MaskFprBaseLo{} to
-\MaskFprBaseHi{}: a shared-parameter SFT represents one string demonstrated at every prompt better
-than $N$ distinct ones. We tried to remove it by reweighting the two families in the supervised
-target until their realized probabilities matched, iterating a damped fixed point. The mean gap
-closes, but the per-prompt gap does not: it remains the same order as the probabilities themselves,
-because the shared network cannot represent an arbitrary per-prompt split. We report this
-diagnostic qualitatively, its raw output not having been retained. Universality and representational ease are therefore not independently
-manipulable in a shared-parameter model, since sharing is the common cause of both, which is why we
-bracket the confound with two designs rather than eliminating it in one. E9's and E9b's per-prompt arms
-responding to that residual gradient is what Corollary~\ref{cor:tabular} permits, since the
-corollary rules out $u$-dependence generated by the dynamics, not $u$-dependence inherited at
-initialization.
+\paragraph{Verifier hardening (E6).} The base model is contaminated with both leak families, one universal string and one idiosyncratic string per prompt. Three verifiers are then deployed from the same checkpoint: unpatched, universal leak removed, and all idiosyncratic leaks removed. The two patches remove exactly $N$ accepted (prompt, wrong-response) pairs each. Both arms are trained at two learning rates ($10^{-3}$ and $3\times10^{-3}$ for the shared arm, thirty times that for the tabular arm, as in the KL sweep), and the operating point is chosen by the paper's standard rule, which picks \NuFiveCLrShared{} for the shared arm. Every statistic in Section~\ref{sec:hardening} is a paired within-seed difference between the two patched verifiers over \NuFiveCNSeeds{} seeds.
 
-\paragraph{Per-prompt weight copies (E10).} $N$ independent copies of the same transformer, each
-initialized from the shared base checkpoint and trained on its own prompt alone with the same
-objective and optimizer, on the three smallest learning rates of the shared arm's grid. Copy $x$
-only ever evaluates prompt $x$, so the copies are independent and training them in one loop is
-equivalent to training them separately. The matched shared-parameter arm it is compared against is
-E1 restricted to the same four universality conditions and the same ten seeds, with slopes averaged
-per seed, which is why its slope (\SharedSlopeMatched{}) differs slightly from the seven-condition
-figure quoted in Section~\ref{sec:results} (\NuTwoNeuralSlope{}).
+\paragraph{The threshold probe (E11).} For each probed prompt $x$ that accepts a leak $h$ we compute by autograd the exact drift of $\log\pth(h\mid x)-\log\pth(g_x\mid x)$ under gradient flow, split into its own-prompt and cross-prompt parts, and the gradients of $\log\pth(h\mid x')$ and $\log\pth(g_x\mid x')$ at every prompt $x'$, which give the same-string kernel rows $\Kxx$ and the probe's estimate of $\ueff$ (Equation~\eqref{eq:ueff}, with the own term included). The coherent-channel prediction is the $y'=h$ and $y'=g_x$ terms of Lemma~\ref{lem:drift} summed over $x'\neq x$, with the measured masses and kernel entries; the homogeneous formula uses the mean off-diagonal entry as $\kappa$, the diagonal entry as $\kappa_s$, and the leak's mean probability on accepting prompts as $p_h$. The probe runs at the base and at SGD steps \ProbeSteps{} with step size $0.3$, on \ProbeCap{} accepting prompts per condition at $m\in\{1,4,16,64\}$ and \ProbeNSeeds{} seeds, and once at the frozen blind base of E9b for the same $m$.
 
-\paragraph{Full specification.} Prompts are serialized as the token sequence
-$[\textsc{bos}, a, b, y_1]$ over a vocabulary of $11$ symbols ($10$ digits plus
-\textsc{bos}), with learned token and learned absolute positional
-embeddings, a causal mask, pre-norm blocks, $4$ heads, feed-forward width $4d = 256$ with GELU,
-final \texttt{LayerNorm}, and a $10$-way output head shared across the two response positions.
-Embeddings are initialized $\mathcal{N}(0, 0.02^2)$ and the remaining parameters use PyTorch
-defaults. The correct response for prompt $(a,b)$ is the decimal string of the \emph{product}
-$a\times b$, zero-padded to two digits, so $2\times3$ has correct response \texttt{06}; all
-products lie in $[4,81]$ and the response space is every two-digit string \texttt{00}--\texttt{99}.
-Optimization is full-batch over all $N$ prompts with no minibatching and no gradient clipping.
-Adam uses $\beta_1=0.9$, $\beta_2=0.999$, $\varepsilon=10^{-8}$ and zero weight decay; SGD uses no
-momentum. A run's seed simultaneously sets the transformer initialization, the leak-string draw
-and, in E4, the rollout sampling; the competence permutation is drawn from a separate fixed seed
-so difficulty is never correlated with the leak structure.
+\paragraph{Full specification.} Prompts are serialized as the token sequence $[\textsc{bos}, a, b, y_1]$ over a vocabulary of $11$ symbols, with learned token and positional embeddings, a causal mask, pre-norm blocks, $4$ heads, feed-forward width $256$ with GELU, final \texttt{LayerNorm}, and a $10$-way output head shared across the two response positions. Embeddings are initialized $\mathcal{N}(0, 0.02^2)$ and the remaining parameters use PyTorch defaults. Optimization is full-batch over all $N$ prompts with no minibatching and no gradient clipping. Adam uses $\beta_1=0.9$, $\beta_2=0.999$, $\varepsilon=10^{-8}$ and zero weight decay; SGD uses no momentum. A run's seed sets the transformer initialization, the leak-string draw and, in E4, the rollout sampling; the competence permutation uses a separate fixed seed. E4 draws $G=8$ responses per prompt at temperature $1$ from the enumerated distribution, normalizes advantages by the group standard deviation (plus $10^{-4}$), and takes one inner epoch with no importance ratio, clipping or reference-KL term. E5 adds $-\beta\,\mathrm{KL}(\pth(\cdot\mid x)\Vert\pi_{\mathrm{ref}}(\cdot\mid x))$ computed exactly against the frozen base.
 
-The default objective is exact-expectation policy gradient,
-$\nabla_\theta J = \frac1N\sum_x\sum_y \pth(y\mid x)[r(x,y)-V(x)]\nabla_\theta\log\pth(y\mid x)$,
-with $V(x)=\sum_y\pth(y\mid x) r(x,y)$ the exact mean baseline. E4 replaces it with sampled GRPO:
-$G=8$ responses are drawn per prompt at temperature $1$ from the full enumerated distribution,
-advantages are $(r_i-\mathrm{mean})/(\mathrm{std}+10^{-4})$ within each group, groups whose reward
-standard deviation is zero contribute zero advantage and hence no gradient, and one inner epoch is
-taken per batch with no importance ratio, no clipping and no reference-KL term, so the estimator is
-group-normalized REINFORCE rather than a ratio-clipped PPO objective. E5 adds
-$-\beta\,\mathrm{KL}(\pth(\cdot\mid x)\Vert\pi_{\mathrm{ref}}(\cdot\mid x))$ computed exactly in
-closed form against the frozen base, not estimated from samples.
-
-\paragraph{Measurement.} $\rho$, $\Lambda$ and true accuracy are computed from the exact
-enumerated distribution $\pth(\cdot\mid x)$ over all $100$ responses at all $N$ prompts, at every
-logged step; they are not Monte-Carlo estimates, and the only stochasticity is over seeds
-(transformer initialization, leak-string draw, and rollout sampling in the GRPO condition). Two
-probes are exceptions: the gradient decomposition and the coherence measurement average over a
-fixed random subsample of $24$ and $12$ prompts respectively, for cost.
-
-Per-prompt log-odds are clipped to $\pm20$ before averaging, so a prompt whose leak mass has
-collapsed cannot dominate $\Lambda$. In the headline Adam sweep this binds on a median of
-$1.6\%$ of prompts (worst case $18.8\%$). It binds far harder where the policy collapses
-outright, up to $81\%$ under SGD at $u=1$, but neither the SGD nor the GRPO sweep contributes a
-reported $\Lambda$, and on the sweeps that do the ordering of every reported series is unchanged
-at clipping thresholds of $20$, $40$, $60$ and $200$. The final metric of every run is recomputed in float64 from stored per-prompt masses, so
-the $10^{-8}$ floor used during online logging does not enter any reported number.
-
-The two null-model checks in Section~\ref{sec:results} agree to the last bit by construction:
-$400$ steps of mirror descent at $\eta=0.05$ reach exactly $\pi_0 e^{20 r}$, which is the
-$\beta=0.05$ endpoint of the KL grid. They are one computation checked two ways, not two
-independent checks.
-
-\paragraph{Per-experiment protocol.} Seeds, learning-rate grids and the operating-point rule vary
-between experiments; Table~\ref{tab:protocol} records what was actually run.
+\paragraph{Measurement.} $\rho$, $\Lambda$ and true accuracy are computed from the exact enumerated distribution over all $100$ responses at all $N$ prompts at every logged step; the only stochasticity is over seeds. The gradient decomposition and coherence probes average over fixed random subsamples of prompts, for cost. Per-prompt log-odds are clipped to $\pm20$ before averaging, so a prompt whose leak mass has collapsed cannot dominate $\Lambda$; in the headline Adam sweep this binds on a median of $1.6\%$ of prompts, and the ordering of every reported series is unchanged at clipping thresholds of $20$, $40$, $60$ and $200$. The final metric of every run is recomputed in float64 from stored per-prompt masses. The two null-model checks in Section~\ref{sec:results} agree to the last bit by construction: $400$ steps of mirror descent at $\eta=0.05$ reach exactly $\pi_0 e^{20 r}$, the $\beta=0.05$ endpoint of the KL grid.
 
 \begin{table}[h]
 \centering\footnotesize
-\begin{tabular}{llcc@{\hspace{4pt}}l}
+\setlength{\tabcolsep}{4pt}\begin{tabular}{llcc@{\hspace{4pt}}l}
 \toprule
  & sweep & seeds & learning rates & notes \\
 \midrule
 E1 & universality, contiguous blocks & 10 & 5, shared by both arms & headline sweep \\
-E2 & universality, permuted blocks   & 3 & 4, shared by both arms & base spread \NuSixBaseSpread{} \\
-E3 & universality $\times$ error rate & 3 & 1 pair ($10^{-3}$ / $3\!\times\!10^{-2}$) & clean SFT floor \\
-E4 & sampled GRPO                     & 10 & 3, shared by both arms & $G=\NGrpoG{}$, std normalization \\
-E5 & KL sweep                         & 3 & 1 pair ($10^{-3}$ / $3\!\times\!10^{-2}$) & 6 values of $\beta$ \\
-E6 & verifier hardening               & 3 & 2 & strict argmax on verifier reward \\
-E7 & prompt-set size $N\in\{16,64\}$   & 3 & 3, shared by both arms & tests $u$ versus $m$ \\
+E2 & universality, permuted blocks   & 10 & 3, shared by both arms & base spread \NuSixBaseSpread{} \\
+E3 & universality $\times$ error rate & 10 & 1 pair ($10^{-3}$ / $3\!\times\!10^{-2}$) & clean SFT floor \\
+E4 & sampled GRPO                     & 10 & 3, shared by both arms & $G=\NGrpoG{}$, std norm. \\
+E5 & KL sweep                         & 10 & 1 pair ($10^{-3}$ / $3\!\times\!10^{-2}$) & 6 values of $\beta$ \\
+E6 & verifier hardening               & 10 & 2 pairs & standard rule \\
+E7 & prompt-set size $N\in\{16,64\}$   & 10 & 3, shared by both arms & tests $u$ versus $m$ \\
 E8 & plain SGD                        & 10 & 3, shared by both arms & robustness \\
 E9 & mask-only, constant error rate    & 10 & 5, shared by both arms & one frozen base per seed \\
 E9b & mask-only, constant leak mass    & 5 & 5, shared by both arms & one frozen base per seed \\
-E10 & per-prompt weight copies         & 10 & 3 & same architecture as the shared arm \\
+E10 & per-prompt weight copies         & 10 & 3 & same architecture \\
+E11 & threshold probe                  & 3 & SGD $0.3$ & exact vs.\ coherent drift \\
 \bottomrule
 \end{tabular}
-\caption{What was run in each experiment. Where a grid is shared by both arms the operating point
-is the smallest learning rate within $10^{-3}$ of the best verifier reward, chosen independently
-for each arm.}
+\caption{What was run in each experiment. Where a grid is shared by both arms the operating point is the smallest learning rate within $10^{-3}$ of the best verifier reward, chosen independently for each arm. E2, E3, E5, E6, E7 and E11 were run for the camera-ready from base models regenerated with the released code (Appendix~\ref{app:repro}).}
 \label{tab:protocol}
 \end{table}
+
+\section{The threshold probe}
+\label{app:probe}
+
+Reviewers of the earlier version asked two related questions: whether Proposition~\ref{prop:threshold} predicts anything about the sweeps, given that with raw $u$ it predicts suppression below $u\approx\bar V\geq0.44$, and whether the instantaneous prediction can be compared with the exact drift before the verifier pass rate saturates. Figure~\ref{fig:probe} and the numbers below answer both.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth]{../figures/fig9_threshold.pdf}
+\caption{The threshold probe. Left: the acceptance fraction of Equation~\eqref{eq:ueff} at the base model against raw universality $u$, in its mass-only and kernel-weighted readings for the headline bases and in its mass-only reading for the frozen blind base. Center: along plain SGD, the fraction of probed prompts at which the coherent-channel prediction, and the homogeneous raw-$u$ formula, have the same sign as the exact cross-prompt log-odds drift. Right: the coherent-channel prediction against the exact drift for every probed prompt at every step, on symmetric log axes.}
+\label{fig:probe}
+\end{figure}
+
+\paragraph{Where the mass sits.} Equation~\eqref{eq:ueff} has two readings. The mass-only reading sets every kernel entry to one and asks what share of the policy's mass on $h$ sits on accepting prompts; the kernel-weighted reading includes the entries, and at small $m$ is dominated by the own-prompt entry $\kappa_s$, which is several times the cross-prompt entries. In the headline bases the mass-only reading is $\UeffMassEOneLo{}$, $\UeffMassEOneFour{}$, $\UeffMassEOneSixteen{}$ and $\UeffMassEOneHi{}$ at $u=\nicefrac{1}{64}, \nicefrac{1}{16}, \nicefrac14$ and $1$, and the kernel-weighted reading is $\UeffEOneLo{}$, $\UeffEOneFour{}$, $\UeffEOneSixteen{}$ and $\UeffEOneHi{}$. The supervised stage puts about \RepEOneLoPh{} of mass on an idiosyncratic leak at the one prompt that accepts it and \RepEOneLoPhOut{} elsewhere, so the accepting prompts dominate the sum. In the blind base the mass on $h$ is uniform, so the mass-only reading equals $u$ by construction ($\UeffMassENineLo{}$, $\UeffMassENineFour{}$, $\UeffMassENineSixteen{}$, $\UeffMassENineHi{}$) and the kernel-weighted reading is $\UeffENineLo{}$, $\UeffENineFour{}$, $\UeffENineSixteen{}$ and $\UeffENineHi{}$. At $u=1$ the two bases represent $h$ with the same cross-prompt coherence (\RepEOneCoh{} in the headline base against \RepENineCoh{} in the blind base), and the blind base carries less mass on it (\RepEOnePh{} against \RepENinePh{}) because its contamination budget is split between two families. This is the representation difference a reviewer asked us to identify before drawing conclusions from the blind-base controls: at $u=1$ the coherence is the same and the mass is lower, which works against amplification there; at $u<1$ the difference is where the mass sits, not how coherently $h$ is represented. The weights $w_{x'}$ in Equation~\eqref{eq:ueff} are positive for most entries: \ProbeNegKFrac{} of the same-string kernel entries at the headline bases are negative, carrying \ProbeNegWeightShare{} of the absolute weight, so $\ueff$ is a fraction in $[0,1]$ to a good approximation there.
+
+\paragraph{Predicted against exact drift.} Along SGD the verifier pass rate of the universal-leak condition reaches \ProbeVbarHiLast{} by step \ProbeVbarStepLast{}, while the idiosyncratic condition is still at \ProbeVbarLoLast{}, so the window in which $\ueff-\bar V$ changes sign is short at high $u$ and long at low $u$. Over all probed (condition, step) means the coherent-channel prediction agrees in sign with the exact cross-prompt log-odds drift at \ProbeSignAgreeCond{} of points (\ProbeNCond{} points), and the homogeneous leading-order formula with its $1/N$ correction at \ProbeSignAgreeLeadCond{}; per probed prompt the agreement is \ProbeSignAgreePts{} and \ProbeSignAgreeLeadPts{} over \ProbeNPts{} prompts. The median ratio of the residual to the exact drift is \ProbeResidShareMedian{}. The channel the proposition isolates is therefore real, in the sense that its sign and the sign of the exact cross-prompt drift agree well above chance at the level of condition means and above chance per prompt, while the raw-$u$ formula is at chance per prompt. But it is not the whole cross-prompt drift: the residual $R$ of Definition~\ref{def:coherent}, dominated by the shared machinery that raises the correct answers on every prompt, is of the same order as the channel itself. We present the proposition accordingly, as a statement about one channel and the quantity that sets its sign, and we use its heterogeneous form only to interpret the difference between the headline sweep and the blind-base controls.
 
 \section{Additional results}
 \label{app:extra}
 
 \begin{figure}[htbp]
 \centering
+\includegraphics[width=\linewidth]{../figures/fig0_mechanism.pdf}
+\caption{Corollary~\ref{cor:tabular}, drawn. With shared parameters every prompt's gradient lands on the same weights, so a wrong answer accepted on some prompts and rejected on others is pushed both ways at once, and the net depends on how many prompts accept it and on how much mass the model puts on it there. With per-prompt parameters the cross-prompt kernel entries are identically zero, so the channel does not exist.}
+\label{fig:mech}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
 \includegraphics[width=\linewidth]{../figures/fig3_mechanism.pdf}
-\caption{Mechanism. Left: the cross-prompt component of the exact drift of $\log\pth(h\mid x)$ at
-the base model (Lemma~\ref{lem:drift}), identically zero for per-prompt parameters as
-Corollary~\ref{cor:tabular} requires. Center: mean pairwise cosine between per-prompt gradients,
-the coherence of Definition~\ref{def:coherent}, measured rather than assumed. Right: contiguous
-versus randomized block membership.}
+\caption{Mechanism. Left: the cross-prompt component of the exact drift of $\log\pth(h\mid x)$ at the base model (Lemma~\ref{lem:drift}), identically zero for per-prompt parameters as Corollary~\ref{cor:tabular} requires. Center: mean pairwise cosine between per-prompt gradients of each prompt's own leak string and of its correct answer; at low $u$ the leaks are different strings, so the low value there is partly by construction. Right: contiguous versus randomized block membership.}
 \label{fig:mechanism}
 \end{figure}
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\linewidth]{../figures/fig4_practice.pdf}
-\caption{Practice. Left: sampled GRPO reproduces the pattern. Center: a KL penalty pulls the policy
-back toward the filter baseline; the low-$u$ side is resolved, the $u=1$ side is within noise. Right: two verifier patches that improve the
-measured false-positive rate identically buy very different true accuracy.}
+\caption{Practice. Left: sampled GRPO reproduces the pattern. Center: a KL penalty pulls the policy back toward the filter baseline. Right: two verifier patches that improve the static false-positive rate identically buy very different true accuracy; the dotted line is the shared base accuracy, identical for every patch.}
 \label{fig:practice}
 \end{figure}
 
-\paragraph{Verifier hardening (E6).}
+\paragraph{Every learning rate.} Table~\ref{tab:lr} lists, for each optimizer, learning rate and arm, the slope of $\Delta\rho$ per doubling of $m$ with its bootstrap interval, the drift at the two ends of the sweep, the number of seeds in which the idiosyncratic leak is suppressed and the universal leak amplified, and the final verifier reward at $u=1$.
 
-We give a verifier two leak families, one universal string plus one idiosyncratic string per
-prompt, and compare two patches that remove exactly the same number of accepted wrong
-(prompt, response) pairs and so improve any static audit identically. Removing the universal leak
-leaves the policy at \NuFiveCAccU{} true accuracy; removing every idiosyncratic leak instead leaves
-it at \NuFiveCAccI{}, a gap of $\NuFiveCGap{}\pm\NuFiveCGapSem{}$ points (\NuFiveCNSeeds{} seeds)
-from patches an audit rates as equally valuable (unpatched: \NuFiveCAccNone{}). The per-prompt
-policy, which by Corollary~\ref{cor:tabular} cannot respond to universality at all, shows a gap of
-only \NuFiveCGapTab{} points between the same two verifiers. That residue is what the base model
-already carried, since the SFT stage is itself shared-parameter (base hack fractions
-\NuFiveCBaseU{} and \NuFiveCBaseI{}). The remaining \NuFiveCGapRL{} points are produced by RL.
+\begin{table}[htbp]
+\centering\footnotesize
+\input{lrtable}
+\caption{The universality effect at every learning rate. Slopes are per doubling of $m$; intervals are bootstrap $95\%$ over ten seeds. The last column is the final verifier reward at $u=1$ for that arm, with divergent settings marked.}
+\label{tab:lr}
+\end{table}
 
+\paragraph{Universality against error rate.} Figure~\ref{fig:field} shows the factorial of Section~\ref{sec:results} as a field, and Figure~\ref{fig:factorial} shows the same data as two line plots on a common scale.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth]{../figures/fig7_field.pdf}
+\caption{The factorial as a field. Each cell is one (universality, error rate) condition; darker is a leak more strongly suppressed relative to the filter baseline. Total base hack mass is fixed at $\varepsilon$ in every cell, so the horizontal trend reflects the same mass spread over more accepted strings rather than a general property of audits.}
+\label{fig:field}
+\end{figure}
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\linewidth]{../figures/fig2_factorial.pdf}
-\caption{In this environment universality moves the drift and the verifier's error rate does not.
-Left: log-odds
-drift against universality, one line per false-positive rate. Right: the same data against the
-static false-positive rate, one line per universality, common $y$-scale. Varying accepted wrong
-responses per prompt from \NuThreeKRange{} moves the false-positive rate over \NuThreeFprRange{}
-and mildly \emph{reduces} hacking; universality moves the drift monotonically and much further.}
+\caption{Left: log-odds drift against universality, one line per false-positive rate. Right: the same data against the static false-positive rate, one line per universality, common $y$-scale. Varying the accepted wrong responses per prompt from \NuThreeKRange{} moves the false-positive rate over \NuThreeFprRange{} and the drift from $\NuThreeDLLoK{}$ to $\NuThreeDLHiK{}$; the same eightfold range of universality moves it from $\NuThreeDLLoU{}$ to $\NuThreeDLHiU{}$.}
 \label{fig:factorial}
 \end{figure}
 
-\paragraph{Prompt-set size (E7).} At fixed $u$ the \emph{leading} term of \eqref{eq:threshold} carries no dependence on the number of prompts; all of it sits in the $1/N$ remainder, which differs fourfold between the two arms and is, by the validity paragraph above, not negligible at these scales. Repeating the sweep at
-$N=\NuFourNSmall{}$ and $N=\NuFourNBig{}$ is consistent with that: at $u=1$ the two agree
-($\NuFourUOneSmall{}\pm\NuFourUOneSmallSem{}$ versus $\NuFourUOneBig{}\pm\NuFourUOneBigSem{}$),
-whereas at the same block size $m=\NuFourSameM{}$ they sit at $\NuFourSameMBig{}$ against
-$\NuFourUOneSmall{}$, a gap the three seeds do not resolve. Across the \NuFourNShared{} matched
-values of $u$ the largest gap is \NuFourMatchedGap{}.
+\paragraph{Prompt-set size (E7).} At fixed $u$ the leading term of the homogeneous form of \eqref{eq:threshold} carries no dependence on the number of prompts; the $1/N$ remainder differs fourfold between $N=16$ and $N=64$. Repeating the sweep at both sizes (\NuFourNSeeds{} seeds) gives, at $u=1$, $\NuFourUOneSmall{}\pm\NuFourUOneSmallSem{}$ against $\NuFourUOneBig{}\pm\NuFourUOneBigSem{}$, whereas at the same block size $m=\NuFourSameM{}$ (so $u=1$ for the small set and $u=\nicefrac14$ for the large one) they sit at $\NuFourUOneSmall{}$ against $\NuFourSameMBig{}$. Across the \NuFourNShared{} matched values of $u$ the two sizes agree to within \NuFourMatchedGapLo{} at the three smallest values and differ by at most \NuFourMatchedGap{}, at $u=1$, where the seed spread is widest. Within the precision of ten seeds the controlling variable is the fraction $u$, not the count $m$.
 
-Figure~\ref{fig:appendix} collects the four robustness views that do not fit in the main text:
-the universality effect across the whole Adam learning-rate grid rather than at the single
-reward-selected operating point, hack-fraction trajectories at the two extreme universality
-conditions for both policy classes, the sweep repeated at two prompt-set sizes, and the sweep
-under plain SGD.
+Figure~\ref{fig:appendix} collects the remaining robustness views: the universality effect across the whole Adam grid, hack-fraction trajectories at the two extreme conditions for both policy classes, the sweep at two prompt-set sizes, and the sweep under plain SGD.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\linewidth]{../figures/fig5_appendix.pdf}
-\caption{Top left: the universality effect across the whole Adam learning-rate grid, rather than
-at the reward-selected operating point; the ramp runs light (smallest step) to dark. Top right:
-hack-fraction trajectories for the extreme universality conditions, both policy classes. Bottom
-left: the sweep repeated at two prompt-set sizes, plotted against $u$. Bottom right: the same
-universality sweep under plain SGD.}
+\caption{Top left: the universality effect across the whole Adam learning-rate grid; the ramp runs light (smallest step) to dark. Top right: hack-fraction trajectories for the extreme universality conditions, both policy classes. Bottom left: the sweep repeated at two prompt-set sizes, plotted against $u$. Bottom right: the same sweep under plain SGD.}
 \label{fig:appendix}
 \end{figure}
 
 \section{Reproducibility}
+\label{app:repro}
 
-Every experiment in the paper runs on a single machine with two CPU cores; no GPU is used. The
-code, the raw result files and the $94$\,MB of base checkpoints the RL stage starts from are
-retained and archived together.
+Every experiment runs on CPU; no GPU is used. The code, the raw result files and the figure code that regenerates every figure and every number quoted in the text are released together. The macro file that holds the numbers is written by the figure code, so nothing is transcribed by hand except settings (the step count, the contamination rate, the GRPO group size) and a few diagnostics quoted inline (the clipping rates and the $N\kappa/\kappa_s$ values).
 
-Reproduction holds at three levels, which we distinguish because they are not equally strong.
-From an archived base checkpoint, on the same machine and code revision, the RL stage is
-bit-reproducible in weights and in every reported metric; we re-ran cells of E1 end to end to
-confirm it. Regenerating a base by rerunning the supervised stage is itself deterministic,
-repeated rebuilds agreeing bit for bit, but does not recover a checkpoint archived under an earlier
-revision of the code and environment, the rebuilt base differing by up to about $10^{-2}$ on the
-reported metrics. A run from scratch therefore reproduces the reported drifts and the conclusions
-drawn from them, which are an order of magnitude larger, but not the archived values digit for
-digit.
+Three levels of reproduction apply. From an archived base checkpoint, on the same machine and code revision, the RL stage is bit-reproducible in weights and in every reported metric. Regenerating a base by rerunning the supervised stage is deterministic, but a base rebuilt under a different version of the numerical libraries differs from an archived one by up to about $2\times10^{-2}$ on the base metrics. A run from scratch therefore reproduces the reported drifts and the conclusions drawn from them, which are an order of magnitude larger, but not every archived value digit for digit.
 
-Two provenance details. Seeds $0$--$4$ of E1 come from an earlier revision whose configuration
-records carry fewer logging fields, no training setting differing; their stored base models are
-bit-identical and the current code reproduces that half to $10^{-8}$, so we pool them with the
-later seeds. The $m=1$ condition of E1 ran past the reported seed budget during an attempt to
-raise the budget for every condition, not in response to its outcome; the figure code caps every
-load at the reported budget and drops any seed absent from some condition, uniformly and
-independently of results, so the design is balanced at ten seeds throughout and the excess runs
-enter no reported statistic, tuning decision or model selection.
-
-The figure code regenerates every figure and the macro file holding every measured number quoted
-in the text. The exceptions are settings rather than results, namely the step count, the
-contamination rate and the GRPO group size, together with a few measured quantities quoted inline
-rather than through a macro: the clipping rates, $N\kappa/\kappa_s$, the growth of $\kappa$ and its
-peak at $u=0.5$, and the leave-one-seed-out drift of $-0.017$, all recomputed from the raw result
-files.
+Provenance for the camera-ready: E1, E4, E8, E9, E9b and E10 are the archived runs of the accepted version. E2, E3, E5, E6 and E7, which the accepted version reported at three seeds, were re-run from scratch at ten seeds (E6 with the paper's standard operating rule and both learning rates stored; E2 without the learning rate $3\times10^{-2}$, which diverged in every seed of the earlier version and was never selected), and E11 is new; these use base models regenerated with the released code, and the E6 base models of the earlier version were not retained. Seeds $0$--$4$ of E1 come from an earlier revision whose configuration records carry fewer logging fields, with no training setting differing; their stored base models are bit-identical and the current code reproduces that half to $10^{-8}$. The $m=1$ condition of E1 ran past the reported seed budget during an attempt to raise the budget for every condition; the figure code caps every load at ten seeds, uniformly and independently of results, so the design is balanced and the excess runs enter no reported statistic.

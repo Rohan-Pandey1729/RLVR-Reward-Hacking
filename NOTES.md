@@ -1,232 +1,197 @@
-# Notes for the author
+# Notes for the authors
 
-**Paper: "Wrong the Same Way: Universality, Not Error Rate, Governs Reward Hacking in RLVR"**
+**Paper: "Wrong the Same Way: Cross-Prompt Sharing Both Suppresses and Amplifies Reward
+Hacking in RLVR"** (NeurIPS 2026 workshop *Transitioning from Pre-Training to Post-Training*,
+camera-ready).
 
-Working notes on the paper: what the claim is, why each design choice was made, what a
-reviewer is likely to push on, and what to do before submitting.
+Working notes: what the claim is now, what changed between the accepted draft and the
+camera-ready and why, what each reviewer asked for and where it is answered, what the data
+say at ten seeds, what did not work, and what the authors still have to do by hand.
 
 ---
 
 ## The claim in one paragraph
 
-At its KL-regularised optimum, RLVR is a *filter*: `pi*(y|x) ∝ pi_ref(y|x) exp(r(x,y)/beta)`
-multiplies every accepted response by the same factor, so the odds between a correct answer and a
-verifier false positive are frozen at the base model's. The post-RL reward-hacking rate should
-therefore be inherited, not learned. Real training departs from that baseline, and this paper says
-what governs the departure: writing the exact drift of `log pi(y|x)` as a sum over *all* prompts
-of `Cov[reward, tangent kernel]`, a leak accepted on a fraction `u` of prompts has leading-order
-drift with the sign of `u - Vbar`, where `Vbar` is the policy's own verifier pass rate. Above the
-threshold parameter sharing manufactures hacking; below it, sharing *suppresses* the leak below
-the base rate, because on the `1-u` prompts that do not accept it, it takes negative advantage.
-The verifier's error rate appears nowhere. (The *sign* result and the suppression are what the
-experiments establish; the numerical threshold itself is not verified pointwise, see below.) For a policy whose parameters are not shared across
-prompts the cross-prompt kernel is identically zero and the dynamics cannot depend on `u` at all,
-which is what makes the tabular arm a control rather than just a baseline.
+At its KL-regularised optimum RLVR is a *filter*: `pi*(y|x) ∝ pi_ref(y|x) exp(r(x,y)/beta)`
+multiplies every accepted response by the same factor, so the odds between a correct answer
+and a verifier false positive are frozen at the base model's and the post-RL hack rate is
+inherited (Prop. 1, known). First-order training on a shared-parameter model leaves that
+baseline in *both* directions. Writing the drift of `log pi(h|x)` as a sum over all prompts of
+`Cov[reward, tangent kernel]` (Lemma 1, known: Ren & Sutherland 2025, Tomihari 2026), a wrong
+answer `h` is pushed up by every prompt that accepts it and pushed down, through the baseline,
+by every prompt that rejects it, each in proportion to the model's own mass on `h` there.
+For a coherently represented `h` the sign of the cross-prompt term is that of `u_eff - Vbar`
+(Prop. 2), where `u_eff` is the kernel- and policy-weighted share of the model's mass on `h`
+that sits on prompts which accept it and `Vbar` is the policy's own pass rate. The verifier's
+error rate appears nowhere, and neither does universality `u = m/N` by itself: what decides
+the sign is whether the model is *wrong the same way the verifier is*. A per-prompt policy has
+no cross-prompt term at all (Cor. 1), which is what makes it a control rather than a baseline.
 
-## Why this is not already published
+## What changed for the camera-ready, and why
 
-Two independent prior-art sweeps were run before committing (both are summarised below in
-"discarded ideas"). The pieces that already exist, and are cited as such:
+The accepted draft said two things the data do not support, and the reviewers found both.
 
-- The filter theorem itself: Korbak et al. 2022; and in the RLVR diversity literature,
-  Gai et al. 2511.19942 (Prop 3.2), Kruszewski et al. 2512.05962, Dymetman 2605.02375.
-  **We claim none of it**; it is the null model.
-- Rich-get-richer among tied responses under softmax PG: Mei et al. 2020; Lochab et al. 2605.00365
-  (Thm 4.3). Used as a control, attributed.
-- "Post-RL hacking is inherited, not learned" as an *empirical* finding: Zhang 2607.11022.
-  Our theorem explains it.
-- "Pattern, not rate" for systematic verifier error: Egashira et al. (COLM 2026) 2605.02909.
-  Universality is a specific, measurable parameterisation of "pattern" with a predicted sign.
+1. **"Sharing at RL time is not sufficient; a two-stage mechanism is needed."** This came from
+   summarising the frozen-base controls (E9/E9b) by a linear slope in `log2 m`. Read per
+   universality value, the shared model's curve is a *step*: at every `u < 1` it suppresses the
+   accepted string far more than the per-prompt policy (paired within-seed difference −0.05 to
+   −0.07, bootstrap CIs excluding zero at all six conditions), and at `u = 1` both arms amplify
+   it, with the shared model amplifying as strongly as in the headline sweep at the next learning
+   rate (+0.44 vs +0.60). A line fitted through a flat negative run that jumps at the last point
+   has a small slope, which is how the wrong conclusion arose. The claim is withdrawn and the
+   correction is stated in the paper (Section 6.5, contribution 2).
+2. **"A property of the verifier's errors decides the outcome."** Not quite: the blind base and
+   the headline base differ in *where* their mass on the leak sits (`u_eff` = `u` for the blind
+   base; 0.09 / 0.23 / 0.68 / 1.00 at `u` = 1/64, 1/16, 1/4, 1 for the headline base), and that is
+   what Eq. (2) weights by. The paper is now framed around this alignment rather than around
+   universality as a property of the verifier alone.
 
-What is new: the drift decomposition applied to the accepted level set, universality as the
-controlling quantity, the two-sidedness (sharing *suppresses* an idiosyncratic leak below the base
-rate), the tabular-vs-shared isolation of function approximation, and the hardening-budget
-consequence.
+Everything else is strengthening: every three-seed experiment was re-run at ten seeds from
+regenerated base models, a learning-rate-robustness figure was added, a direct probe of
+Prop. 2 was added, the missing citations were added, and the prose was rewritten in the plain
+register of the two example papers.
+
+### Reviewer points and where they are answered
+
+| Reviewer point | What we did | Where |
+|---|---|---|
+| pm4V-1, d6TQ-2, meta: fixed-base controls contradict "verifier property decides"; identify the representation difference before claiming "two-stage" | Per-`u` paired re-analysis of E9/E9b; two-stage claim withdrawn; `u_eff` measured for both bases; representation compared directly at `u = 1` (coherence 0.255 vs 0.294, mass on `h` 0.0151 vs 0.0355) | §6.5, Fig. 3, App. C |
+| pm4V-2: low-`u` suppression and the missing `u = 1` amplification depend on the learning-rate rule; the rise with `u` is the trustworthy result | New figure: universality slope at every LR for Adam, GRPO, SGD, both arms (positive with CI excluding zero at 10 of 11 settings; per-prompt slope ≈ 0 everywhere); both verifier-saturating Adam LRs reported (`u = 1`: +0.028 at 1e-3, +0.600 with 10/10 seeds at 3e-3); step-size caveat in abstract, contributions, limitations | §6.3, Fig. 2, App. D Table 2 |
+| pm4V-3, d6TQ-1: raw-`u` threshold mispredicts the crossings; separate instantaneous prediction from final drift | Prop. 2 restated in terms of `u_eff`; raw-`u` threshold removed from abstract and contributions; new probe E11 compares the coherent-channel prediction with the exact cross-prompt log-odds drift along early SGD steps and reports the residual | §4, App. C, Fig. 8 |
+| pm4V-4, d6TQ-3: the reconciliation of the two literatures is argued, not measured | Stated as a hypothesis; says what would test it (per-prompt hack fraction on released data; cross-prompt gradient cosine of accepted wrong responses on a real model); Egashira's relative-error leaks explained through coherence rather than string identity | §7 |
+| pm4V-5: Lemma 1 is known (Tomihari; Ren & Sutherland); amplification half is coherent gradients (Chatterjee); cite Echo Chamber | All cited; Lemma 1 labelled "known"; contribution framed around the RL-specific push-down through the baseline and its two-sidedness | §2, §4 |
+| pm4V-6, d6TQ-4, d6TQ-Q2: three-seed claims; E6 used a different operating rule and no test; "29 points manufactured by RL" assumes additivity; were both patches run from the same checkpoint? | E2, E3, E5, E6, E7 re-run at ten seeds; E6 from the identical checkpoint per seed (base accuracy identical by construction), standard operating rule, both LRs stored and reported, paired within-seed gaps with bootstrap CIs; the decomposition is stated as "available without sharing" vs "requires sharing if the effects add" | §6.7, App. B, App. D |
+| pm4V-7: the "wrong sign" audit claim is a design artefact (base hack mass fixed at `eps` for every `k`) | Removed; the `k` trend is described as a property of the design | §6.2, App. B |
+| d6TQ-Q3: kernel entries can be negative; when is `u_eff` in [0, 1]? | Assumption stated; measured: 13% of same-string entries negative at the base models, 9% of the weight | §4, App. C |
+| q735, meta: toy scale, one architecture | Limitations paragraph; future-work pointer to the measurable quantity on real models | §7 |
+| Camera-ready | `\usepackage[final,dblblindworkshop]{neurips_2026}`, workshop title footnote, author block from OpenReview, 9 content pages, no overfull boxes | `paper/main.tex` |
 
 ## Design decisions, and why
 
 **Why a two-digit response space?** Because 100 responses × 64 prompts can be enumerated, so
-`pi(.|x)` is computed exactly at every logged step, so the reported hack fractions, log-odds and
-accuracies are not Monte-Carlo estimates (the two gradient probes subsample prompts, and say so).
-That is worth more than realism at this scale: the effect being measured is a
-composition *inside* the accepted set, which sampling estimates poorly.
+`pi(.|x)` is computed exactly at every logged step and no reported hack fraction, log-odds or
+accuracy is a Monte-Carlo estimate. The effect being measured is a composition *inside* the
+accepted set, which sampling estimates poorly.
 
 **Why matched tabular/transformer pairs?** Corollary 1 says a per-prompt policy's dynamics
-*cannot* depend on universality, exactly rather than approximately, for any learning rate and any
-number of steps. So any `u`-dependence observed in the transformer is attributable to parameter
-sharing and nothing else. The tabular policy is initialised to reproduce the transformer's base
-distribution to 1e-4, and both get the identical learning-rate grid.
+*cannot* depend on universality, exactly, for any learning rate and any number of steps. Any
+`u`-dependence in the transformer is therefore attributable to sharing. The tabular policy is
+initialised to reproduce the transformer's base distribution to 1e-4 and gets the same grid.
 
-**Why report drifts rather than absolute hack fractions?** The SFT target is identical across
-conditions, but the realised base model is itself a shared-parameter network and fits a universal
-leak map slightly better, so base hack fraction varies a little across `u` (and rises with `k`).
-Drift from each run's own base is exactly zero under the filter baseline and immune to that.
-Absolute `rho` is plotted alongside the base curve so both are visible.
+**Why also per-prompt copies of the transformer (E10)?** Tabular vs transformer confounds
+parameterisation with sharing. Copies of the identical network, one per prompt, remove sharing
+with the architecture held fixed; the slope vanishes (+0.0019 vs +0.0210 per doubling, paired
+difference +0.019, CI [+0.008, +0.033]).
 
-**Why select the learning rate by verifier reward?** It is the criterion a practitioner has;
-they cannot see true accuracy. It also avoids the accusation that the operating point was chosen
-to produce the effect. The full grid is in the appendix figure.
+**Why frozen-base controls (E9/E9b)?** In the sweeps the supervised target and the verifier
+change together, so verifier universality and the universality of the base model's own errors
+coincide by construction. Freezing one checkpoint per seed and varying only the verifier's mask
+separates them. E9 fixes the static false-positive rate, E9b fixes the accepted string's
+per-prompt base mass.
 
-**Why the randomised-block control?** With prompts enumerated first-operand-major, a contiguous
-block of size m ≥ 8 is exactly "first operand = a", i.e. one input token. That would confound
-universality with representational simplicity. The whole sweep is repeated with block membership
-permuted and leak strings drawn independently per (m, k, seed).
+**Why report drifts rather than absolute hack fractions?** The realised base model is a
+shared-parameter network that fits a universal leak slightly better, so base hack fraction
+varies a little across `u`. Drift from each run's own base is exactly zero under the filter
+baseline, immune to that.
 
-## Anticipated objections
+**Why select the learning rate by verifier reward, and why also report every learning rate?**
+It is the criterion a practitioner has. The rule (smallest LR within 1e-3 of the best final
+verifier reward) is conservative with respect to our hypothesis, and reviewer pm4V was right
+that it decides how the low-`u` end looks; hence Fig. 2 and Table 2 report everything.
 
-1. **"The theorem is standard."** Yes, and it is presented as the null model with three
-   attributions in the first two pages. The contribution is the drift analysis and the threshold.
+**Why the randomised-block control (E2)?** With prompts enumerated first-operand-major, a
+contiguous block of size ≥ 8 is "first operand = a", one input token. The sweep is repeated with
+block membership permuted. The 3e-2 learning rate was dropped from E2 because it diverges and
+is never selected by the rule.
 
-2. **"Toy environment."** Conceded in Limitations. The defence is that exact enumeration is what
-   makes the measurement possible, and the mechanism (cross-prompt gradient aggregation) is
-   architecture-independent. The falsifiable content is the *sign* and the *controlling quantity*,
-   not the numerical boundary.
+**Why the threshold probe (E11)?** Prop. 2 is a statement about one channel of the exact
+drift, at leading order, under homogeneity assumptions the base models violate. The probe
+computes the exact cross-prompt log-odds drift and the coherent-channel prediction per prompt
+along early SGD steps and reports sign agreement and the residual, so the reader can see how
+much of the drift the proposition actually describes.
 
-3. **"Tabular vs transformer confounds sharing with capacity/geometry."** The logical structure
-   handles this: Corollary 1 is exact, so the per-prompt arm is flat in `u` by construction. The
-   comparison is about the *slope* in `u`, not the level, and the paper says so explicitly. The
-   per-prompt arm's own departure from the filter baseline (Adam's per-coordinate normalisation)
-   is reported honestly rather than hidden.
-
-4. **"Leaks are injected via SFT contamination, not discovered."** Conceded; matches Khalifa et
-   al.'s finding that ~1% contamination suffices. Leaks a base model discovers on its own may
-   have a different universality distribution. That is stated as a limitation, and it is the
-   obvious follow-up.
-
-5. **"`u > Vbar` is only leading order."** Stated as such throughout, with the O(1/N) corrections
-   derived in the appendix and the validity condition `N·kappa/kappa_s >> 1` checked numerically
-   against the measured coherence.
-
-6. **"Correct answers aren't perfectly prompt-specific here (2×6 and 3×4 both give 12)."**
-   True, `u_g ≈ 0.037`; reported explicitly. Definition 3 makes coherence an empirical property
-   of computation rather than of string identity, and the measured cross-prompt gradient cosine
-   for correct answers is near zero while the leak's is not.
-
-
-## Results as they landed (all verified against the raw jsonl independently)
+## Results as they landed (ten seeds everywhere unless noted)
 
 | sweep | shared-parameter policy | per-prompt policy |
 |---|---|---|
-| exact PG, Adam, contiguous blocks (10 seeds) | rho 0.025 -> 0.160 +- 0.050, acc 0.974 -> 0.840 | flat |
-| exact PG, Adam, permuted blocks (3 seeds)    | drho -0.110 -> +0.172 +- 0.225 | flat |
-| **sampled GRPO, G=8 (10 seeds)**             | **drho -0.103 -> +0.663 +- 0.079, crossing u=0.27** | flat |
-| **plain SGD (10 seeds)**                     | **rho 0.051 -> 1.000, acc 0.926 -> 0.000** | rho 0.053 -> 0.055 |
-
-**The seed expansion changed the story, and the paper now says so.** At 5 seeds the Adam sweep
-looked like it crossed into amplification (drho +0.069 +- 0.097). At 10 seeds it is
-+0.028 +- 0.050, not significant, and the mean is carried by a single
-collapsing seed: drop that seed and the u=1 drift is -0.017, still suppression. The decisive sign
-change is now carried by GRPO (+0.663 +- 0.079, t ~ 8) and SGD
-(1.000 hack fraction, 0 accuracy, every seed). Adam resolves the suppression
-and the monotone rise; it does not resolve the crossing.
-
-(left column = u = 1/64, right = u = 1, at an identical verifier false-positive rate throughout.)
+| exact PG, Adam, contiguous blocks (E1) | `rho` 0.025 → 0.160 ± 0.050; `drho` −0.104 → +0.028 ± 0.050; acc 0.974 → 0.840 | slope +0.0028 per doubling (flat) |
+| same, Adam 3e-3 (also saturates the verifier) | `drho` −0.098 → +0.600 ± 0.084, 10/10 seeds positive at `u = 1`, 10/10 negative at `u = 1/64` | flat |
+| permuted blocks (E2) | `drho` −0.108 → +0.130 ± 0.100; slope +0.027 | slope −0.0001 |
+| sampled GRPO, G = 8 (E4) | `drho` −0.103 → +0.663 ± 0.079, crossing `u ≈ 0.27` | flat |
+| plain SGD (E8) | `rho` 0.051 → 1.000, acc 0.926 → 0.000, crossing `u ≈ 0.07` | `rho` 0.053 → 0.055 |
+| per-prompt copies of the transformer (E10) | slope +0.0019 (CI [−0.0008, +0.0050]) vs +0.0210 shared, paired diff +0.019 (CI [+0.008, +0.033]) | — |
+| frozen blind base, fixed FPR (E9) | paired shared − per-prompt: −0.049 at `u = 1/64`, −0.069 at `u = 1/2` (CIs exclude zero); at `u = 1` +0.014 vs +0.046, not distinguishable; +0.439 at `u = 1` at the next LR | — |
+| frozen blind base, fixed mass (E9b) | −0.056 at `u = 1/2` (CI [−0.064, −0.048]); +0.427 at `u = 1` at the next LR | — |
+| factorial `u × k`, both eightfold (E3) | 43% of the variance in `dLambda` from universality, 12% from the false-positive rate; averaged over `k`, `dLambda` −7.19 → −4.15 across `u`; averaged over `u`, −5.54 → −6.85 across `k` | — |
+| prompt-set size `N ∈ {16, 64}` (E7) | at `u = 1`: −0.024 ± 0.053 (N = 16) vs +0.021 ± 0.028 (N = 64); same `m = 16`: −0.024 vs −0.081; matched-`u` gaps ≤ 0.016 at the three smallest `u`, ≤ 0.045 overall | — |
+| KL sweep (E5) | at `u = 1/64`, `beta` 0 → 0.3 takes `drho` −0.104 → 0.000 and accuracy 0.978 → 0.821 | — |
+| verifier hardening (E6), same checkpoint, paired | gap (universal patch − idiosyncratic patch) 8 ± 2 points at 1e-3 (CI [4, 13], 10/10), 38 ± 9 at 3e-3 (CI [22, 55], 9/10); verifier reward ≥ 0.973 everywhere | gap 6 (CI [5, 8]) |
 
 Other headline numbers:
 
-- **Filter invariance verified exactly**: mirror descent and the KL-regularised optimum leave the
-  per-prompt hack fraction invariant to 8.6e-9 and the log-odds to
-  9.6e-8, i.e. floating-point zero. Meanwhile the *pooled* hack fraction moves
-  by +0.057 under pure filtering, which is a trap worth knowing about.
-- **Corollary 1 verified exactly**: the per-prompt policy's cross-prompt tangent kernel and
-  cross-prompt drift are *identically* 0.0 at every universality; the transformer's kernel is
-  0.098 of its own self-kernel.
-- **Coherence** (the assumption Prop. 2 needs) rises +0.02 -> +0.29
-  with u for the leak, and stays at +0.03 for correct answers.
-- **Factorial**: 59% of the variance in log-odds drift is attributable to
-  universality, 11% to a false-positive rate varied eightfold, and the sign of
-  the error-rate effect is *negative*.
-- **Verifier hardening**: two patches with identical audit improvement differ by
-  40 ± 16 accuracy points (0.984 vs
-  0.583); the per-prompt control puts 11 of those points in
-  the base model and 29 in RL.
+- **Filter invariance verified exactly**: mirror descent and the KL optimum leave the per-prompt
+  hack fraction invariant to 8.6e-9 and the log-odds to 9.6e-8; the *pooled* share moves by
+  +0.057 under pure filtering (the trap in pooled metrics).
+- **Corollary 1 verified exactly**: the per-prompt policy's cross-prompt kernel and drift are
+  identically 0 at every `u`; the transformer's cross-prompt kernel is 0.098 of its self-kernel.
+- **Coherence** of the leak's per-prompt gradients rises +0.02 → +0.29 with `u`; correct answers
+  stay at +0.03.
+- **Threshold probe (E11, 3 seeds, 28 conditions, 672 prompt-level points)**: the
+  coherent-channel prediction has the sign of the exact cross-prompt drift in 93% of condition
+  means and 70% of prompt-level points; the homogeneous raw-`u` formula manages 71% / 53%
+  (chance per prompt). Median |residual| / |exact| = 0.9, so the channel is directional, not a
+  bound. 13% of same-string kernel entries are negative (9% of the weight).
 
 ### What did NOT work, and is reported as such
 
-- The **u > Vbar threshold could not be verified pointwise**. At initialisation a common transient
-  dominates and the cross-prompt drift is positive at every u; after 60 RL steps the transient is
-  gone but Vbar has already reached 0.993, so the predicted threshold sits at ~1 and
-  everything is (correctly, but uninformatively) suppressed. The paper says this in a paragraph
-  headed "What we could not verify" rather than reporting a fit.
-- The **u=1 endpoint is heterogeneous across seeds** (final hack fractions
-  0.02, 0.06, 0.14, 0.22, 0.56), and the amplification is concentrated: 20% of
-  prompts flip entirely while the rest still suppress. That is why Δρ crosses zero and ΔΛ does not.
-  Both are reported, with the reason.
-- The **N-independence prediction now IS tested** (E7). At u = 1 the two prompt-set sizes agree
-  (-0.004 +- 0.084 at N=16 versus +0.010 +- 0.045 at N=64),
-  while at the same block size m = 16 (u = 1 for the small set, u = 0.25 for the large one) they
-  differ by -0.079 against -0.004. So the controlling quantity is u, not m. Across the
-  5 matched values of u the largest gap is 0.065, about the size of the O(1/N) correction the
-  appendix flags as non-negligible at N=16.
-- The **KL sweep at u=1 is within noise** and used a single fixed learning rate; only the u=1/N side
-  is clean. Stated.
+- **The `u = 1` endpoint under Adam at the selected operating point is inside its own error bar.**
+  Final hack fractions span 0.02–0.56; 16% of prompts flip at `u = 1` vs 2% at `u = 1/64`, so
+  `drho` approaches zero while `dLambda` stays negative. The decisive sign change is carried by
+  GRPO, SGD and Adam at 3e-3. All of this is in §6.2–6.3.
+- **The hardening gap at the conservative operating point is small.** The old 40 ± 16 (three
+  seeds) came from an effectively higher learning rate for one arm. With the standard rule and
+  the same checkpoint it is 8 ± 2 points, of which the per-prompt policy already shows 6. The
+  paper reports both learning rates and says "up to 38 points".
+- **Prop. 2 is one channel.** The residual (everything the coherent same-string channel does not
+  capture, in particular the shared machinery that raises correct answers) is the same order as
+  the prediction. The paper says so in §4, §7 and App. C rather than fitting a threshold.
+- **The factorial's `k` effect is a design property.** Base hack mass is fixed at `eps` for every
+  `k`, so more accepted strings spread the same mass thinner; the mild decrease with `k` says
+  nothing general about audits.
 
 ### Verification done
 
-Two independent adversarial reviews were run before writing (one on the code, one on the
-derivations) and one on the finished draft. They caught, and the final version fixes: a confound
-where contiguous leak blocks coincided with "first operand = a" (fixed by the permuted-block
-sweep); a base-model mismatch across conditions (fixed by reporting drifts, and eliminated
-entirely in the permuted design, base spread 0.0011); a k-dependent
-contamination artefact in the factorial (fixed by keeping the SFT uniform floor off the leak
-strings); an inconsistent treatment of the diagonal kernel term in Prop. 2; and an over-strong
-"amplified if and only if" that is now stated as a leading-order sign.
+Every number in the paper is a macro written by `src/figures.py` into `paper/numbers.tex` (and
+`paper/lrtable.tex`); nothing is typed by hand. The build was checked for unresolved macros
+(`??`), TeX errors and overfull boxes. Two adversarial reviews of the original code and
+derivations preceded the first version; this round re-derived Prop. 2 in the `u_eff` form,
+checked the E6 code path (both patches from one checkpoint per seed, both learning rates stored),
+and verified the four new citations against arXiv.
 
 ## Before submitting
 
-- [x] **Official `neurips_2026.sty` is in place** (from `Formatting_Instructions_For_NeurIPS_2026`,
-      unmodified). `checklist.tex` is in `paper/` if the workshop wants it.
-- [x] **Target venue chosen:** the NeurIPS 2026 workshop *Transitioning from Pre-Training to
-      Post-Training* (Sydney; OpenReview `NeurIPS.cc/2026/Workshop/Pre-to-Post`). Deadline
-      Aug 29 AoE, i.e. Aug 30 07:59 UTC. Submitted as a long paper.
-- [x] **`\workshoptitle{}` set** to `Transitioning from Pre-Training to Post-Training`. It appears
-      in the footnote only in `final` mode; the submission copy carries the standard
-      "Submitted to ... Do not distribute." notice, which is what the official style file intends.
-- [x] **Page limit checked.** Content ends on page 9 and References begin on page 9, inside the
-      9-page long-paper limit. For a 4-page venue (e.g. MATH-AI), cut Sections 5.4 and 5.5 and the
-      related-work paragraph on reward-hacking theory, and move Figures 3 and 4 to the appendix.
-- [x] **Headline sweeps re-run at 10 seeds** (E1 Adam, E4 GRPO, E8 SGD; was 5, 3, 5). All three are
-      balanced at ten seeds across every universality condition, all at 400 steps.
-      `src/figures.py` caps those loads at seed 10 so a partially-run larger budget cannot
-      unbalance the design.
-- [x] **Citations re-verified** a second time (2026-08-23), every entry against the arXiv abstract
-      page plus, where a published version exists, the ACL Anthology, PMLR or the NeurIPS
-      proceedings. Three changes: `ahmadian2024rloo` now cites the ACL 2024 version of record
-      (hyphenated "REINFORCE-Style", pp. 12248-12267); `gao2023scaling` now cites ICML 2023 /
-      PMLR v202 (pp. 10835-10866); `khalifa2026countdown` matches arXiv capitalisation. DAPO is
-      deliberately left as the arXiv entry: the NeurIPS 2025 proceedings list 36 authors against
-      arXiv's 35, and mixing an arXiv author list under a proceedings booktitle would be worse
-      than citing the preprint. `skalse2022defining` is likewise left as arXiv, because the NeurIPS
-      2022 proceedings retitle it "Reward Gaming" while the paper's own PDF and our terminology
-      say "hacking".
-- [x] **LLM-usage disclosure added** as a one-sentence paragraph at the end of Section 7.
-- [ ] Fill in the author block (it is currently the anonymous template; the workshop is
-      double-blind, so leave it anonymous for submission).
-- [ ] Add the NeurIPS checklist if the venue requires it (`checklist.tex` ships with the template).
-- [ ] Push `src/` and `results/` to a public repo and put the link in the reproducibility section.
+- [x] **Author block.** Names and affiliations are taken from OpenReview (Rohan Pandey, UW;
+      Michael Li, CMU; Ray Chen, Independent). All three are marked equal contribution and
+      Ray Chen's email is set. Check author order.
+- [ ] **Title.** Unchanged from the accepted version; change it in `\title{}` if the new framing
+      warrants (the subtitle already says "both suppresses and amplifies").
+- [ ] **LLM-use sentence** at the end of §7 ("LLMs assisted with experiment design and manuscript
+      preparation; every number comes from the released code"): keep, edit or remove.
+- [ ] **Rebuild once** with `PYTHON=/path/to/python bash build.sh` after any edit and confirm
+      content still ends on page 9 (there are about two lines of slack).
+- [ ] Push `src/` and `results/` to a public repo and put the link in App. E.
+- [ ] `paper/checklist.tex` ships with the template if the workshop wants it.
+- [x] Official `neurips_2026.sty`, `final` option, `\workshoptitle{}` set, nine content pages.
+- [x] Citations verified (2026-08-23 pass, plus the four new entries on 2026-10-31).
 
-## Candidate venues (verified 2026-08-22)
+## Ideas that were discarded (and why)
 
-| Workshop | City | Deadline (AoE) | Pages | Fit |
-|---|---|---|---|---|
-| Transitioning from Pre-Training to Post-Training | Sydney | **Aug 29** | 4–5 short / 9 long | best fit, it is a post-training paper |
-| Can We Trust the Judge? (JUDGe) | Atlanta | **Aug 29** | 6 full / 4 short | strong, verifier reliability is the topic |
-| Who Verifies the Agents? | Sydney | **Aug 29** | 4–9 | strong |
-| Foundations of Language Model Security (FLMSec) | Paris | **Aug 27** | 8 | plausible, reward hacking as a security property |
-| 6th MATH-AI | Atlanta | **Sep 25** | 4 (5 camera-ready) | needs a heavy cut, but most time |
-
-NeurIPS 2026 runs in Sydney (Dec 6–12), Paris and Atlanta (Dec 9–13); workshop acceptance
-notification is Sep 29 AoE for all of them. Workshop papers are non-archival.
-
-## Ideas that were discarded (and why), in case they are useful later
-
-1. **"GRPO's std-normalisation amplifies verifier false positives on hard prompts."**
-   Dead. S-GRPO (2508.05928) states it in almost identical terms, derives the same closed forms
-   `A_correct = sqrt((G-k)/k)`, and proposes an MSE-optimal reweighting. Also overlapping:
-   Dr. GRPO (2503.20783), 2607.00152, 2510.18924.
-
-2. **"i.i.d. verifier noise preserves the optimum; response-correlated error does not."**
-   Dead. Everitt et al. (IJCAI 2017) formalised state-dependent reward corruption with a stronger
-   no-free-lunch theorem; Egashira et al. (COLM 2026) demonstrated the RLVR case empirically;
-   Fluri et al. (2406.15753) proved the "low training error does not bound regret" corollary;
-   Cai et al. (2510.00915) name content-dependence as a limitation of their own noise model.
+1. **"GRPO's std-normalisation amplifies verifier false positives on hard prompts."** Dead:
+   S-GRPO (2508.05928) states it and derives the same closed forms; also Dr. GRPO (2503.20783),
+   2607.00152, 2510.18924.
+2. **"i.i.d. verifier noise preserves the optimum; response-correlated error does not."** Dead:
+   Everitt et al. (IJCAI 2017), Egashira et al. (COLM 2026), Fluri et al. (2406.15753), Cai et al.
+   (2510.00915).
+3. **"Two-stage mechanism: the base model must encode the acceptance pattern before sharing can
+   act."** Withdrawn in this revision; see above. The base model matters through where it puts
+   its mass, which `u_eff` already captures.

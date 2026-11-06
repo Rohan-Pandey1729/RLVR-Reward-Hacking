@@ -19,8 +19,8 @@ OUT = os.path.join(os.path.dirname(__file__), "..", "results")
 os.makedirs(OUT, exist_ok=True)
 
 MS = [1, 2, 4, 8, 16, 32, 64]
-SEEDS = [0, 1, 2]
-LRS = [3e-4, 1e-3, 3e-3, 3e-2]
+SEEDS = list(range(10))   # camera-ready: ten seeds, as in the headline sweep
+LRS = [3e-4, 1e-3, 3e-3]   # camera-ready: 3e-2 dropped; it diverges in every seed and is never selected
 
 
 def main():
@@ -29,15 +29,18 @@ def main():
     ap.add_argument("--nshards", type=int, default=1)
     ap.add_argument("--threads", type=int, default=1)
     ap.add_argument("--steps", type=int, default=400)
+    ap.add_argument("--seeds", type=str, default="0,1,2,3,4,5,6,7,8,9")
     a = ap.parse_args()
     torch.set_num_threads(a.threads)
 
-    bases = [(m, s) for m in MS for s in SEEDS][a.shard::a.nshards]
+    seeds = [int(x) for x in a.seeds.split(",")]
+    bases = [(m, s) for m in MS for s in seeds][a.shard::a.nshards]
     jobs = [(m, s, lr) for (m, s) in bases for lr in LRS]
     path = os.path.join(OUT, f"exp6_shard{a.shard}.jsonl")
     done = set()
-    if os.path.exists(path):
-        for line in open(path):
+    import glob as _glob
+    for q in _glob.glob(os.path.join(OUT, "exp6_shard*.jsonl")):
+        for line in open(q):
             c = json.loads(line)["config"]
             if c.get("steps") == a.steps:  # a cell run at another budget is not this cell
                 done.add((c["m"], c["seed"], c["lr_neural"]))

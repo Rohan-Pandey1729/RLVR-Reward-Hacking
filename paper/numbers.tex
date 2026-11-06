@@ -19,28 +19,246 @@
 \newcommand{\CopiesSlope}{+0.0019}
 \newcommand{\CopiesSlopeCI}{[-0.0008, +0.0050]}
 \newcommand{\DriftRelErr}{$2.9\times 10^{-4}$}
-\newcommand{\FactorialHiU}{-4.19}
-\newcommand{\FactorialLoU}{-7.09}
+\newcommand{\FactorialHiU}{-4.15}
+\newcommand{\FactorialLoU}{-7.19}
 \newcommand{\KernelRatioNeural}{0.098}
 \newcommand{\KernelRatioTab}{exactly $0$}
+\newcommand{\LrAdamAAccHi}{0.917}
+\newcommand{\LrAdamAAccLo}{0.972}
+\newcommand{\LrAdamADRHi}{-0.051}
+\newcommand{\LrAdamADRHiSem}{0.016}
+\newcommand{\LrAdamADRLo}{-0.103}
+\newcommand{\LrAdamADRLoSem}{0.004}
+\newcommand{\LrAdamALkyHi}{0.997}
+\newcommand{\LrAdamAN}{10}
+\newcommand{\LrAdamANNegLo}{10}
+\newcommand{\LrAdamANPosHi}{2}
+\newcommand{\LrAdamANSlope}{+0.0075}
+\newcommand{\LrAdamANSlopeCI}{[+0.0030, +0.0121]}
+\newcommand{\LrAdamATSlope}{0.0000}
+\newcommand{\LrAdamATSlopeCI}{[-0.0000, +0.0001]}
+\newcommand{\LrAdamBAccHi}{0.840}
+\newcommand{\LrAdamBAccLo}{0.973}
+\newcommand{\LrAdamBDRHi}{+0.028}
+\newcommand{\LrAdamBDRHiSem}{0.050}
+\newcommand{\LrAdamBDRLo}{-0.102}
+\newcommand{\LrAdamBDRLoSem}{0.004}
+\newcommand{\LrAdamBLkyHi}{1.000}
+\newcommand{\LrAdamBN}{10}
+\newcommand{\LrAdamBNNegLo}{10}
+\newcommand{\LrAdamBNPosHi}{5}
+\newcommand{\LrAdamBNSlope}{+0.0176}
+\newcommand{\LrAdamBNSlopeCI}{[+0.0086, +0.0296]}
+\newcommand{\LrAdamBTSlope}{+0.0001}
+\newcommand{\LrAdamBTSlopeCI}{[-0.0000, +0.0002]}
+\newcommand{\LrAdamCAccHi}{0.269}
+\newcommand{\LrAdamCAccLo}{0.930}
+\newcommand{\LrAdamCDRHi}{+0.600}
+\newcommand{\LrAdamCDRHiSem}{0.084}
+\newcommand{\LrAdamCDRLo}{-0.098}
+\newcommand{\LrAdamCDRLoSem}{0.010}
+\newcommand{\LrAdamCLkyHi}{1.000}
+\newcommand{\LrAdamCN}{10}
+\newcommand{\LrAdamCNNegLo}{10}
+\newcommand{\LrAdamCNPosHi}{10}
+\newcommand{\LrAdamCNSlope}{+0.0996}
+\newcommand{\LrAdamCNSlopeCI}{[+0.0753, +0.1251]}
+\newcommand{\LrAdamCTSlope}{+0.0004}
+\newcommand{\LrAdamCTSlopeCI}{[+0.0000, +0.0009]}
+\newcommand{\LrAdamDAccHi}{0.000}
+\newcommand{\LrAdamDAccLo}{0.275}
+\newcommand{\LrAdamDDRHi}{+0.869}
+\newcommand{\LrAdamDDRHiSem}{0.000}
+\newcommand{\LrAdamDDRLo}{+0.210}
+\newcommand{\LrAdamDDRLoSem}{0.028}
+\newcommand{\LrAdamDLkyHi}{1.000}
+\newcommand{\LrAdamDN}{10}
+\newcommand{\LrAdamDNNegLo}{0}
+\newcommand{\LrAdamDNPosHi}{10}
+\newcommand{\LrAdamDNSlope}{+0.1287}
+\newcommand{\LrAdamDNSlopeCI}{[+0.1151, +0.1399]}
+\newcommand{\LrAdamDTSlope}{+0.0020}
+\newcommand{\LrAdamDTSlopeCI}{[+0.0007, +0.0032]}
+\newcommand{\LrAdamEAccHi}{0.019}
+\newcommand{\LrAdamEAccLo}{0.037}
+\newcommand{\LrAdamEDRHi}{+0.651}
+\newcommand{\LrAdamEDRHiSem}{0.073}
+\newcommand{\LrAdamEDRLo}{+0.331}
+\newcommand{\LrAdamEDRLoSem}{0.028}
+\newcommand{\LrAdamELkyHi}{0.319}
+\newcommand{\LrAdamEN}{10}
+\newcommand{\LrAdamENNegLo}{0}
+\newcommand{\LrAdamENPosHi}{10}
+\newcommand{\LrAdamENSlope}{+0.0456}
+\newcommand{\LrAdamENSlopeCI}{[+0.0246, +0.0632]}
+\newcommand{\LrAdamETSlope}{+0.0028}
+\newcommand{\LrAdamETSlopeCI}{[+0.0006, +0.0052]}
+\newcommand{\LrGrpoAAccHi}{0.897}
+\newcommand{\LrGrpoAAccLo}{0.969}
+\newcommand{\LrGrpoADRHi}{-0.032}
+\newcommand{\LrGrpoADRHiSem}{0.018}
+\newcommand{\LrGrpoADRLo}{-0.102}
+\newcommand{\LrGrpoADRLoSem}{0.005}
+\newcommand{\LrGrpoALkyHi}{0.996}
+\newcommand{\LrGrpoAN}{10}
+\newcommand{\LrGrpoANNegLo}{10}
+\newcommand{\LrGrpoANPosHi}{3}
+\newcommand{\LrGrpoANSlope}{+0.0094}
+\newcommand{\LrGrpoANSlopeCI}{[+0.0047, +0.0145]}
+\newcommand{\LrGrpoATSlope}{0.0000}
+\newcommand{\LrGrpoATSlopeCI}{[-0.0001, +0.0000]}
+\newcommand{\LrGrpoBAccHi}{0.245}
+\newcommand{\LrGrpoBAccLo}{0.958}
+\newcommand{\LrGrpoBDRHi}{+0.623}
+\newcommand{\LrGrpoBDRHiSem}{0.078}
+\newcommand{\LrGrpoBDRLo}{-0.098}
+\newcommand{\LrGrpoBDRLoSem}{0.003}
+\newcommand{\LrGrpoBLkyHi}{0.998}
+\newcommand{\LrGrpoBN}{10}
+\newcommand{\LrGrpoBNNegLo}{10}
+\newcommand{\LrGrpoBNPosHi}{10}
+\newcommand{\LrGrpoBNSlope}{+0.0942}
+\newcommand{\LrGrpoBNSlopeCI}{[+0.0743, +0.1135]}
+\newcommand{\LrGrpoBTSlope}{-0.0001}
+\newcommand{\LrGrpoBTSlopeCI}{[-0.0002, +0.0000]}
+\newcommand{\LrGrpoCAccHi}{0.000}
+\newcommand{\LrGrpoCAccLo}{0.859}
+\newcommand{\LrGrpoCDRHi}{+0.869}
+\newcommand{\LrGrpoCDRHiSem}{0.000}
+\newcommand{\LrGrpoCDRLo}{-0.077}
+\newcommand{\LrGrpoCDRLoSem}{0.006}
+\newcommand{\LrGrpoCLkyHi}{1.000}
+\newcommand{\LrGrpoCN}{10}
+\newcommand{\LrGrpoCNNegLo}{10}
+\newcommand{\LrGrpoCNPosHi}{10}
+\newcommand{\LrGrpoCNSlope}{+0.1675}
+\newcommand{\LrGrpoCNSlopeCI}{[+0.1594, +0.1742]}
+\newcommand{\LrGrpoCTSlope}{-0.0002}
+\newcommand{\LrGrpoCTSlopeCI}{[-0.0005, +0.0001]}
+\newcommand{\LrNPosCI}{10}
+\newcommand{\LrNTotal}{11}
+\newcommand{\LrSgdAAccHi}{0.000}
+\newcommand{\LrSgdAAccLo}{0.926}
+\newcommand{\LrSgdADRHi}{+0.867}
+\newcommand{\LrSgdADRHiSem}{0.001}
+\newcommand{\LrSgdADRLo}{-0.077}
+\newcommand{\LrSgdADRLoSem}{0.009}
+\newcommand{\LrSgdALkyHi}{0.987}
+\newcommand{\LrSgdAN}{10}
+\newcommand{\LrSgdANNegLo}{10}
+\newcommand{\LrSgdANPosHi}{10}
+\newcommand{\LrSgdANSlope}{+0.1834}
+\newcommand{\LrSgdANSlopeCI}{[+0.1773, +0.1889]}
+\newcommand{\LrSgdATSlope}{-0.0001}
+\newcommand{\LrSgdATSlopeCI}{[-0.0003, +0.0000]}
+\newcommand{\LrSgdBAccHi}{0.006}
+\newcommand{\LrSgdBAccLo}{0.312}
+\newcommand{\LrSgdBDRHi}{+0.771}
+\newcommand{\LrSgdBDRHiSem}{0.098}
+\newcommand{\LrSgdBDRLo}{+0.153}
+\newcommand{\LrSgdBDRLoSem}{0.023}
+\newcommand{\LrSgdBLkyHi}{0.906}
+\newcommand{\LrSgdBN}{10}
+\newcommand{\LrSgdBNNegLo}{0}
+\newcommand{\LrSgdBNPosHi}{9}
+\newcommand{\LrSgdBNSlope}{+0.0982}
+\newcommand{\LrSgdBNSlopeCI}{[+0.0718, +0.1161]}
+\newcommand{\LrSgdBTSlope}{-0.0004}
+\newcommand{\LrSgdBTSlopeCI}{[-0.0008, +0.0000]}
+\newcommand{\LrSgdCAccHi}{0.031}
+\newcommand{\LrSgdCAccLo}{0.056}
+\newcommand{\LrSgdCDRHi}{+0.299}
+\newcommand{\LrSgdCDRHiSem}{0.094}
+\newcommand{\LrSgdCDRLo}{+0.274}
+\newcommand{\LrSgdCDRLoSem}{0.010}
+\newcommand{\LrSgdCLkyHi}{0.119}
+\newcommand{\LrSgdCN}{10}
+\newcommand{\LrSgdCNNegLo}{0}
+\newcommand{\LrSgdCNPosHi}{9}
+\newcommand{\LrSgdCNSlope}{-0.0008}
+\newcommand{\LrSgdCNSlopeCI}{[-0.0197, +0.0158]}
+\newcommand{\LrSgdCTSlope}{-0.0006}
+\newcommand{\LrSgdCTSlopeCI}{[-0.0014, -0.0000]}
 \newcommand{\MaskFprBaseHi}{0.0149}
+\newcommand{\MaskFprBaseHiRho}{0.077}
 \newcommand{\MaskFprBaseLo}{0.0098}
+\newcommand{\MaskFprBaseLoRho}{0.056}
+\newcommand{\MaskFprBaseMidRho}{0.066}
+\newcommand{\MaskFprNBelowOne}{6}
+\newcommand{\MaskFprNExcl}{6}
+\newcommand{\MaskFprOneHiDR}{+0.014}
+\newcommand{\MaskFprOneHiN}{10}
+\newcommand{\MaskFprOneHiNPos}{3}
+\newcommand{\MaskFprOneMidDR}{-0.047}
 \newcommand{\MaskFprPairedDiff}{+0.0001}
 \newcommand{\MaskFprPairedDiffCI}{[-0.0052, +0.0069]}
+\newcommand{\MaskFprPairedHi}{-0.030}
+\newcommand{\MaskFprPairedHiCI}{[-0.080, +0.034]}
+\newcommand{\MaskFprPairedLo}{-0.049}
+\newcommand{\MaskFprPairedLoCI}{[-0.057, -0.038]}
+\newcommand{\MaskFprPairedMid}{-0.069}
+\newcommand{\MaskFprPairedMidCI}{[-0.079, -0.060]}
 \newcommand{\MaskFprPairedN}{10}
+\newcommand{\MaskFprSharedHiDR}{+0.014}
+\newcommand{\MaskFprSharedHiRel}{+18\%}
+\newcommand{\MaskFprSharedLoDR}{-0.042}
+\newcommand{\MaskFprSharedLoRel}{-75\%}
+\newcommand{\MaskFprSharedMidDR}{-0.047}
+\newcommand{\MaskFprSharedMidRel}{-71\%}
 \newcommand{\MaskFprSlope}{+0.0056}
 \newcommand{\MaskFprSlopeCI}{[+0.0003, +0.0121]}
 \newcommand{\MaskFprSlopeTab}{+0.0054}
 \newcommand{\MaskFprSlopeTabCI}{[+0.0043, +0.0067]}
+\newcommand{\MaskFprTabHiDR}{+0.044}
+\newcommand{\MaskFprTabHiRel}{+57\%}
+\newcommand{\MaskFprTabLoDR}{+0.006}
+\newcommand{\MaskFprTabLoRel}{+12\%}
+\newcommand{\MaskFprTabMidDR}{+0.022}
+\newcommand{\MaskFprTabMidRel}{+33\%}
+\newcommand{\MaskFprThreeHiDR}{+0.439}
+\newcommand{\MaskFprThreeHiN}{10}
+\newcommand{\MaskFprThreeHiNPos}{8}
+\newcommand{\MaskFprThreeMidDR}{-0.015}
+\newcommand{\MaskMassBaseHiRho}{0.080}
+\newcommand{\MaskMassBaseLoRho}{0.004}
+\newcommand{\MaskMassBaseMidRho}{0.044}
 \newcommand{\MaskMassHiDR}{+0.0141}
 \newcommand{\MaskMassMidDR}{-0.0316}
+\newcommand{\MaskMassNBelowOne}{6}
+\newcommand{\MaskMassNExcl}{3}
+\newcommand{\MaskMassOneHiDR}{+0.014}
+\newcommand{\MaskMassOneHiN}{5}
+\newcommand{\MaskMassOneHiNPos}{2}
+\newcommand{\MaskMassOneMidDR}{-0.032}
 \newcommand{\MaskMassPairedDiff}{-0.0084}
 \newcommand{\MaskMassPairedDiffCI}{[-0.0154, -0.0009]}
+\newcommand{\MaskMassPairedHi}{-0.032}
+\newcommand{\MaskMassPairedHiCI}{[-0.086, +0.028]}
+\newcommand{\MaskMassPairedLo}{0.000}
+\newcommand{\MaskMassPairedLoCI}{[-0.008, +0.009]}
+\newcommand{\MaskMassPairedMid}{-0.056}
+\newcommand{\MaskMassPairedMidCI}{[-0.064, -0.048]}
 \newcommand{\MaskMassPairedN}{5}
+\newcommand{\MaskMassSharedHiDR}{+0.014}
+\newcommand{\MaskMassSharedHiRel}{+18\%}
+\newcommand{\MaskMassSharedLoDR}{-0.001}
+\newcommand{\MaskMassSharedLoRel}{-14\%}
+\newcommand{\MaskMassSharedMidDR}{-0.032}
+\newcommand{\MaskMassSharedMidRel}{-72\%}
 \newcommand{\MaskMassSlope}{-0.0011}
 \newcommand{\MaskMassSlopeCI}{[-0.0074, +0.0051]}
 \newcommand{\MaskMassSlopeTab}{+0.0073}
 \newcommand{\MaskMassSlopeTabCI}{[+0.0055, +0.0091]}
+\newcommand{\MaskMassTabHiDR}{+0.046}
+\newcommand{\MaskMassTabHiRel}{+58\%}
+\newcommand{\MaskMassTabLoDR}{-0.001}
+\newcommand{\MaskMassTabLoRel}{-24\%}
+\newcommand{\MaskMassTabMidDR}{+0.025}
+\newcommand{\MaskMassTabMidRel}{+56\%}
+\newcommand{\MaskMassThreeHiDR}{+0.427}
+\newcommand{\MaskMassThreeHiN}{5}
+\newcommand{\MaskMassThreeHiNPos}{4}
+\newcommand{\MaskMassThreeMidDR}{+0.092}
 \newcommand{\MechCrossHi}{12.2}
 \newcommand{\MechCrossHiSem}{0.8}
 \newcommand{\MechCrossLo}{6.6}
@@ -66,65 +284,97 @@
 \newcommand{\NuFiveALo}{0.026}
 \newcommand{\NuFiveANSeeds}{10}
 \newcommand{\NuFiveBAccKLHi}{0.818}
-\newcommand{\NuFiveBAccKLLo}{0.822}
-\newcommand{\NuFiveBAccNoKLHi}{0.859}
-\newcommand{\NuFiveBAccNoKLLo}{0.974}
+\newcommand{\NuFiveBAccKLLo}{0.821}
+\newcommand{\NuFiveBAccNoKLHi}{0.848}
+\newcommand{\NuFiveBAccNoKLLo}{0.978}
 \newcommand{\NuFiveBBeta}{0.3}
-\newcommand{\NuFiveBDRKLHi}{+0.000}
-\newcommand{\NuFiveBDRKLLo}{-0.002}
-\newcommand{\NuFiveBDRNoKLHi}{+0.010}
-\newcommand{\NuFiveBDRNoKLLo}{-0.103}
-\newcommand{\NuFiveBDRSeriesHi}{+0.010, -0.037, -0.027, +0.013, +0.003, +0.000}
+\newcommand{\NuFiveBDRKLHi}{0.000}
+\newcommand{\NuFiveBDRKLLo}{0.000}
+\newcommand{\NuFiveBDRNoKLHi}{+0.021}
+\newcommand{\NuFiveBDRNoKLLo}{-0.104}
+\newcommand{\NuFiveBDRSeriesHi}{+0.021, -0.019, -0.045, +0.007, +0.002, +0.000}
 \newcommand{\NuFiveBLkyKLHi}{0.927}
-\newcommand{\NuFiveBLkyKLLo}{0.928}
+\newcommand{\NuFiveBLkyKLLo}{0.925}
 \newcommand{\NuFiveBLkyNoKLHi}{1.000}
 \newcommand{\NuFiveBLkyNoKLLo}{1.000}
-\newcommand{\NuFiveCAccI}{0.583}
-\newcommand{\NuFiveCAccNone}{0.521}
-\newcommand{\NuFiveCAccU}{0.984}
-\newcommand{\NuFiveCBaseI}{0.094}
-\newcommand{\NuFiveCBaseU}{0.064}
-\newcommand{\NuFiveCGap}{40}
-\newcommand{\NuFiveCGapRL}{29}
-\newcommand{\NuFiveCGapSem}{16}
-\newcommand{\NuFiveCGapTab}{11}
-\newcommand{\NuFiveCNSeeds}{3}
-\newcommand{\NuFiveCTabI}{0.814}
-\newcommand{\NuFiveCTabU}{0.928}
-\newcommand{\NuFourMatchedGap}{0.065}
+\newcommand{\NuFiveBNSeeds}{10}
+\newcommand{\NuFiveCAccI}{0.909}
+\newcommand{\NuFiveCAccIHiLr}{0.586}
+\newcommand{\NuFiveCAccITab}{0.824}
+\newcommand{\NuFiveCAccNone}{0.907}
+\newcommand{\NuFiveCAccNoneHiLr}{0.556}
+\newcommand{\NuFiveCAccNoneTab}{0.806}
+\newcommand{\NuFiveCAccU}{0.987}
+\newcommand{\NuFiveCAccUHiLr}{0.966}
+\newcommand{\NuFiveCAccUTab}{0.886}
+\newcommand{\NuFiveCBaseAcc}{0.443}
+\newcommand{\NuFiveCGap}{8}
+\newcommand{\NuFiveCGapCI}{[4, 13]}
+\newcommand{\NuFiveCGapHiLr}{38}
+\newcommand{\NuFiveCGapHiLrCI}{[22, 55]}
+\newcommand{\NuFiveCGapHiLrNPos}{9}
+\newcommand{\NuFiveCGapHiLrSem}{9}
+\newcommand{\NuFiveCGapNPos}{10}
+\newcommand{\NuFiveCGapRL}{2}
+\newcommand{\NuFiveCGapRLCI}{[-3, 7]}
+\newcommand{\NuFiveCGapRLHiLr}{32}
+\newcommand{\NuFiveCGapRLHiLrCI}{[16, 48]}
+\newcommand{\NuFiveCGapSem}{2}
+\newcommand{\NuFiveCGapTab}{6}
+\newcommand{\NuFiveCGapTabCI}{[5, 8]}
+\newcommand{\NuFiveCGapTabNPos}{10}
+\newcommand{\NuFiveCGapTabSem}{1}
+\newcommand{\NuFiveCHiLr}{0.003}
+\newcommand{\NuFiveCLkyI}{1.000}
+\newcommand{\NuFiveCLkyIHiLr}{1.000}
+\newcommand{\NuFiveCLkyITab}{0.999}
+\newcommand{\NuFiveCLkyMin}{0.973}
+\newcommand{\NuFiveCLkyU}{0.998}
+\newcommand{\NuFiveCLkyUHiLr}{0.973}
+\newcommand{\NuFiveCLkyUTab}{0.999}
+\newcommand{\NuFiveCLoLr}{0.001}
+\newcommand{\NuFiveCLrShared}{0.001}
+\newcommand{\NuFiveCLrSharedN}{30}
+\newcommand{\NuFiveCLrSharedNLo}{30}
+\newcommand{\NuFiveCNSeeds}{10}
+\newcommand{\NuFourMatchedGap}{0.045}
+\newcommand{\NuFourMatchedGapLo}{0.016}
 \newcommand{\NuFourNBig}{64}
+\newcommand{\NuFourNSeeds}{10}
 \newcommand{\NuFourNShared}{5}
 \newcommand{\NuFourNSmall}{16}
 \newcommand{\NuFourSameM}{16}
-\newcommand{\NuFourSameMBig}{-0.079}
-\newcommand{\NuFourUOneBig}{+0.010}
-\newcommand{\NuFourUOneBigSem}{0.045}
-\newcommand{\NuFourUOneSmall}{-0.004}
-\newcommand{\NuFourUOneSmallSem}{0.084}
-\newcommand{\NuSixBaseRho}{0.131}
-\newcommand{\NuSixBaseSpread}{0.0011}
-\newcommand{\NuSixCrossU}{$u=0.62$}
-\newcommand{\NuSixHiDR}{+0.172}
-\newcommand{\NuSixHiDRSem}{0.225}
-\newcommand{\NuSixLoDR}{-0.110}
-\newcommand{\NuSixNeuralHiAcc}{0.697}
-\newcommand{\NuSixNeuralHiRho}{0.302}
+\newcommand{\NuFourSameMBig}{-0.081}
+\newcommand{\NuFourUOneBig}{+0.021}
+\newcommand{\NuFourUOneBigSem}{0.028}
+\newcommand{\NuFourUOneSmall}{-0.024}
+\newcommand{\NuFourUOneSmallSem}{0.053}
+\newcommand{\NuSixBaseRho}{0.128}
+\newcommand{\NuSixBaseSpread}{0.0103}
+\newcommand{\NuSixCrossU}{$u=0.69$}
+\newcommand{\NuSixHiDR}{+0.130}
+\newcommand{\NuSixHiDRSem}{0.100}
+\newcommand{\NuSixLoDR}{-0.108}
+\newcommand{\NuSixNSeeds}{10}
+\newcommand{\NuSixNeuralHiAcc}{0.737}
+\newcommand{\NuSixNeuralHiRho}{0.263}
 \newcommand{\NuSixNeuralLoRho}{0.021}
-\newcommand{\NuSixSlope}{+0.0353}
-\newcommand{\NuSixTabHiDR}{+0.157}
-\newcommand{\NuSixTabLoDR}{+0.171}
-\newcommand{\NuSixTabSlope}{+0.0003}
-\newcommand{\NuThreeBaseRhoLoK}{0.128}
-\newcommand{\NuThreeBaseRhoSpreadK}{0.054}
-\newcommand{\NuThreeDLHiK}{-6.36}
-\newcommand{\NuThreeDLHiU}{-4.19}
-\newcommand{\NuThreeDLLoK}{-5.47}
-\newcommand{\NuThreeDLLoU}{-7.09}
-\newcommand{\NuThreeEtaK}{11\%}
-\newcommand{\NuThreeEtaM}{59\%}
+\newcommand{\NuSixSlope}{+0.0270}
+\newcommand{\NuSixTabHiDR}{+0.020}
+\newcommand{\NuSixTabLoDR}{+0.022}
+\newcommand{\NuSixTabSlope}{-0.0001}
+\newcommand{\NuThreeBaseRhoLoK}{0.129}
+\newcommand{\NuThreeBaseRhoSpreadK}{0.080}
+\newcommand{\NuThreeDLHiK}{-6.85}
+\newcommand{\NuThreeDLHiU}{-4.15}
+\newcommand{\NuThreeDLLoK}{-5.54}
+\newcommand{\NuThreeDLLoU}{-7.19}
+\newcommand{\NuThreeEtaK}{12\%}
+\newcommand{\NuThreeEtaM}{43\%}
 \newcommand{\NuThreeFprRange}{1.0--8.1\%}
 \newcommand{\NuThreeKRange}{1--8}
 \newcommand{\NuThreeLoU}{0.125}
+\newcommand{\NuThreeNSeeds}{10}
 \newcommand{\NuTwoBaseAcc}{0.441}
 \newcommand{\NuTwoBaseLky}{0.475}
 \newcommand{\NuTwoBaseRhoMean}{0.128}
@@ -184,6 +434,52 @@
 \newcommand{\NullDriftMirrorLam}{$9.6\times 10^{-8}$}
 \newcommand{\NullDriftMirrorPooled}{+0.057}
 \newcommand{\NullMirrorSteps}{400}
+\newcommand{\ProbeCap}{8}
+\newcommand{\ProbeNCond}{28}
+\newcommand{\ProbeNPts}{672}
+\newcommand{\ProbeNSeeds}{3}
+\newcommand{\ProbeNegKFrac}{13\%}
+\newcommand{\ProbeNegWeightShare}{9\%}
+\newcommand{\ProbeResidShareMedian}{0.9}
+\newcommand{\ProbeSignAgreeCond}{93\%}
+\newcommand{\ProbeSignAgreeLeadCond}{71\%}
+\newcommand{\ProbeSignAgreeLeadPts}{53\%}
+\newcommand{\ProbeSignAgreePts}{70\%}
+\newcommand{\ProbeSteps}{0, 3, 6, 10, 15, 20, 40}
+\newcommand{\ProbeVbarHiLast}{0.994}
+\newcommand{\ProbeVbarLoLast}{0.848}
+\newcommand{\ProbeVbarStepLast}{40}
+\newcommand{\RepENineCoh}{+0.255}
+\newcommand{\RepENineCohPred}{+2.209}
+\newcommand{\RepENineCross}{-4.722}
+\newcommand{\RepENineKappa}{+331.033}
+\newcommand{\RepENineKappaS}{+1895.298}
+\newcommand{\RepENinePh}{0.0151}
+\newcommand{\RepEOneCoh}{+0.294}
+\newcommand{\RepEOneCohPred}{+4.815}
+\newcommand{\RepEOneCross}{+0.483}
+\newcommand{\RepEOneKappa}{+270.153}
+\newcommand{\RepEOneKappaS}{+1350.358}
+\newcommand{\RepEOneLoCoh}{+0.090}
+\newcommand{\RepEOneLoPh}{0.0328}
+\newcommand{\RepEOneLoPhOut}{0.0054}
+\newcommand{\RepEOnePh}{0.0355}
 \newcommand{\SharedSlopeMatched}{+0.0210}
 \newcommand{\SharedSlopeMatchedCI}{[+0.0094, +0.0369]}
 \newcommand{\ThreshCorrection}{0.03}
+\newcommand{\UeffENineFour}{0.19}
+\newcommand{\UeffENineHi}{1.00}
+\newcommand{\UeffENineLo}{0.08}
+\newcommand{\UeffENineSixteen}{0.33}
+\newcommand{\UeffEOneFour}{0.64}
+\newcommand{\UeffEOneHi}{1.00}
+\newcommand{\UeffEOneLo}{0.65}
+\newcommand{\UeffEOneSixteen}{0.94}
+\newcommand{\UeffMassENineFour}{0.06}
+\newcommand{\UeffMassENineHi}{1.00}
+\newcommand{\UeffMassENineLo}{0.01}
+\newcommand{\UeffMassENineSixteen}{0.25}
+\newcommand{\UeffMassEOneFour}{0.23}
+\newcommand{\UeffMassEOneHi}{1.00}
+\newcommand{\UeffMassEOneLo}{0.09}
+\newcommand{\UeffMassEOneSixteen}{0.68}

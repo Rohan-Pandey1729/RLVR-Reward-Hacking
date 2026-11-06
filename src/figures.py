@@ -14,6 +14,7 @@ mismatch in the base model across conditions.
 """
 from __future__ import annotations
 
+import glob
 import json
 import os
 from collections import defaultdict
@@ -43,6 +44,9 @@ CENSOR = []
 
 
 def num(k, v):
+    # a signed zero ("-0.000", "+0.000") is a rounding artefact; print it unsigned
+    if isinstance(v, str) and v[:1] in "+-" and v[1:] and set(v[1:]) <= set("0."):
+        v = v[1:]
     NUM[k] = v
     return v
 
@@ -199,7 +203,7 @@ def fig1():
     # base pass rate of the base model = predicted leading-order threshold
     base_lky = np.mean([r["base"]["leaky_reward"] for r in rows])
 
-    fig, axes = plt.subplots(1, 3, figsize=(6.7, 2.06))
+    fig, axes = plt.subplots(1, 3, figsize=(6.7, 1.9))
     ax = axes[0]
     ax.plot(u, brho, color=C_NULL, ls=":", lw=1.0, marker=".", ms=3, label="Base Model")
     band(ax, u, rn, srn, C_SHARED, "Shared Params")
@@ -213,7 +217,6 @@ def fig1():
 
     ax = axes[1]
     ax.axhline(0.0, color=C_NULL, ls=":", lw=1.1, zorder=1)
-    ax.axvline(base_lky, color=C_NULL, ls="--", lw=0.8, alpha=0.8, zorder=1)
     band(ax, u, dn, sdn, C_SHARED, "Shared Params")
     if have6:
         band(ax, u6, d6, sd6, C_PERM, "Permuted Blocks", marker="^")
@@ -223,7 +226,6 @@ def fig1():
     ax.set_ylabel(r"Hack-Fraction Drift $\Delta\rho$")
     ax.set_title("Departure from the Filter")
     ylo, yhi = ax.get_ylim()
-    ax.text(base_lky * 1.05, ylo + 0.06 * (yhi - ylo), r"$u=\bar V$", fontsize=7.2, color=C_NULL)
     ax.text(u[0] * 1.05, 0.04 * (yhi - ylo), "Filter Baseline", fontsize=7.2, color=C_NULL)
 
     ax = axes[2]
@@ -296,6 +298,7 @@ def fig1():
         x6t, d6t, _ = series(b6t, "tabular", "d_rho")
         num("NuSixTabSlope", f"{slope_per_doubling(x6t, d6t):+.4f}")
         num("NuSixTabLoDR", f"{d6t[0]:+.3f}"); num("NuSixTabHiDR", f"{d6t[-1]:+.3f}")
+        num("NuSixNSeeds", f"{len(b6[(x6[-1],)])}")
 
 
 def fig2():
@@ -306,6 +309,7 @@ def fig2():
     bn = best_by_reward(rows, ["m", "k"], "neural")
     ks = sorted({c[1] for c in bn}); ms = sorted({c[0] for c in bn})
     fprs = {c[1]: list(d.values())[0]["config"]["static_fpr"] for c, d in bn.items()}
+    num("NuThreeNSeeds", f"{min(len(d) for d in bn.values())}")
 
     G = np.full((len(ms), len(ks)), np.nan)
     B = np.full((len(ms), len(ks)), np.nan)
@@ -531,6 +535,7 @@ def fig4():
         ax.legend(loc="lower right", fontsize=7.2)
         hi, lo = max(by), min(by)
         b0, bmax = min(by[hi]), max(by[hi])
+        num("NuFiveBNSeeds", f"{len({r['config']['seed'] for r in r5b})}")
         num("NuFiveBBeta", f"{bmax:g}")
         num("NuFiveBDRSeriesHi",
             ", ".join(f"{np.mean(by[hi][b]):+.3f}" for b in sorted(by[hi])))
@@ -542,50 +547,7 @@ def fig4():
             num(f"NuFiveBLkyNoKL{tag}", f"{np.mean(lky[mm_][b0]):.3f}")
             num(f"NuFiveBLkyKL{tag}", f"{np.mean(lky[mm_][bmax]):.3f}")
 
-    p5c = os.path.join(RES, "exp5c.json")
-    if os.path.exists(p5c):
-        rows = json.load(open(p5c))
-        ax = axes[2]
-        modes = ["none", "patchU", "patchI"]
-        labels = ["None", "Universal", "Idio-\nsyncratic"]
-        acc = {"neural": [], "tabular": []}; err = {"neural": [], "tabular": []}
-        bases, fprs = [], []
-        for m in modes:
-            sel = [r for r in rows if r["mode"] == m]
-            for w in ("neural", "tabular"):
-                a = [r[w][-1]["acc"] for r in sel]
-                acc[w].append(np.mean(a))
-                err[w].append(np.std(a, ddof=1) / np.sqrt(len(a)) if len(a) > 1 else 0.0)
-            bases.append(np.mean([stats(r["base"])[0] for r in sel]))
-            fprs.append(np.mean([r["static_fpr"] for r in sel]))
-        w_ = 0.34
-        xs = np.arange(3)
-        ax.bar(xs - w_ / 2, acc["neural"], yerr=err["neural"], color=C_SHARED, width=w_,
-               capsize=2, error_kw=dict(lw=0.7), label="Shared Params")
-        ax.bar(xs + w_ / 2, acc["tabular"], yerr=err["tabular"], color=C_TAB, width=w_,
-               capsize=2, error_kw=dict(lw=0.7), label="Per-Prompt Params")
-        ax.set_xticks(xs); ax.set_xticklabels(labels, fontsize=7.4)
-        ax.set_xlabel("Leak Removed")
-        ax.set_ylabel("True Accuracy"); ax.set_title("Equal Audit Gain")
-        for i, f_ in enumerate(fprs):
-            _top = max(acc["neural"][i] + err["neural"][i],
-                       acc["tabular"][i] + err["tabular"][i])
-            ax.text(i, _top + 0.09, f"FPR {f_*100:.1f}%", ha="center", fontsize=7.2)
-        ax.set_ylim(0, max(max(acc["neural"]), max(acc["tabular"])) * 1.52)
-        ax.legend(loc="upper center", fontsize=7.4, ncol=1,
-                  bbox_to_anchor=(0.5, 1.02), frameon=False,
-                  handlelength=1.1, handletextpad=0.4, labelspacing=0.2)
-        gn = acc["neural"][1] - acc["neural"][2]
-        gt = acc["tabular"][1] - acc["tabular"][2]
-        num("NuFiveCAccU", f"{acc['neural'][1]:.3f}"); num("NuFiveCAccI", f"{acc['neural'][2]:.3f}")
-        num("NuFiveCAccNone", f"{acc['neural'][0]:.3f}")
-        num("NuFiveCGap", f"{gn*100:.0f}")
-        num("NuFiveCGapTab", f"{gt*100:.0f}")
-        num("NuFiveCGapRL", f"{(gn-gt)*100:.0f}")
-        num("NuFiveCTabU", f"{acc['tabular'][1]:.3f}"); num("NuFiveCTabI", f"{acc['tabular'][2]:.3f}")
-        num("NuFiveCBaseU", f"{bases[1]:.3f}"); num("NuFiveCBaseI", f"{bases[2]:.3f}")
-        num("NuFiveCNSeeds", f"{len([r for r in rows if r['mode'] == 'none'])}")
-        num("NuFiveCGapSem", f"{100*np.hypot(err['neural'][1], err['neural'][2]):.0f}")
+    hardening_panel(axes[2])
     fig.tight_layout(pad=0.3, w_pad=1.4)
     fig.savefig(os.path.join(FIG, "fig4_practice.pdf"))
     plt.close(fig)
@@ -656,7 +618,11 @@ def fig5():
         ax.set_ylabel(r"Drift $\Delta\rho$"); ax.set_title("Prompt-Set Size")
         ax.legend(loc="upper left", fontsize=7.2)
         small, big = min(by), max(by)
+        if 1.0 not in by[small] or 1.0 not in by[big] or (small / big) not in by[big]:
+            print("fig5: prompt-set sweep incomplete"); small = big = None
+    if rows4 and small is not None:
         num("NuFourNSmall", f"{int(small)}"); num("NuFourNBig", f"{int(big)}")
+        num("NuFourNSeeds", f"{len({r['config']['seed'] for r in rows4})}")
         num("NuFourUOneSmall", f"{by[small][1.0]:+.3f}"); num("NuFourUOneSmallSem", f"{sem[small][1.0]:.3f}")
         num("NuFourUOneBig", f"{by[big][1.0]:+.3f}"); num("NuFourUOneBigSem", f"{sem[big][1.0]:.3f}")
         mm = int(small)   # same block size m = N_small, different u
@@ -665,6 +631,7 @@ def fig5():
         shared_u = sorted(set(by[small]) & set(by[big]))
         num("NuFourMatchedGap", f"{max(abs(by[small][x] - by[big][x]) for x in shared_u):.3f}")
         num("NuFourNShared", f"{len(shared_u)}")
+        num("NuFourMatchedGapLo", f"{max(abs(by[small][x] - by[big][x]) for x in shared_u[:3]):.3f}")
 
     ax = axes[3]
     rs = load_capped("exp2_sgd_shard*.jsonl")
@@ -755,7 +722,7 @@ def fig6():
     s10 = sel(r10, "copies")
     s1 = sel(r1, "neural")
 
-    fig, axes = plt.subplots(1, 3, figsize=(6.7, 2.13))
+    fig, axes = plt.subplots(1, 3, figsize=(6.7, 2.0))
     for ax, (sn, st, ms, title, lab_t) in zip(axes, [
             (s10, s1, MS_10, "Same Net, Sharing Removed", "Per-Prompt Copies"),
             (s9n, s9t, MS_ALL, "Blind Base, Fixed Error Rate", "Per-Prompt Params"),
@@ -883,7 +850,7 @@ def fig7():
             if d:
                 G[i, j] = np.mean([val(r, "neural", "d_lam") for r in d.values()])
 
-    fig = plt.figure(figsize=(6.7, 2.18))
+    fig = plt.figure(figsize=(6.7, 2.04))
     gs = fig.add_gridspec(2, 2, width_ratios=[3.05, 1.0], height_ratios=[3.05, 1.0],
                           wspace=0.10, hspace=0.12)
     axH = fig.add_subplot(gs[0, 0])
@@ -957,11 +924,394 @@ def fig7():
     num("FactorialHiU", f"{np.nanmean(G[-1, :]):.2f}")
 
 
+
+# ======================================================================================
+# Camera-ready additions
+# ======================================================================================
+def bootci(v, n=10000, seed=0):
+    v = np.asarray(v, dtype=float)
+    if len(v) < 2:
+        return (float("nan"), float("nan"))
+    bs = np.random.default_rng(seed).choice(v, size=(n, len(v)), replace=True).mean(1)
+    return float(np.percentile(bs, 2.5)), float(np.percentile(bs, 97.5))
+
+
+def ci_str(c):
+    return f"[{c[0]:+.3f}, {c[1]:+.3f}]"
+
+
+def select_run(runs, arm, tol=REWARD_TOL):
+    """The paper's operating rule applied to a dict of stored runs: the smallest learning
+    rate whose final verifier reward is within `tol` of the best, for the given arm."""
+    lrkey = "lr_neural" if arm == "neural" else "lr_tabular"
+    top = max(r[arm][-1]["leaky_reward"] for r in runs.values())
+    near = [r for r in runs.values() if r[arm][-1]["leaky_reward"] >= top - tol]
+    return min(near, key=lambda r: r[lrkey])
+
+
+def hardening_panel(ax):
+    """E6 at ten seeds.  Both patches start from the same checkpoint within a seed, so the
+    base policy is identical across patches and every accuracy difference arises in RL.
+    The shared arm is shown at both learning rates, because both saturate the verifier and
+    the paper's operating rule (the smaller one) decides how large the gap looks."""
+    rows = []
+    for p in sorted(glob.glob(os.path.join(RES, "exp5c*.json"))):
+        rows += [r for r in json.load(open(p)) if "runs" in r]
+    if not rows:
+        print("hardening: no data"); ax.axis("off"); return
+    modes = ["none", "patchU", "patchI"]
+    labels = ["None", "Universal", "Idio-\nsyncratic"]
+    by = defaultdict(dict)
+    for r in rows:
+        by[r["seed"]][r["mode"]] = r
+    seeds = sorted(sd for sd in by if all(m in by[sd] for m in modes))
+    lrs = sorted(float(k) for k in by[seeds[0]]["none"]["runs"])
+    lo_lr, hi_lr = lrs[0], lrs[-1]
+    arms = {"std": lambda runs: select_run(runs, "neural")["neural"],
+            "hi": lambda runs: runs[f"{hi_lr:g}"]["neural"],
+            "tab": lambda runs: select_run(runs, "tabular")["tabular"]}
+    acc = {a: {m: [] for m in modes} for a in arms}
+    lky = {a: {m: [] for m in modes} for a in arms}
+    base_acc = []
+    for sd in seeds:
+        accs = {m: by[sd][m]["base"]["acc"] for m in modes}
+        assert max(accs.values()) - min(accs.values()) < 1e-9, "base differs across patches"
+        base_acc.append(accs["none"])
+        for m in modes:
+            for a, pick in arms.items():
+                tr = pick(by[sd][m]["runs"])
+                acc[a][m].append(tr[-1]["acc"]); lky[a][m].append(tr[-1]["leaky_reward"])
+    mean = {a: [np.mean(acc[a][m]) for m in modes] for a in arms}
+    sem = {a: [np.std(acc[a][m], ddof=1) / np.sqrt(len(seeds)) for m in modes] for a in arms}
+    w_ = 0.26; xs = np.arange(3)
+    ax.bar(xs - w_, mean["std"], yerr=sem["std"], color=C_SHARED, width=w_, capsize=1.8,
+           error_kw=dict(lw=0.7), label=f"Shared, LR {lo_lr:g}")
+    ax.bar(xs, mean["hi"], yerr=sem["hi"], color=C_SHARED, alpha=0.5, width=w_, capsize=1.8,
+           error_kw=dict(lw=0.7), label=f"Shared, LR {hi_lr:g}")
+    ax.bar(xs + w_, mean["tab"], yerr=sem["tab"], color=C_TAB, width=w_, capsize=1.8,
+           error_kw=dict(lw=0.7), label="Per-Prompt")
+    ax.axhline(np.mean(base_acc), color=C_NULL, ls=":", lw=1.0)
+    ax.text(2.42, np.mean(base_acc) + 0.02, "Base", fontsize=7.0, color=C_NULL, ha="right")
+    ax.set_xticks(xs); ax.set_xticklabels(labels, fontsize=7.4)
+    ax.set_xlabel("Leak Removed"); ax.set_ylabel("True Accuracy")
+    ax.set_title("Equal Audit Gain")
+    fprs = [np.mean([by[sd][m]["static_fpr"] for sd in seeds]) for m in modes]
+    for i, f_ in enumerate(fprs):
+        top = max(mean[a][i] + sem[a][i] for a in arms)
+        ax.text(i, top + 0.08, f"FPR {f_*100:.1f}%", ha="center", fontsize=7.0)
+    ax.set_ylim(0, max(max(mean[a]) for a in arms) * 1.58)
+    ax.legend(loc="upper center", fontsize=6.9, ncol=1, bbox_to_anchor=(0.5, 1.03),
+              frameon=False, handlelength=1.1, handletextpad=0.4, labelspacing=0.15)
+    # paired within-seed differences: the statistic the design supports
+    gap = {a: np.array(acc[a]["patchU"]) - np.array(acc[a]["patchI"]) for a in arms}
+    num("NuFiveCNSeeds", f"{len(seeds)}")
+    num("NuFiveCBaseAcc", f"{np.mean(base_acc):.3f}")
+    num("NuFiveCLoLr", f"{lo_lr:g}"); num("NuFiveCHiLr", f"{hi_lr:g}")
+    for a, tag in (("std", ""), ("hi", "HiLr"), ("tab", "Tab")):
+        num(f"NuFiveCAccU{tag}", f"{mean[a][1]:.3f}"); num(f"NuFiveCAccI{tag}", f"{mean[a][2]:.3f}")
+        num(f"NuFiveCAccNone{tag}", f"{mean[a][0]:.3f}")
+        num(f"NuFiveCLkyU{tag}", f"{np.mean(lky[a]['patchU']):.3f}")
+        num(f"NuFiveCLkyI{tag}", f"{np.mean(lky[a]['patchI']):.3f}")
+        g = gap[a]
+        num(f"NuFiveCGap{tag}", f"{100*g.mean():.0f}")
+        num(f"NuFiveCGap{tag}Sem", f"{100*g.std(ddof=1)/np.sqrt(len(g)):.0f}")
+        lo, hi = bootci(g); num(f"NuFiveCGap{tag}CI", f"[{100*lo:.0f}, {100*hi:.0f}]")
+        num(f"NuFiveCGap{tag}NPos", f"{int((g > 0).sum())}")
+    # the smallest mean verifier reward over the two patches and the two shared learning rates:
+    # the paper says both operating points look saturated to someone watching only the verifier
+    num("NuFiveCLkyMin", f"{min(np.mean(lky[a][m]) for a in ('std', 'hi') for m in ('patchU', 'patchI')):.3f}")
+    for a, tag in (("std", ""), ("hi", "HiLr")):
+        share = gap[a] - gap["tab"]
+        num(f"NuFiveCGapRL{tag}", f"{100*share.mean():.0f}")
+        lo, hi = bootci(share); num(f"NuFiveCGapRL{tag}CI", f"[{100*lo:.0f}, {100*hi:.0f}]")
+    picks = [select_run(by[sd][m]["runs"], "neural")["lr_neural"] for sd in seeds for m in modes]
+    num("NuFiveCLrShared", ", ".join(f"{v:g}" for v in sorted(set(picks))))
+    num("NuFiveCLrSharedNLo", f"{sum(v == lo_lr for v in picks)}"); num("NuFiveCLrSharedN", f"{len(picks)}")
+
+
+def per_lr_slopes(rows, arm, lrkey):
+    """{lr: (mean slope per doubling, CI, dRho at smallest u, dRho at u=1, seeds positive at
+    u=1, seeds negative at smallest u, verifier reward at u=1, accuracy at the two ends)}."""
+    out = {}
+    N = rows[0]["config"]["N"]
+    for lr in sorted({r["config"][lrkey] for r in rows}):
+        d = defaultdict(dict); lk = defaultdict(list); ac = defaultdict(list)
+        for r in rows:
+            if r["config"][lrkey] == lr:
+                c = r["config"]
+                d[c["m"]][c["seed"]] = val(r, arm, "d_rho")
+                lk[c["m"]].append(r[arm][-1]["leaky_reward"]); ac[c["m"]].append(r[arm][-1]["acc"])
+        ms = sorted(d); seeds = sorted(set.intersection(*[set(d[m]) for m in ms]))
+        if len(seeds) < 2:
+            continue
+        slopes = [np.polyfit(np.log2(ms), [d[m][sd] for m in ms], 1)[0] for sd in seeds]
+        lo_u = [d[ms[0]][sd] for sd in seeds]; hi_u = [d[ms[-1]][sd] for sd in seeds]
+        out[lr] = dict(slope=float(np.mean(slopes)), ci=bootci(slopes), n=len(seeds),
+                       lo=float(np.mean(lo_u)), hi=float(np.mean(hi_u)),
+                       lo_sem=float(np.std(lo_u, ddof=1) / np.sqrt(len(seeds))),
+                       hi_sem=float(np.std(hi_u, ddof=1) / np.sqrt(len(seeds))),
+                       n_pos_hi=int(sum(v > 0 for v in hi_u)), n_neg_lo=int(sum(v < 0 for v in lo_u)),
+                       lky_hi=float(np.mean(lk[ms[-1]])), acc_lo=float(np.mean(ac[ms[0]])),
+                       acc_hi=float(np.mean(ac[ms[-1]])), u_lo=ms[0] / N)
+    return out
+
+
+def fig8():
+    """The universality slope at every learning rate, for all three optimizers and both arms."""
+    sets = [("Adam", "Adam", load_capped("exp2_adam_shard*.jsonl")),
+            ("Grpo", "Sampled GRPO", load_capped("exp5a_shard*.jsonl")),
+            ("Sgd", "Plain SGD", load_capped("exp2_sgd_shard*.jsonl"))]
+    sets = [(k, t, r) for k, t, r in sets if r]
+    if not sets:
+        print("fig8: no data"); return
+    fig, axes = plt.subplots(1, len(sets), figsize=(6.7, 2.0))
+    axes = np.atleast_1d(axes)
+    table = []
+    n_pos_ci, n_lr = 0, 0
+    for ax, (key, title, rows) in zip(axes, sets):
+        ax.axhline(0, color=C_NULL, ls=":", lw=1.0)
+        for arm, lrkey, col, mk, lab in (("neural", "lr_neural", C_SHARED, "o", "Shared Params"),
+                                         ("tabular", "lr_tabular", C_TAB, "s", "Per-Prompt Params")):
+            st = per_lr_slopes(rows, arm, lrkey)
+            lrs = sorted(st)
+            mu = np.array([st[lr]["slope"] for lr in lrs])
+            lo = np.array([st[lr]["ci"][0] for lr in lrs]); hi = np.array([st[lr]["ci"][1] for lr in lrs])
+            ax.errorbar(lrs, mu, yerr=[mu - lo, hi - mu], fmt="-" + mk, color=col, ms=3.6,
+                        lw=1.4, capsize=1.8, label=lab)
+            for lr in lrs:
+                e = st[lr]
+                diverged = e["lky_hi"] < 0.9
+                if arm == "neural":
+                    n_lr += 1; n_pos_ci += int(e["ci"][0] > 0)
+                table.append((title, arm, lr, e, diverged))
+            # macros for the text: the two largest-reward Adam points and the low-u sign
+            for rank, lr in enumerate(lrs):
+                tag = f"{key}{'ABCDEFG'[rank]}"      # macro names cannot contain digits
+                e = st[lr]
+                num(f"Lr{tag}{'N' if arm == 'neural' else 'T'}Slope", f"{e['slope']:+.4f}")
+                num(f"Lr{tag}{'N' if arm == 'neural' else 'T'}SlopeCI", f"[{e['ci'][0]:+.4f}, {e['ci'][1]:+.4f}]")
+                if arm == "neural":
+                    num(f"Lr{tag}DRLo", f"{e['lo']:+.3f}"); num(f"Lr{tag}DRHi", f"{e['hi']:+.3f}")
+                    num(f"Lr{tag}DRHiSem", f"{e['hi_sem']:.3f}"); num(f"Lr{tag}DRLoSem", f"{e['lo_sem']:.3f}")
+                    num(f"Lr{tag}NPosHi", f"{e['n_pos_hi']}"); num(f"Lr{tag}NNegLo", f"{e['n_neg_lo']}")
+                    num(f"Lr{tag}AccHi", f"{e['acc_hi']:.3f}"); num(f"Lr{tag}AccLo", f"{e['acc_lo']:.3f}")
+                    num(f"Lr{tag}LkyHi", f"{e['lky_hi']:.3f}"); num(f"Lr{tag}N", f"{e['n']}")
+        ax.set_xscale("log"); ax.set_xlabel("Learning Rate"); ax.set_title(title)
+        all_lrs = sorted({r["config"]["lr_neural"] for r in rows})
+        ax.set_xticks(all_lrs); ax.set_xticklabels([f"{lr:g}" for lr in all_lrs], fontsize=7.0)
+        ax.set_xticks([], minor=True)
+    axes[0].set_ylabel(r"Slope of $\Delta\rho$ per Doubling of $m$")
+    h, l = axes[0].get_legend_handles_labels()
+    fig.legend(h, l, loc="upper center", bbox_to_anchor=(0.5, 1.005), ncol=2, fontsize=8.4,
+               frameon=False, handletextpad=0.45, columnspacing=1.6)
+    fig.tight_layout(pad=0.35, w_pad=1.6, rect=(0, 0, 1, 0.9))
+    fig.savefig(os.path.join(FIG, "fig8_lr.pdf"), bbox_inches="tight")
+    plt.close(fig)
+    num("LrNPosCI", f"{n_pos_ci}"); num("LrNTotal", f"{n_lr}")
+    # appendix table body
+    lines = []
+    for title, arm, lr, e, diverged in table:
+        name = "shared" if arm == "neural" else "per-prompt"
+        note = " (diverged)" if diverged else ""
+        lines.append(f"{title} & {name} & ${lr:g}$ & ${e['slope']:+.4f}$ & $[{e['ci'][0]:+.4f}, {e['ci'][1]:+.4f}]$ & "
+                     f"${e['lo']:+.3f}$ & ${e['hi']:+.3f}$ & {e['n_neg_lo']}/{e['n']} & {e['n_pos_hi']}/{e['n']} & "
+                     f"{e['lky_hi']:.3f}{note} \\\\")
+    head = ("\\scriptsize\\setlength{\\tabcolsep}{2pt}\n"
+            "\\begin{tabular}{llrrrrrrrl}\n\\toprule\n"
+            "optimizer & arm & LR & slope & $95\\%$ CI & $\\Delta\\rho(\\nicefrac1{64})$ & "
+            "$\\Delta\\rho(1)$ & neg.\\ at $\\nicefrac1{64}$ & pos.\\ at $1$ & reward at $1$ \\\\\n\\midrule\n")
+    tail = "\\bottomrule\n\\end{tabular}%\n"
+    open(os.path.join(PAPER, "lrtable.tex"), "w").write(head + "\n".join(lines) + "\n" + tail)
+
+
+def controls_per_u():
+    """Per-universality paired comparison of the two mask-only controls.  The accepted
+    version summarised each control by a linear slope in log2 m, which averages a step-shaped
+    curve into a small number; the paired difference at each u is what the design measures."""
+    def sel(rows, arm, tol=REWARD_TOL):
+        by = defaultdict(list)
+        for r in rows:
+            by[(r["config"]["m"], r["config"]["seed"])].append(r)
+        ms = {k[0] for k in by}; seeds = {k[1] for k in by}
+        full = {sd for sd in seeds if all((m, sd) in by for m in ms)}
+        out = {}
+        for k, rs in by.items():
+            if k[1] not in full:
+                continue
+            best = max(x[arm][-1]["leaky_reward"] for x in rs)
+            ok = [x for x in rs if x[arm][-1]["leaky_reward"] >= best - tol]
+            out[k] = min(ok, key=lambda x: x["config"]["lr_neural"])
+        return out
+    for tag, pat, cap in (("MaskFpr", "exp9_shard*.jsonl", 10), ("MaskMass", "exp9b_shard*.jsonl", 5)):
+        rows = load_capped(pat, cap=cap)
+        if not rows:
+            continue
+        sn, st = sel(rows, "neural"), sel(rows, "tabular")
+        ms = sorted({k[0] for k in sn}); seeds = sorted({k[1] for k in sn})
+        N = rows[0]["config"]["N"]
+        n_excl = 0
+        for m in ms:
+            dn = np.array([val(sn[(m, sd)], "neural", "d_rho") for sd in seeds])
+            dt = np.array([val(st[(m, sd)], "tabular", "d_rho") for sd in seeds])
+            b = np.array([val(sn[(m, sd)], "neural", "base_rho") for sd in seeds])
+            diff = dn - dt; lo, hi = bootci(diff)
+            if m < N and hi < 0:
+                n_excl += 1
+            lab = {1: "Lo", N // 2: "Mid", N: "Hi"}.get(m)
+            if lab:
+                num(f"{tag}Shared{lab}DR", f"{dn.mean():+.3f}"); num(f"{tag}Tab{lab}DR", f"{dt.mean():+.3f}")
+                num(f"{tag}Paired{lab}", f"{diff.mean():+.3f}"); num(f"{tag}Paired{lab}CI", ci_str((lo, hi)))
+                num(f"{tag}Base{lab}Rho", f"{b.mean():.3f}")
+                num(f"{tag}Shared{lab}Rel", f"{100*dn.mean()/b.mean():+.0f}\\%")
+                num(f"{tag}Tab{lab}Rel", f"{100*dt.mean()/b.mean():+.0f}\\%")
+        num(f"{tag}NExcl", f"{n_excl}"); num(f"{tag}NBelowOne", f"{len(ms) - 1}")
+        # the same string at the next learning rate up, where the sweeps amplify at u = 1
+        for lr, name in ((3e-3, "Three"), (1e-3, "One")):
+            d = [val(r, "neural", "d_rho") for r in rows if r["config"]["m"] == N and r["config"]["lr_neural"] == lr]
+            dmid = [val(r, "neural", "d_rho") for r in rows if r["config"]["m"] == N // 2 and r["config"]["lr_neural"] == lr]
+            if d:
+                num(f"{tag}{name}HiDR", f"{np.mean(d):+.3f}"); num(f"{tag}{name}MidDR", f"{np.mean(dmid):+.3f}")
+                num(f"{tag}{name}HiNPos", f"{int(sum(v > 0 for v in d))}")
+                num(f"{tag}{name}HiN", f"{len(d)}")
+
+
+def fig9():
+    """The threshold probe (E11): u_eff at the base, and predicted versus exact instantaneous
+    drift along plain SGD."""
+    files = sorted(glob.glob(os.path.join(RES, "exp12_seed*.json")))
+    if not files:
+        print("fig9: no data"); return
+    res = [json.load(open(p)) for p in files]
+    N = 64.0
+
+    def cond_mean(probes, key):
+        v = [q[key] for q in probes if np.isfinite(q[key])]
+        return float(np.mean(v)) if v else float("nan")
+
+    # ---- panel 1: u_eff against u at the base, E1 and E9
+    ue1 = defaultdict(list); um1 = defaultdict(list); ue9 = defaultdict(list); um9 = defaultdict(list)
+    for r in res:
+        for c in r["E1"]:
+            b = c["traj"][0]["probes"]
+            ue1[c["m"]].append(cond_mean(b, "ueff_kernel")); um1[c["m"]].append(cond_mean(b, "ueff_mass"))
+        for c in r["E9"]:
+            ue9[c["m"]].append(cond_mean(c["probes"], "ueff_kernel"))
+            um9[c["m"]].append(cond_mean(c["probes"], "ueff_mass"))
+    ms1 = sorted(ue1); ms9 = sorted(ue9)
+    fig, axes = plt.subplots(1, 3, figsize=(6.7, 2.1))
+    ax = axes[0]
+    uu = np.array([m / N for m in ms1])
+    ax.plot(uu, uu, color=C_NULL, ls=":", lw=1.0, label=r"$u_{\mathrm{eff}}=u$")
+    ax.plot(uu, [np.mean(um1[m]) for m in ms1], "-o", color=C_SHARED, label="Headline Base, Mass")
+    ax.plot(uu, [np.mean(ue1[m]) for m in ms1], "--^", color=C_SHARED, alpha=0.6, label="Headline Base, Kernel-Weighted")
+    ax.plot([m / N for m in ms9], [np.mean(um9[m]) for m in ms9], "-s", color=C_TAB, label="Blind Base, Mass")
+    ax.set_xscale("log", base=2); ax.set_ylim(0, 1.05)
+    ax.set_xlabel(r"Universality $u$"); ax.set_ylabel(r"$u_{\mathrm{eff}}$ at the Base")
+    ax.set_title("Where the Mass Sits"); ax.legend(loc="upper left", fontsize=6.3)
+    for m in ms1:
+        tag = {1: "Lo", 4: "Four", 16: "Sixteen", 64: "Hi"}.get(m, f"M{m}")
+        num(f"UeffEOne{tag}", f"{np.mean(ue1[m]):.2f}"); num(f"UeffMassEOne{tag}", f"{np.mean(um1[m]):.2f}")
+    for m in ms9:
+        tag = {1: "Lo", 4: "Four", 16: "Sixteen", 64: "Hi"}.get(m, f"M{m}")
+        num(f"UeffENine{tag}", f"{np.mean(ue9[m]):.2f}"); num(f"UeffMassENine{tag}", f"{np.mean(um9[m]):.2f}")
+
+    # ---- panel 2: sign agreement along SGD, per probed prompt and per condition mean
+    ax = axes[1]
+    cols = {1: C_TAB, 4: C_ALT, 16: C_PERM, 64: C_SHARED}
+    agree_pts, agree_lead, resid_share, pts = [], [], [], []
+    steps = res[0]["probe_steps"]
+    by_step = {t: {"coh": [], "lead": []} for t in steps}
+    for m in ms1:
+        ex, co, le = [], [], []
+        for r in res:
+            for c in r["E1"]:
+                if c["m"] != m:
+                    continue
+                ex.append([cond_mean(t["probes"], "exact_cross_lo") for t in c["traj"]])
+                co.append([cond_mean(t["probes"], "coh_pred") for t in c["traj"]])
+                le.append([cond_mean(t["probes"], "lead") + cond_mean(t["probes"], "corr") for t in c["traj"]])
+                for t in c["traj"]:
+                    for q in t["probes"]:
+                        pts.append((q["coh_pred"], q["exact_cross_lo"], m, q["lead"] + q["corr"]))
+                        by_step[t["step"]]["coh"].append(np.sign(q["coh_pred"]) == np.sign(q["exact_cross_lo"]))
+                        by_step[t["step"]]["lead"].append(np.sign(q["lead"] + q["corr"]) == np.sign(q["exact_cross_lo"]))
+        ex, co, le = np.mean(ex, 0), np.mean(co, 0), np.mean(le, 0)
+        for a_, b_ in zip(ex, co):
+            agree_pts.append(np.sign(a_) == np.sign(b_))
+        for a_, b_ in zip(ex, le):
+            agree_lead.append(np.sign(a_) == np.sign(b_))
+        for a_, b_ in zip(ex, co):
+            if abs(a_) > 1e-9:
+                resid_share.append(abs(a_ - b_) / abs(a_))
+    ax.axhline(0.5, color=C_NULL, ls=":", lw=1.0)
+    ax.plot(steps, [100 * np.mean(by_step[t]["coh"]) for t in steps], "-o", color=C_SHARED, ms=3.2,
+            label="Coherent Channel, Measured Masses")
+    ax.plot(steps, [100 * np.mean(by_step[t]["lead"]) for t in steps], "-s", color=C_TAB, ms=3.2,
+            label=r"Homogeneous Formula, Raw $u$")
+    ax.text(steps[-1], 51.5, "Chance", fontsize=6.8, color=C_NULL, ha="right")
+    ax.set_ylim(0, 100); ax.set_xlabel("SGD Step"); ax.set_ylabel("Sign Agreement (%)")
+    ax.set_title("Prediction vs Exact Drift"); ax.legend(loc="lower left", fontsize=6.3)
+
+    # ---- panel 3: every probed prompt, prediction against exact
+    ax = axes[2]
+    P = np.array([(a_, b_) for a_, b_, _, _ in pts])
+    M = np.array([m for _, _, m, _ in pts])
+    for m in ms1:
+        sel_ = M == m
+        ax.scatter(P[sel_, 0], P[sel_, 1], s=7, color=cols.get(m, C_NULL), alpha=0.55, lw=0, label=f"$u={m/N:g}$")
+    lim = np.nanmax(np.abs(P)) * 1.05 if len(P) else 1.0
+    ax.plot([-lim, lim], [-lim, lim], color=C_NULL, ls=":", lw=1.0)
+    ax.axhline(0, color=C_NULL, lw=0.5); ax.axvline(0, color=C_NULL, lw=0.5)
+    ax.set_xscale("symlog", linthresh=1.0); ax.set_yscale("symlog", linthresh=1.0)
+    ax.legend(loc="upper left", fontsize=6.3, markerscale=1.6)
+    ax.set_xlabel("Coherent-Kernel Prediction"); ax.set_ylabel("Exact Cross-Prompt Drift")
+    ax.set_title("Per Probed Prompt")
+    fig.tight_layout(pad=0.35, w_pad=1.5)
+    fig.savefig(os.path.join(FIG, "fig9_threshold.pdf"), bbox_inches="tight")
+    plt.close(fig)
+
+    sign_pts = float(np.mean([np.sign(a_) == np.sign(b_) for a_, b_, _, _ in pts])) if pts else float("nan")
+    sign_lead_pts = float(np.mean([np.sign(b_) == np.sign(l_) for _, b_, _, l_ in pts])) if pts else float("nan")
+    num("ProbeSignAgreeCond", f"{100*np.mean(agree_pts):.0f}\\%")
+    num("ProbeSignAgreeLeadCond", f"{100*np.mean(agree_lead):.0f}\\%")
+    num("ProbeSignAgreePts", f"{100*sign_pts:.0f}\\%"); num("ProbeSignAgreeLeadPts", f"{100*sign_lead_pts:.0f}\\%")
+    num("ProbeResidShareMedian", f"{np.median(resid_share):.1f}")
+    num("ProbeNCond", f"{len(agree_pts)}"); num("ProbeNPts", f"{len(pts)}")
+    num("ProbeNSeeds", f"{len(res)}"); num("ProbeSteps", ", ".join(str(t) for t in res[0]["probe_steps"]))
+    num("ProbeCap", f"{res[0].get('cap', 12)}")
+    # the sign of the same-string kernel entries (d6TQ's question about Eq. 2)
+    negK = [q["frac_neg_K"] for r in res for c in r["E1"] for q in c["traj"][0]["probes"]]
+    negW = [q["neg_weight_share"] for r in res for c in r["E1"] for q in c["traj"][0]["probes"]]
+    num("ProbeNegKFrac", f"{100*np.mean(negK):.0f}\\%"); num("ProbeNegWeightShare", f"{100*np.mean(negW):.0f}\\%")
+    # representation difference, E1 at u = 1 versus the blind base at u = 1
+    def rep(cs, key):
+        return float(np.mean([cond_mean(c["probes"] if "probes" in c else c["traj"][0]["probes"], key) for c in cs]))
+    e1hi = [c for r in res for c in r["E1"] if c["m"] == 64]
+    e9hi = [c for r in res for c in r["E9"] if c["m"] == 64]
+    e1lo = [c for r in res for c in r["E1"] if c["m"] == 1]
+    if e1hi and e9hi:
+        for key, tag in (("coh_h", "Coh"), ("p_h", "Ph"), ("exact_cross_lo", "Cross"), ("coh_pred", "CohPred"),
+                         ("kappa", "Kappa"), ("kappa_s", "KappaS")):
+            num(f"RepEOne{tag}", f"{rep(e1hi, key):+.3f}" if key != "p_h" else f"{rep(e1hi, key):.4f}")
+            num(f"RepENine{tag}", f"{rep(e9hi, key):+.3f}" if key != "p_h" else f"{rep(e9hi, key):.4f}")
+    if e1lo:
+        num("RepEOneLoCoh", f"{rep(e1lo, 'coh_h'):+.3f}")
+        num("RepEOneLoPhOut", f"{rep(e1lo, 'p_h_out'):.4f}"); num("RepEOneLoPh", f"{rep(e1lo, 'p_h'):.4f}")
+    # the step at which Vbar first exceeds 0.9 for the universal leak, under SGD
+    v64 = [[t["Vbar"] for t in c["traj"]] for c in e1hi]
+    if v64:
+        steps = res[0]["probe_steps"]
+        vm = np.mean(v64, 0)
+        num("ProbeVbarStepLast", f"{steps[-1]}"); num("ProbeVbarHiLast", f"{vm[-1]:.3f}")
+        v1 = np.mean([[t["Vbar"] for t in c["traj"]] for c in e1lo], 0)
+        num("ProbeVbarLoLast", f"{v1[-1]:.3f}")
+
+
 if __name__ == "__main__":
     import torch
     from policies import TransformerPolicy
     from env import build_prompts, gold_universality
-    fig1(); fig2(); fig3(); fig4(); fig5(); fig6(); fig7()
+    fig1(); fig2(); fig3(); fig4(); fig5(); fig6(); fig7(); fig8(); fig9(); controls_per_u()
     import mechfig; mechfig.main()
     num("NSteps", 400); num("NEps", "0.03"); num("NGrpoG", 8)
     num("NParams", f"{sum(p.numel() for p in TransformerPolicy(build_prompts(8)).parameters()):,}")

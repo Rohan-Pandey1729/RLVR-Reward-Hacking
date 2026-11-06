@@ -22,7 +22,7 @@ os.makedirs(OUT, exist_ok=True)
 
 MS = [8, 16, 32, 64]
 KS = [1, 2, 4, 8]
-SEEDS = [0, 1, 2]
+SEEDS = list(range(10))   # camera-ready: ten seeds
 
 
 def main():
@@ -31,14 +31,17 @@ def main():
     ap.add_argument("--nshards", type=int, default=1)
     ap.add_argument("--threads", type=int, default=1)
     ap.add_argument("--steps", type=int, default=400)
+    ap.add_argument("--seeds", type=str, default="0,1,2,3,4,5,6,7,8,9")
     a = ap.parse_args()
     torch.set_num_threads(a.threads)
 
-    jobs = [(m, k, s) for m in MS for k in KS for s in SEEDS][a.shard::a.nshards]
+    seeds = [int(x) for x in a.seeds.split(",")]
+    jobs = [(m, k, s) for m in MS for k in KS for s in seeds][a.shard::a.nshards]
     path = os.path.join(OUT, f"exp3cf_shard{a.shard}.jsonl")
     done = set()
-    if os.path.exists(path):
-        for line in open(path):
+    import glob as _glob
+    for q in _glob.glob(os.path.join(OUT, "exp3cf_shard*.jsonl")):
+        for line in open(q):
             c = json.loads(line)["config"]
             if c.get("steps") == a.steps:  # a cell run at another budget is not this cell
                 done.add((c["m"], c["k"], c["seed"]))

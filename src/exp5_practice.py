@@ -24,7 +24,7 @@ from runner import get_base, run_cell
 
 OUT = os.path.join(os.path.dirname(__file__), "..", "results")
 os.makedirs(OUT, exist_ok=True)
-SEEDS = [0, 1, 2, 3, 4]
+SEEDS = list(range(10))   # camera-ready: ten seeds in every part
 
 
 # ---------------------------------------------------------------- mixed-leak verifier
@@ -75,12 +75,18 @@ class MixedVerifier:
         return float(self.is_hack.sum() / (self.n * (N_RESP - 1)))
 
 
-def e5c(steps=600, out=None, seeds=(0, 1, 2), lrs=(1e-3, 3e-3)):
+def e5c(steps=400, out=None, seeds=(0, 1, 2), lrs=(1e-3, 3e-3)):
     """Base model contaminated with BOTH leak families; then deploy each patched verifier.
 
     Both patches remove the same number of accepted (prompt, wrong-response) pairs, so any
-    static audit rates them as equally improved.  For each mode we keep the learning rate
-    that maximises the verifier's own reward, exactly as in the main sweep."""
+    static audit rates them as equally improved.  Within a seed every patch starts from the
+    *same* checkpoint, so the base policy, and hence base accuracy, is identical across
+    patches and any difference in final accuracy arises during RL.
+
+    Every learning rate is stored for both arms.  The operating point is chosen at analysis
+    time with the same rule as the main sweeps (the smallest learning rate whose final
+    verifier reward is within 1e-3 of the best), rather than a strict argmax here, so the
+    hardening experiment uses one rule with the rest of the paper."""
     prompts = build_prompts(8)
     lam = competence_profile(len(prompts))
     rows = []
@@ -90,22 +96,21 @@ def e5c(steps=600, out=None, seeds=(0, 1, 2), lrs=(1e-3, 3e-3)):
         for mode in ["none", "patchU", "patchI"]:
             v = MixedVerifier(prompts, seed=seed, mode=mode)
             b = measure(lp0, v, full=True)
-            best_n = best_t = None
+            runs = {}
             for lr in lrs:
                 hn = train(copy.deepcopy(pol), v, algo="pg", norm="mean", steps=steps,
                            lr=lr, opt_name="adam", seed=seed, log_every=50)
                 ht = train(matched_tabular(lp0, len(prompts)), v, algo="pg", norm="mean",
                            steps=steps, lr=lr * 30, opt_name="adam", seed=seed, log_every=50)
-                if best_n is None or hn[-1]["leaky_reward"] > best_n[-1]["leaky_reward"]:
-                    best_n = hn
-                if best_t is None or ht[-1]["leaky_reward"] > best_t[-1]["leaky_reward"]:
-                    best_t = ht
+                runs[f"{lr:g}"] = dict(lr_neural=lr, lr_tabular=lr * 30, neural=hn, tabular=ht)
             rows.append(dict(seed=seed, mode=mode, static_fpr=v.static_false_positive_rate(),
-                             base=b, neural=best_n, tabular=best_t))
+                             base=b, runs=runs, steps=steps, code_version=6))
+            summ = " ".join(f"lr={k}: N acc={r['neural'][-1]['acc']:.3f} "
+                            f"lky={r['neural'][-1]['leaky_reward']:.3f} "
+                            f"T acc={r['tabular'][-1]['acc']:.3f}" for k, r in runs.items())
             print(f"  seed={seed} mode={mode:<7} fpr={v.static_false_positive_rate():.4f} "
-                  f"base_rho={b['mean_hack_frac']:.4f} "
-                  f"neural_rho={best_n[-1]['mean_hack_frac']:.4f} "
-                  f"neural_acc={best_n[-1]['acc']:.3f} tab_acc={best_t[-1]['acc']:.3f}", flush=True)
+                  f"base_acc={b['acc']:.3f} base_rho={b['mean_hack_frac']:.4f} | {summ}",
+                  flush=True)
             if out:
                 json.dump(rows, open(out, "w"))
     return rows
@@ -118,7 +123,8 @@ def main():
     ap.add_argument("--nshards", type=int, default=1)
     ap.add_argument("--threads", type=int, default=1)
     ap.add_argument("--steps", type=int, default=400)
-    ap.add_argument("--seeds", type=str, default="0,1,2")
+    ap.add_argument("--seeds", type=str, default="0,1,2,3,4,5,6,7,8,9")
+    ap.add_argument("--tag", type=str, default="", help="suffix for the part-c output file")
     a = ap.parse_args()
     torch.set_num_threads(a.threads)
 
@@ -151,14 +157,17 @@ def main():
         f.close()
 
     elif a.part == "b":
+        _sd = [int(x) for x in a.seeds.split(",")]
         jobs = [(m, b, s) for m in [1, 64] for b in [0.0, 0.003, 0.01, 0.03, 0.1, 0.3]
-                for s in [0, 1, 2]][a.shard::a.nshards]
+                for s in _sd][a.shard::a.nshards]
         path = os.path.join(OUT, f"exp5b_shard{a.shard}.jsonl")
         done = set()
-        if os.path.exists(path):
-            for line in open(path):
+        import glob as _glob
+        for q in _glob.glob(os.path.join(OUT, "exp5b_shard*.jsonl")):
+            for line in open(q):
                 c = json.loads(line)["config"]
-                done.add((c["m"], c["beta"], c["seed"]))
+                if c.get("steps") == a.steps:
+                    done.add((c["m"], c["beta"], c["seed"]))
         f = open(path, "a"); t0 = time.time()
         for i, (m, beta, s) in enumerate(jobs):
             if (m, beta, s) in done:
@@ -175,7 +184,8 @@ def main():
         f.close()
 
     else:
-        e5c(steps=a.steps, out=os.path.join(OUT, "exp5c.json"))
+        _sd = [int(x) for x in a.seeds.split(",")]
+        e5c(steps=a.steps, seeds=_sd, out=os.path.join(OUT, f"exp5c{a.tag}.json"))
 
 
 if __name__ == "__main__":

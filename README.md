@@ -1,52 +1,74 @@
 # Wrong the Same Way
 
-### Universality, Not Error Rate, Governs Reward Hacking in RLVR
+### Cross-Prompt Sharing Both Suppresses and Amplifies Reward Hacking in RLVR
 
-Code and data for the paper. Everything runs on CPU; no GPU is required. The whole
-pipeline reproduces on two cores.
+Code and data for the paper (NeurIPS 2026 workshop *Transitioning from Pre-Training to
+Post-Training*, camera-ready). Everything runs on CPU; no GPU is required.
 
 ## What this measures
 
 RLVR at its KL-regularised optimum is a *filter*: it reweights the verifier-accepted set as a
 whole and leaves the composition of that set at the base model's, so the post-RL rate of verifier
-false positives should be inherited. This repository tests when and why real training departs from
-that baseline, and shows the controlling quantity is the **universality** of a leak, the fraction
-of prompts on which the same wrong response is accepted, rather than the verifier's error rate.
+false positives should be inherited. First-order training on a shared-parameter model departs
+from that baseline in both directions. A wrong answer is pushed up by every prompt that accepts it
+and pushed down, through the baseline, by every prompt that rejects it, each in proportion to the
+model's own probability of producing it there. The quantity that sets the sign is therefore the
+share of the model's mass on a wrong answer that sits on prompts which accept it (`u_eff` in the
+paper), not the verifier's error rate and not universality by itself. This repository sweeps
+universality at a fixed error rate, removes sharing with the architecture held fixed, freezes the
+base model and varies only the verifier, and measures the drift decomposition directly.
 
 ## Layout
 
 ```
-src/env.py        task, response space, and the leaky verifier (universality m, error rate k)
-src/policies.py   two policy classes over the identical distribution family:
-                  TabularPolicy      -- free per-prompt parameters (no sharing)
-                  TransformerPolicy  -- 2-layer decoder, all prompts share all weights
-src/base.py       SFT construction of the base model and the matched tabular initialisation
-src/rlvr.py       objectives (exact PG, sampled GRPO, exact mirror descent) + exact measurement
-src/runner.py     cached base models, matched-pair runner, gradient-coherence probe
-src/theory.py     numerical verification of Prop. 1 and Lemma 1, and the drift/kernel measurements
-src/exp2..exp5    the four experiments
-src/figures.py    regenerates every figure and paper/numbers.tex
-paper/            LaTeX source
+src/env.py              task, response space, the leaky verifier (universality m, error rate k),
+                        and the mask-only verifier of the frozen-base controls
+src/policies.py         two policy classes over the identical distribution family:
+                        TabularPolicy      -- free per-prompt parameters (no sharing)
+                        TransformerPolicy  -- 2-layer decoder, all prompts share all weights
+src/base.py             SFT construction of the base model and the matched tabular initialisation
+src/rlvr.py             objectives (exact PG, sampled GRPO, exact mirror descent) + exact measurement
+src/runner.py           cached base models, matched-pair runner, gradient-coherence probe
+src/theory.py           numerical verification of Prop. 1 and Lemma 1, drift/kernel measurements
+src/exp2_universality.py   E1 (Adam) and E8 (SGD): the headline sweep
+src/exp6_blockperm.py      E2: permuted block membership
+src/exp3_factorial.py      E3: universality x error rate
+src/exp5_practice.py       E4 (sampled GRPO), E5 (KL sweep), E6 (verifier hardening)
+src/exp4_scaling.py        E7: prompt-set size
+src/exp9_maskonly.py       E9 / E9b: frozen base, mask-only controls
+src/exp10_copies.py        E10: per-prompt copies of the same transformer
+src/exp12_threshold.py     E11: u_eff at the base; predicted vs exact drift along SGD
+src/figures.py          regenerates every figure, paper/numbers.tex and paper/lrtable.tex
+paper/                  LaTeX source
+results/                raw result files (jsonl / json) read by figures.py
 ```
 
 ## Reproducing
 
+Use any Python 3.11 environment with `torch` (CPU build is enough), `numpy` and `matplotlib`:
+
 ```bash
 pip install torch numpy matplotlib
 cd src
-python3 exp2_universality.py --nshards 1 --opt adam   # headline universality sweep
-python3 exp3_factorial.py                             # universality x false-positive rate
-python3 theory.py                                     # propositions + mechanism
-python3 exp5_practice.py --part a                     # sampled GRPO
-python3 exp5_practice.py --part b                     # KL sweep
-python3 exp5_practice.py --part c                     # verifier-hardening budget
-python3 exp4_scaling.py                               # prompt-set size (u versus m)
-python3 exp2_universality.py --opt sgd                # SGD robustness
-python3 figures.py                                    # figures + numbers.tex
+python exp2_universality.py --opt adam           # E1, ten seeds, five learning rates
+python exp2_universality.py --opt sgd            # E8
+python exp6_blockperm.py                          # E2
+python exp3_factorial.py                          # E3
+python exp5_practice.py --part a                  # E4 sampled GRPO
+python exp5_practice.py --part b                  # E5 KL sweep
+python exp5_practice.py --part c                  # E6 verifier hardening (both learning rates stored)
+python exp4_scaling.py                            # E7
+python exp9_maskonly.py                           # E9  (add --mode constant_mass for E9b)
+python exp10_copies.py                            # E10
+python exp12_threshold.py --seed 0                # E11 (repeat for seeds 1 and 2)
+python theory.py                                  # propositions + mechanism probes
+python figures.py                                 # figures, numbers.tex, lrtable.tex
 ```
 
-`--shard i --nshards n` splits any experiment across `n` worker processes.
-Base models are cached in `cache/`, so re-runs are cheap.
+Every script takes `--shard i --nshards n` to split its jobs across `n` worker processes, and
+`--seeds 0,1,...` to choose seeds; scripts skip cells that already exist in `results/`. Base
+models are cached in `cache/` (not versioned), so re-runs are cheap. One base model takes about
+20 s to build and one 400-step RL run about 10 s on a single core.
 
 ## Measurement
 
@@ -54,18 +76,15 @@ The response space is small enough to enumerate, so `pi(.|x)` is computed **exac
 prompt at every logged step. No metric reported in the paper is a Monte-Carlo estimate; the only
 stochasticity is across seeds (transformer init, leak-string draw, and rollout sampling in the
 GRPO condition). `src/figures.py` writes every number quoted in the paper into
-`paper/numbers.tex`, so nothing is transcribed by hand.
+`paper/numbers.tex` (and the learning-rate table into `paper/lrtable.tex`), so nothing is
+transcribed by hand.
 
 ## LaTeX
 
-`paper/neurips_2026.sty` is the official NeurIPS 2026 style file, unmodified, taken from
-`Formatting_Instructions_For_NeurIPS_2026`. `paper/checklist.tex` ships with it and is included
-in case the target workshop requires the checklist; it is not currently `\input` by the paper.
-
-Build with `bash build.sh`, which regenerates every figure and `paper/numbers.tex` from the raw
-results and then runs pdflatex/bibtex. The paper is set with
-`\usepackage[dblblindworkshop]{neurips_2026}` and
-`\workshoptitle{Transitioning from Pre-Training to Post-Training}`, the NeurIPS 2026 workshop it
-targets. Content ends on page 9, inside that workshop's 9-page long-paper limit, which excludes
-references and appendices. The headline sweeps (E1, E4, E8) run at ten seeds; `src/figures.py`
-caps those loads at seed 10 so the reported design stays balanced.
+`paper/neurips_2026.sty` is the official NeurIPS 2026 style file, unmodified. The paper is set
+with `\usepackage[final,dblblindworkshop]{neurips_2026}` and
+`\workshoptitle{Transitioning from Pre-Training to Post-Training}`, so the camera-ready carries
+author names and the workshop footnote. Build with `PYTHON=/path/to/python bash build.sh`, which
+regenerates every figure and number from the raw results and then runs pdflatex/bibtex. Content
+ends on page 9, inside the workshop's 9-page long-paper limit, which excludes references and
+appendices.
