@@ -5,6 +5,8 @@
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
+% Type 1 typewriter font: the default falls back to bitmap Type 3 here, which NeurIPS does not accept.
+\renewcommand{\ttdefault}{lmtt}
 \usepackage{url}
 \usepackage{booktabs}
 \usepackage{graphicx}
@@ -14,6 +16,7 @@
 \usepackage{nicefrac}
 \usepackage{microtype}
 \usepackage{xcolor}
+\usepackage[hidelinks,hyperfootnotes=false]{hyperref}
 
 % Let floats share pages with more text; the defaults leave large gaps in a short paper.
 \renewcommand{\topfraction}{0.92}
@@ -48,7 +51,7 @@
 \title{Wrong the Same Way: Cross-Prompt Sharing Both\\Suppresses and Amplifies Reward Hacking in RLVR}
 
 \author{%
-  Michael Li\thanks{Equal contribution.} \\
+  Michael Li\thanks{Equal contribution. Our source code is available at \href{https://github.com/Rohan-Pandey1729/RLVR-Reward-Hacking}{\nolinkurl{github.com/Rohan-Pandey1729/RLVR-Reward-Hacking}}.} \\
   Carnegie Mellon University \\
   \texttt{ml7@andrew.cmu.edu} \\
   \And
@@ -202,7 +205,7 @@ The $u=1$ end under Adam is heterogeneous: the mean drift at the selected operat
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{../figures/fig2_lr.png}
-\caption{The universality slope of $\Delta\rho$ (per doubling of $m$) at every learning rate, for both policies under three optimizers. Bars and markers are means over ten seeds, dots are seeds and whiskers bootstrap $95\%$ intervals. The shared slope is positive everywhere except where SGD diverges; the per-prompt slope is zero everywhere.}
+\caption{The universality slope of $\Delta\rho$ (per doubling of $m$) at every learning rate, for both policies under three optimizers. Bars and markers are means over ten seeds, dots are seeds and whiskers bootstrap $95\%$ intervals. The shared slope is positive everywhere except where SGD diverges; the per-prompt slope is near zero everywhere.}
 \label{fig:lr}
 \end{figure}
 

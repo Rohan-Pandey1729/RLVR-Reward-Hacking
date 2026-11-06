@@ -164,7 +164,7 @@ Figure~\ref{fig:appendix} collects the remaining robustness views: the universal
 \section{Reproducibility}
 \label{app:repro}
 
-Every experiment runs on CPU; no GPU is used. The code, the raw result files and the figure code that regenerates every figure and every number quoted in the text are released together. The macro file that holds the numbers is written by the figure code, so nothing is transcribed by hand except settings (the step count, the contamination rate, the GRPO group size) and a few diagnostics quoted inline (the clipping rates and the $N\kappa/\kappa_s$ values).
+Every experiment runs on CPU; no GPU is used. The code, the raw result files and the figure code that regenerates every figure and every number quoted in the text are released together at \url{https://github.com/Rohan-Pandey1729/RLVR-Reward-Hacking}. The macro file that holds the numbers is written by the figure code, so nothing is transcribed by hand except settings (the step count, the contamination rate, the GRPO group size) and a few diagnostics quoted inline (the clipping rates and the $N\kappa/\kappa_s$ values).
 
 Three levels of reproduction apply. From an archived base checkpoint, on the same machine and code revision, the RL stage is bit-reproducible in weights and in every reported metric. Regenerating a base by rerunning the supervised stage is deterministic, but a base rebuilt under a different version of the numerical libraries differs from an archived one by up to about $2\times10^{-2}$ on the base metrics. A run from scratch therefore reproduces the reported drifts and the conclusions drawn from them, which are an order of magnitude larger, but not every archived value digit for digit.
 
