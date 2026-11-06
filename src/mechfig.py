@@ -28,8 +28,8 @@ C_REJECT = "C4"
 ACCEPTS = [True, True, False, True, False, False, True, False]
 XS = np.linspace(0.06, 0.94, len(ACCEPTS))
 Y_TITLE, Y_PROMPT, Y_THETA, Y_EQ, Y_NOTE = 0.985, 0.81, 0.51, 0.30, 0.0
-FIG_H = 2.3
-SMALL = "small"
+FIG_H = FIG_W / 2.99
+TEXT, HEAD = 10, 12                               # the sizes of axis text and of panel titles
 
 
 def box(ax, x, y, w, h, **kw):
@@ -38,7 +38,7 @@ def box(ax, x, y, w, h, **kw):
 
 
 def arrow(ax, start, end, color):
-    ax.add_patch(FancyArrowPatch(start, end, arrowstyle="-|>", mutation_scale=9, lw=1.3,
+    ax.add_patch(FancyArrowPatch(start, end, arrowstyle="-|>", mutation_scale=13, lw=1.7,
                                  color=color, shrinkA=0, shrinkB=0))
 
 
@@ -59,17 +59,18 @@ def environment(fig):
         ax.tick_params(which="both", length=0, labelbottom=False, labelleft=False)
         for s in ax.spines.values():
             s.set_visible(False)
-        ax.set_title(rf"$u = {u_label(m / 64)}$" + "\n" + rf"$m = {m}$", fontsize=SMALL, pad=3)
+        ax.set_title(rf"$u = {u_label(m / 64)}$" + "\n" + rf"$m = {m}$", fontsize=TEXT, pad=4)
         if left == lefts[0]:
-            ax.set_ylabel(r"first operand $a$", fontsize=SMALL)
+            ax.set_ylabel(r"first operand $a$", fontsize=TEXT)
         if left == lefts[1]:
-            ax.set_xlabel(r"second operand $b$", fontsize=SMALL)
+            ax.set_xlabel(r"second operand $b$", fontsize=TEXT)
     cx = lefts[1] + w / 2
-    fig.text(cx, 0.975, r"Prompts that accept the wrong answer $h$", ha="center", va="top")
+    fig.text(cx, 0.975, r"Prompts that accept the wrong answer $h$", ha="center", va="top",
+             fontsize=HEAD)
     fig.text(cx, 0.115, "Each of the $N=64$ prompts accepts its\n"
                         "correct answer and exactly one wrong string,\n"
                         "so the static false-positive rate is fixed",
-             ha="center", va="bottom", fontsize=SMALL)
+             ha="center", va="bottom", fontsize=TEXT)
 
 
 def mechanism(ax, shared):
@@ -82,31 +83,31 @@ def mechanism(ax, shared):
                 color="w")
 
     if shared:
-        ax.text(0.5, Y_TITLE, "Shared parameters", ha="center", va="top")
-        box(ax, 0.5, Y_THETA, 0.5, 0.17, fc="w", ec="k", lw=1.0)
+        ax.text(0.5, Y_TITLE, "Shared parameters", ha="center", va="top", fontsize=HEAD)
+        box(ax, 0.5, Y_THETA, 0.5, 0.17, fc="w", ec="k", lw=1.2)
         ax.text(0.5, Y_THETA, r"One shared $\theta$", ha="center", va="center")
         for x, accepts in zip(XS, ACCEPTS):
             arrow(ax, (x, Y_PROMPT - 0.09), (0.5 + 0.42 * (x - 0.5), Y_THETA + 0.1),
                   C_ACCEPT if accepts else C_REJECT)
         ax.text(0.5, Y_EQ, r"$\frac{d}{dt}\log\pi_\theta(h\mid x)"
                            r"=\frac{1}{N}\sum_{x'}\mathrm{Cov}[r,K_\theta]$",
-                ha="center", va="center", fontsize=SMALL)
+                ha="center", va="center", fontsize=TEXT)
         note = ("Every prompt moves $h$ at $x$:\n"
                 "accepting prompts push it up,\n"
                 "rejecting prompts push it down")
     else:
-        ax.text(0.5, Y_TITLE, "Per-prompt parameters", ha="center", va="top")
+        ax.text(0.5, Y_TITLE, "Per-prompt parameters", ha="center", va="top", fontsize=HEAD)
         for x, accepts in zip(XS, ACCEPTS):
-            box(ax, x, Y_THETA, 0.082, 0.17, fc="w", ec="k", lw=1.0)
+            box(ax, x, Y_THETA, 0.082, 0.17, fc="w", ec="k", lw=1.2)
             ax.text(x, Y_THETA, r"$\theta_x$", ha="center", va="center")
             arrow(ax, (x, Y_PROMPT - 0.09), (x, Y_THETA + 0.1),
                   C_ACCEPT if accepts else C_REJECT)
         ax.text(0.5, Y_EQ, r"$K_\theta((x,h),(x',y'))=0$ for $x'\neq x$",
-                ha="center", va="center", fontsize=SMALL)
+                ha="center", va="center", fontsize=TEXT)
         note = ("No cross-prompt term:\n"
                 "the dynamics cannot see\n"
                 "how many prompts accept $h$")
-    ax.text(0.5, Y_NOTE, note, ha="center", va="bottom", fontsize=SMALL)
+    ax.text(0.5, Y_NOTE, note, ha="center", va="bottom", fontsize=TEXT)
 
 
 def main():

@@ -79,6 +79,14 @@ register of the two example papers.
 
 ## Design decisions, and why
 
+**Why one panel size?** Every data figure is built by `panel_grid()` in `src/analysis.py`: three
+identical panels to a row on an 11 in canvas, so a one-row figure is 3:1, a two-row figure about
+3:2, and default 10pt text prints at 5pt. These are the proportions of the plots in
+an earlier paper. A panel keeps its size in every figure; a cell with no panel holds the
+legend. Only `fig0_overview` and `fig6_field` sit outside the grid, and the two heat maps of
+`fig8_appendix` keep the row height but are wider. The larger figures were paid for by moving the
+"RLVR as filtering" and "Verifier error" paragraphs, verbatim, to Appendix F.
+
 **Why a two-digit response space?** Because 100 responses × 64 prompts can be enumerated, so
 `pi(.|x)` is computed exactly at every logged step and no reported hack fraction, log-odds or
 accuracy is a Monte-Carlo estimate. The effect being measured is a composition *inside* the

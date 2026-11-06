@@ -36,9 +36,9 @@ from collections import defaultdict
 import numpy as np
 import matplotlib.pyplot as plt
 
-from analysis import (RES, load, save, top_legend, under_legend, u_label, u_axis, u_colors, heat,
-                      swarm, seed_dots, mean_line, FIG_W, BASELINE, C_SHARED, C_PERM, C_TAB,
-                      C_COPIES, C_ALT, C_NULL, M_SHARED, M_PERM, M_TAB, M_COPIES)
+from analysis import (RES, load, save, panel_grid, top_legend, bottom_legend, u_label, u_axis,
+                      u_colors, heat, seed_dots, mean_line, FIG_W, DOT, BASELINE, C_SHARED,
+                      C_PERM, C_TAB, C_COPIES, C_ALT, C_NULL, M_SHARED, M_PERM, M_TAB, M_COPIES)
 
 # The headline sweep (E1/E8) is reported at a fixed, balanced seed budget.  Some cells were
 # run beyond it while a larger budget was being attempted; including those partial cells
@@ -56,7 +56,6 @@ FLOOR = 1e-30
 LAM_CLIP = 20.0
 NUM = {}
 CENSOR = []
-PANEL_H = 1.65          # canvas height of a one-row, three-panel figure (prints at 0.8x)
 
 
 def num(k, v):
@@ -213,7 +212,7 @@ def select_run(runs, arm, tol=REWARD_TOL):
     return min(near, key=lambda r: r[lrkey])
 
 
-def sweep_panel(ax, arms, N, key="d_rho", dy=0.035, offsets=(-0.14, 0.14)):
+def sweep_panel(ax, arms, N, key="d_rho", offsets=(-0.14, 0.14)):
     """A universality sweep: every seed as a dot, the mean over seeds on top, one series per arm.
     `arms` is a list of (selection, arm, colour, marker, label)."""
     if key == "d_rho":
@@ -222,7 +221,7 @@ def sweep_panel(ax, arms, N, key="d_rho", dy=0.035, offsets=(-0.14, 0.14)):
         x, mu, se = series(by, which, key)
         lx = np.log2(x / N) + off
         for xi, v in zip(lx, seed_values(by, which, key)):
-            seed_dots(ax, xi, v, col, dy=dy, dx=0.075, s=5)
+            seed_dots(ax, xi, v, col)
         mean_line(ax, lx, mu, col, mk, label=lab, yerr=se)
     u_axis(ax)
 
@@ -264,8 +263,7 @@ def fig1():
     arms.append(("Per-prompt", bt, "tabular", C_TAB, M_TAB))
     dodge = np.linspace(-0.27, 0.27, len(arms))
 
-    fig, axes = plt.subplots(1, 3, figsize=(FIG_W, PANEL_H), width_ratios=[1, 1.3, 1],
-                             layout="constrained")
+    fig, axes = panel_grid()
 
     # left: each condition as an arrow from its own base model to where training ended
     ax = axes[0]
@@ -275,10 +273,10 @@ def fig1():
         lx = np.log2(x / N) + off
         for xi, y0, y1 in zip(lx, start, final):
             ax.annotate("", xy=(xi, y1), xytext=(xi, y0),
-                        arrowprops=dict(arrowstyle="-|>", color=col, lw=1.2, mutation_scale=7,
+                        arrowprops=dict(arrowstyle="-|>", color=col, lw=1.6, mutation_scale=10,
                                         shrinkA=0, shrinkB=0))
-        ax.errorbar(lx, final, yerr=se, ls="none", color=col, elinewidth=0.8, capsize=1.5,
-                    capthick=0.8, zorder=2)
+        ax.errorbar(lx, final, yerr=se, ls="none", color=col, elinewidth=1.0, capsize=2.5,
+                    capthick=1.0, zorder=2)
     ax.plot(np.log2(u), brho, **BASELINE)
     ax.set_ylim(0, 0.38)
     ax.yaxis.set_major_locator(plt.MultipleLocator(0.1))
@@ -286,13 +284,13 @@ def fig1():
     ax.set_title("Base model to final")
 
     # centre and right: every seed, with the mean over seeds on top
-    for ax, key, dy, ylabel, title in ((axes[1], "d_rho", 0.03, r"Drift $\Delta\rho$", "Drift from the base"),
-                                       (axes[2], "acc", 0.03, "True accuracy", "Accuracy")):
+    for ax, key, ylabel, title in ((axes[1], "d_rho", r"Drift $\Delta\rho$", "Drift from the base"),
+                                   (axes[2], "acc", "True accuracy", "Accuracy")):
         for (name, by, which, col, mk), off in zip(arms, dodge):
             x, mu, se = series(by, which, key)
             lx = np.log2(x / N) + off
             for xi, v in zip(lx, seed_values(by, which, key)):
-                seed_dots(ax, xi, v, col, dy=dy, dx=0.075, s=5)
+                seed_dots(ax, xi, v, col)
             mean_line(ax, lx, mu, col, mk, label=name, yerr=se)
         ax.set_ylabel(ylabel)
         ax.set_title(title)
@@ -386,7 +384,7 @@ def fig_factorial():
     rate_cols = {k: plt.cm.plasma(t) for k, t in zip(ks, np.linspace(0.1, 0.75, len(ks)))}
     u_cols = u_colors([m / N for m in ms])
 
-    def strips(ax, outer, inner, cell, colour, name, title):
+    def strips(ax, outer, inner, cell, colour):
         """One column of seeds per (outer, inner) level, with a bar at each cell's mean and the
         means of one inner level joined across the outer levels."""
         w = 0.8 / len(inner)
@@ -394,27 +392,31 @@ def fig_factorial():
             xs = np.arange(len(outer)) + (j - (len(inner) - 1) / 2) * w
             mu = [cells[cell(a, b)].mean() for a in outer]
             for x, a in zip(xs, outer):
-                seed_dots(ax, x, cells[cell(a, b)], colour(b), dy=0.32, dx=0.028, s=6)
-            ax.plot(xs, mu, color=colour(b), lw=0.8, zorder=3)
-            ax.hlines(mu, xs - 0.4 * w, xs + 0.4 * w, color=colour(b), lw=2.2, zorder=4)
+                seed_dots(ax, x, cells[cell(a, b)], colour(b), s=6)
+            ax.plot(xs, mu, color=colour(b), lw=1.0, zorder=3)
+            ax.hlines(mu, xs - 0.4 * w, xs + 0.4 * w, color=colour(b), lw=2.6, zorder=4)
         ax.axhline(0, **BASELINE)
-        handles = [plt.Line2D([], [], color=colour(b), lw=2.2) for b in inner]
-        under_legend(ax, ncol=len(inner), handles=handles, labels=[name(b) for b in inner],
-                     title=title, columnspacing=1.0, handlelength=1.2, handletextpad=0.5)
+        return [plt.Line2D([], [], color=colour(b), lw=2.6) for b in inner]
 
-    fig, axes = plt.subplots(1, 2, figsize=(FIG_W, 2.8), sharey=True, layout="constrained")
-    strips(axes[0], ms, ks, lambda m, k: (m, k), rate_cols.get, lambda k: f"{fprs[k]*100:.1f}%",
-           "Static false-positive rate")
+    fig, axes = panel_grid(top_band=False)
+    rate_handles = strips(axes[0], ms, ks, lambda m, k: (m, k), rate_cols.get)
     axes[0].set_xticks(range(len(ms)), [u_label(m / N) for m in ms])
     axes[0].set_xlabel(r"Leak universality $u$")
     axes[0].set_ylabel(r"Log-odds drift $\Delta\Lambda$")
     axes[0].yaxis.set_major_locator(plt.MultipleLocator(2))
     axes[0].set_title("Grouped by universality")
-    strips(axes[1], ks, ms, lambda k, m: (m, k), lambda m: u_cols[m / N],
-           lambda m: u_label(m / N), r"Leak universality $u$")
+    u_handles = strips(axes[1], ks, ms, lambda k, m: (m, k), lambda m: u_cols[m / N])
     axes[1].set_xticks(range(len(ks)), [f"{fprs[k]*100:.1f}" for k in ks])
     axes[1].set_xlabel("Static false-positive rate (%)")
     axes[1].set_title("Grouped by error rate")
+    axes[1].sharey(axes[0])
+    axes[1].tick_params(labelleft=False)
+    axes[2].axis("off")
+    axes[2].add_artist(axes[2].legend(rate_handles, [f"{fprs[k]*100:.1f}%" for k in ks],
+                                      title="Static false-positive rate", loc="upper left",
+                                      frameon=False, borderaxespad=0))
+    axes[2].legend(u_handles, [u_label(m / N) for m in ms], title=r"Leak universality $u$",
+                   loc="lower left", frameon=False, borderaxespad=0)
     save(fig, "fig7_factorial")
 
     ys, Ms, Ks, Bs = [], [], [], []
@@ -470,7 +472,7 @@ def fig_field():
     bm = np.nanmean(G, axis=0)      # mean over universality, per error rate
 
     # the marginal means are cells on the same colour scale, so they read exactly like the field
-    fig = plt.figure(figsize=(FIG_W, 2.9), layout="constrained")
+    fig = plt.figure(figsize=(FIG_W, 4.64), layout="constrained")
     gs = fig.add_gridspec(2, 2, width_ratios=[len(ks), 1.15], height_ratios=[len(ms), 1.15])
     axH, axR = fig.add_subplot(gs[0, 0]), fig.add_subplot(gs[0, 1])
     axB, axC = fig.add_subplot(gs[1, 0]), fig.add_subplot(gs[1, 1])
@@ -563,13 +565,12 @@ def control_panel(ax, title, ms, arms, N):
     (selection, arm, colour, marker, label)."""
     ax.axhline(0, **BASELINE)
     lu = np.log2(np.array(ms) / N)
-    span = max(abs(v) for s_, a_, *_ in arms for m in ms for v in dr(s_, a_, m))
     for (s_, arm, col, mk, lab), off in zip(arms, (-0.14, 0.14)):
         vals = [dr(s_, arm, m) for m in ms]
         mu = np.array([np.mean(v) for v in vals])
         ci = np.array([bootci(v) for v in vals])
         for x, v in zip(lu + off, vals):
-            seed_dots(ax, x, v, col, dy=0.035 * span, dx=0.075, s=5)
+            seed_dots(ax, x, v, col)
         mean_line(ax, lu + off, mu, col, mk, label=lab, yerr=[mu - ci[:, 0], ci[:, 1] - mu])
     u_axis(ax)
     ax.set_title(title)
@@ -663,9 +664,9 @@ def channel_panels(axes):
 
     lu = np.log2(ms / N)
 
-    def seeds(ax, key, off, col, dy):
+    def seeds(ax, key, off, col):
         for x, m in zip(lu + off, ms):
-            seed_dots(ax, x, d[key][m], col, dy=dy, dx=0.1, s=7, alpha=0.6)
+            seed_dots(ax, x, d[key][m], col, s=12, alpha=0.6)
 
     # ---- panel 1: the cross-prompt term, the only channel universality can act through.
     # A lollipop from zero, because zero is the value Corollary 1 predicts without sharing.
@@ -673,20 +674,19 @@ def channel_panels(axes):
     nc, ncs = mm("n_cross"); tc, _ = mm("t_cross")
     ax.axhline(0, **BASELINE)
     ax.vlines(lu - 0.13, 0, nc, color=C_SHARED, lw=1.3, zorder=2)
-    seeds(ax, "n_cross", -0.13, C_SHARED, 0.9)
-    mean_line(ax, lu - 0.13, nc, C_SHARED, M_SHARED, "Shared", yerr=ncs, ls="none")
+    seeds(ax, "n_cross", -0.13, C_SHARED)
+    mean_line(ax, lu - 0.13, nc, C_SHARED, M_SHARED, "Shared", ls="none")
     mean_line(ax, lu + 0.13, tc, C_TAB, M_TAB, "Per-prompt", ls="none")
-    ax.set_ylim(top=24)
     ax.set_ylabel(r"Cross-prompt drift of $h$")
     ax.set_title("Cross-prompt term")
 
     # ---- panel 2: coherence
     ax = axes[1]
-    ch, chs = mm("coh_h"); cg, _ = mm("coh_g")
+    ch, _ = mm("coh_h"); cg, _ = mm("coh_g")
     ax.axhline(0, **BASELINE)
-    seeds(ax, "coh_h", 0, C_SHARED, 0.014)
-    seeds(ax, "coh_g", 0, C_ALT, 0.014)
-    mean_line(ax, lu, ch, C_SHARED, M_SHARED, "Wrong answer $h$", yerr=chs)
+    seeds(ax, "coh_h", 0, C_SHARED)
+    seeds(ax, "coh_g", 0, C_ALT)
+    mean_line(ax, lu, ch, C_SHARED, M_SHARED, "Wrong answer $h$")
     mean_line(ax, lu, cg, C_ALT, M_TAB, "Correct answer")
     ax.set_ylabel("Gradient cosine")
     ax.set_title("Coherence")
@@ -702,8 +702,7 @@ def channel_panels(axes):
         ax.set_ylabel(r"Drift $\Delta\rho$")
     for ax in axes[:2]:
         u_axis(ax)
-    handles = dict(zip(*reversed(axes[0].get_legend_handles_labels())))
-    handles.update(zip(*reversed(axes[2].get_legend_handles_labels())))
+    handles = dict(zip(*reversed(axes[2].get_legend_handles_labels())))
 
     num("MechCrossLo", f"{nc[0]:.1f}"); num("MechCrossHi", f"{nc[-1]:.1f}")
     num("MechCrossLoSem", f"{ncs[0]:.1f}"); num("MechCrossHiSem", f"{ncs[-1]:.1f}")
@@ -794,7 +793,7 @@ def ueff_panel(ax):
         ms_ = sorted(src)
         lx = np.log2(np.array(ms_) / N)
         for x, m in zip(lx, ms_):
-            seed_dots(ax, x, src[m], col, dy=0.02, dx=0.09, s=5)
+            seed_dots(ax, x, src[m], col)
         mean_line(ax, lx, [np.mean(src[m]) for m in ms_], col, mk, label=lab, ls=ls)
     u_axis(ax)
     ax.set_ylim(0, 1.05)
@@ -824,18 +823,15 @@ def controls_panels(axes):
 
 def fig_mechanism():
     """Two rows: sharing is the channel (top), and what the base model contributes (bottom)."""
-    fig = plt.figure(figsize=(FIG_W, 2 * PANEL_H + 0.25), layout="constrained")
-    top, bottom = fig.subfigures(2, 1, height_ratios=[PANEL_H, PANEL_H + 0.25])
-    handles = channel_panels(top.subplots(1, 3))
+    fig, axes = panel_grid(2, bottom_band=True)
+    handles = channel_panels(axes[0])
+    leg = controls_panels(axes[1])
+    handles.update(zip(*reversed(axes[1][0].get_legend_handles_labels())))
     order = [k for k in ("Shared", "Per-prompt", "Per-prompt copies") if k in handles]
-    if order:
-        top.legend([handles[k] for k in order], order, loc="outside upper center",
-                   ncol=len(order), frameon=False)
-    leg = controls_panels(bottom.subplots(1, 3))
+    top_legend(fig, [handles[k] for k in order], order)
     if leg:
-        # the u_eff panel's curves fill it, so its legend goes in a band below the figure
-        bottom.legend(*leg, loc="outside lower center", ncol=5, frameon=False, handlelength=1.7,
-                      columnspacing=1.2, fontsize="small")
+        # the u_eff panel's curves fill it, so its legend goes in the band below the figure
+        bottom_legend(fig, *leg)
     save(fig, "fig3_mechanism")
 
 
@@ -895,7 +891,7 @@ def kl_panel(ax, kl, key):
     for m, mk, off in zip(sorted(src), "v^", (-0.13, 0.13)):
         xs = np.arange(len(betas)) + off
         for x, b in zip(xs, betas):
-            seed_dots(ax, x, src[m][b], u_cols[m / 64], dy=0.03, dx=0.06, s=5)
+            seed_dots(ax, x, src[m][b], u_cols[m / 64])
         mean_line(ax, xs, [np.mean(src[m][b]) for b in betas], u_cols[m / 64], mk,
                   label=rf"Shared, $u={u_label(m / 64)}$",
                   yerr=[np.std(src[m][b], ddof=1) / np.sqrt(len(src[m][b])) for b in betas])
@@ -935,7 +931,7 @@ def sgd_panel(ax):
     xm, dn, sn = series(b1, "neural", "d_rho")
     xt, dt, st = series(b2, "tabular", "d_rho")
     sweep_panel(ax, ((b1, "neural", C_SHARED, M_SHARED, "Shared"),
-                     (b2, "tabular", C_TAB, M_TAB, "Per-prompt")), N, dy=0.04, offsets=(-0.13, 0.13))
+                     (b2, "tabular", C_TAB, M_TAB, "Per-prompt")), N)
     ax.set_ylabel(r"Drift $\Delta\rho$"); ax.set_title("Plain SGD")
     num("NuTwoSgdNeuralHi", f"{dn[-1]:+.3f}"); num("NuTwoSgdNeuralLo", f"{dn[0]:+.3f}")
     num("NuTwoSgdTabHi", f"{dt[-1]:+.3f}"); num("NuTwoSgdTabLo", f"{dt[0]:+.3f}")
@@ -1001,27 +997,28 @@ def hardening_panel(axes):
     # One line per seed, because each seed runs all three verifiers from a single checkpoint: the
     # lines show the pairing that a bar over seeds would average away.
     fprs = [np.mean([by[sd][m]["static_fpr"] for sd in seeds]) for m in modes]
-    ys = np.arange(len(modes))[::-1]
+    xs = np.arange(len(modes))
     for ax, a, col, mk, name in zip(axes, ("std", "hi", "tab"), (C_SHARED, C_SHARED, C_TAB),
                                     (M_SHARED, M_SHARED, M_TAB),
                                     (f"Shared, LR {lr_label(lo_lr)}", f"Shared, LR {lr_label(hi_lr)}",
                                      "Per-prompt")):
-        ax.axvline(np.mean(base_acc), **BASELINE)
-        ax.scatter(acc[a]["none"], ys[0] + swarm(acc[a]["none"], 0.025, 0.06), s=6, color=col,
-                   alpha=0.55, linewidths=0, zorder=2)
-        ax.plot(np.array([acc[a]["patchU"], acc[a]["patchI"]]), ys[1:], color=col, lw=0.7,
+        ax.axhline(np.mean(base_acc), **BASELINE)
+        seed_dots(ax, xs[0], acc[a]["none"], col)
+        ax.plot(xs[1:], np.array([acc[a]["patchU"], acc[a]["patchI"]]), color=col, lw=0.9,
                 alpha=0.45, zorder=2)
-        ax.plot(mean[a][1:], ys[1:], color=col, lw=1.8, zorder=3)
-        ax.errorbar(mean[a], ys, xerr=sem[a], ls="none", color=col, marker=mk, ms=6, mec="white",
-                    mew=0.5, elinewidth=1.0, zorder=4)
-        ax.set_title(f"{name}\ngap {100*gap[a].mean():.0f} \N{PLUS-MINUS SIGN} "
+        ax.plot(xs[1:], mean[a][1:], color=col, lw=2.2, zorder=3)
+        ax.errorbar(xs, mean[a], yerr=sem[a], ls="none", color=col, marker=mk, ms=7, mec="white",
+                    mew=0.6, elinewidth=1.2, zorder=4)
+        ax.set_title(f"{name}: gap {100*gap[a].mean():.0f} \N{PLUS-MINUS SIGN} "
                      f"{100*gap[a].std(ddof=1)/np.sqrt(len(seeds)):.0f} points")
-        ax.set_xlabel("True accuracy")
-    axes[0].text(np.mean(base_acc) - 0.03, ys[1], "Base\nmodel", ha="right", va="center")
-    axes[0].set_xlim(0, 1.04)
-    axes[0].set_ylim(-0.4, len(modes) - 0.6)
-    axes[0].set_yticks(ys, [f"{l}\nFPR {f*100:.1f}%" for l, f in zip(labels, fprs)])
-    axes[0].set_ylabel("Leak removed")
+        ax.set_xlim(-0.5, len(modes) - 0.5)
+        ax.set_ylim(0, 1.04)
+        ax.set_xticks(xs, [f"{l}\nFPR {f*100:.1f}%" for l, f in zip(labels, fprs)])
+        ax.set_xlabel("Leak removed")
+    for ax in axes[1:]:
+        ax.tick_params(labelleft=False)
+    axes[0].set_ylabel("True accuracy")
+    axes[0].text(len(modes) - 0.6, np.mean(base_acc) + 0.015, "Base model", ha="right", va="bottom")
     num("NuFiveCNSeeds", f"{len(seeds)}")
     num("NuFiveCBaseAcc", f"{np.mean(base_acc):.3f}")
     num("NuFiveCLoLr", f"{lo_lr:g}"); num("NuFiveCHiLr", f"{hi_lr:g}")
@@ -1050,11 +1047,9 @@ def hardening_panel(axes):
 def fig_practice():
     """Two rows: other optimizers and the KL penalty (top), and the two verifier patches
     (bottom)."""
-    fig = plt.figure(figsize=(FIG_W, PANEL_H + 1.85), layout="constrained")
-    top, bottom = fig.subfigures(2, 1, height_ratios=[PANEL_H, 1.85])
-    h, l = robustness_panels(top.subplots(1, 3))
-    top.legend(h, l, loc="outside upper center", ncol=len(h), frameon=False)
-    hardening_panel(bottom.subplots(1, 3, sharex=True, sharey=True))
+    fig, axes = panel_grid(2, pad_bottom=0.16)      # two-line tick labels under the bottom row
+    top_legend(fig, *robustness_panels(axes[0]))
+    hardening_panel(axes[1])
     save(fig, "fig4_practice")
 
 
@@ -1066,10 +1061,18 @@ def fig_appendix():
     if not rows:
         return
     N = rows[0]["config"]["N"]
-    fig = plt.figure(figsize=(FIG_W, 4.5), layout="constrained")
-    top, bottom = fig.subfigures(2, 1, height_ratios=[1, 1])
-    heat_axes = top.subplots(1, 2, sharey=True)
-    axes = bottom.subplots(1, 3)
+    fig, grid = panel_grid(2, top_band=False, bottom_band=True)
+    axes = grid[1]
+
+    # the two heat maps keep the row's height and share its width with the colour bar
+    box, right = grid[0][0].get_position(), grid[0][2].get_position().x1
+    for ax in grid[0]:
+        ax.remove()
+    gap, bar_room, bar_w = 0.16 / FIG_W, 0.94 / FIG_W, 0.16 / FIG_W
+    heat_w = (right - box.x0 - gap - bar_room) / 2
+    heat_axes = [fig.add_axes([box.x0 + i * (heat_w + gap), box.y0, heat_w, box.height])
+                 for i in range(2)]
+    bar_ax = fig.add_axes([right - bar_room + 0.14 / FIG_W, box.y0, bar_w, box.height])
 
     # every learning rate and universality at once, for both arms, as signed fields on one scale
     lrs = sorted({r["config"]["lr_neural"] for r in rows})
@@ -1083,13 +1086,14 @@ def fig_appendix():
     lim = max(np.abs(f).max() for f in field.values())
     norm = plt.Normalize(-lim, lim)
     for ax, arm, title in zip(heat_axes, ("neural", "tabular"), ("Shared", "Per-prompt")):
-        im = heat(ax, field[arm], norm, "RdBu_r", fmt="{:.2f}", fontsize=8)
+        im = heat(ax, field[arm], norm, "RdBu_r", fmt="{:.2f}")
         ax.set_xticks(range(len(ms)), [u_label(m / N) for m in ms])
         ax.set_xlabel(r"Leak universality $u$")
         ax.set_title(title)
     heat_axes[0].set_yticks(range(len(lrs)), [lr_label(lr) for lr in lrs])
     heat_axes[0].set_ylabel("Adam learning rate")
-    top.colorbar(im, ax=heat_axes, label=r"Mean drift $\Delta\rho$")
+    heat_axes[1].set_yticks([])
+    fig.colorbar(im, cax=bar_ax, label=r"Mean drift $\Delta\rho$")
 
     # trajectories: colour is the arm, line style the condition, thin lines the seeds
     ax = axes[0]
@@ -1100,8 +1104,8 @@ def fig_appendix():
                 recs = list(by[cell].values())
                 steps = [x["step"] for x in recs[0][which]]
                 ys = np.array([[x["mean_hack_frac"] for x in rc[which]] for rc in recs])
-                ax.plot(steps, ys.T, color=col, ls=ls, lw=0.5, alpha=0.3, zorder=2)
-                ax.plot(steps, ys.mean(0), color=col, ls=ls, lw=1.6, zorder=3)
+                ax.plot(steps, ys.T, color=col, ls=ls, lw=0.7, alpha=0.3, zorder=2)
+                ax.plot(steps, ys.mean(0), color=col, ls=ls, lw=2.0, zorder=3)
     ax.set_xlabel("RL step"); ax.set_ylabel(r"Hack fraction $\rho$")
     ax.set_title("Trajectories")
 
@@ -1121,7 +1125,7 @@ def fig_appendix():
             us = np.array(sorted(by[Nn]))
             for x, uu in zip(np.log2(us) + off, us):
                 v = [val(r, "neural", "d_rho") for r in b4[(Nn, round(uu * Nn))].values()]
-                seed_dots(ax, x, v, col, dy=0.009, dx=0.075, s=5)
+                seed_dots(ax, x, v, col)
             mean_line(ax, np.log2(us) + off, [by[Nn][x] for x in us], col, mk, label=f"$N={Nn}$",
                       yerr=[sem[Nn][x] for x in us])
         u_axis(ax)
@@ -1147,13 +1151,12 @@ def fig_appendix():
     kl = kl_data()
     if kl:
         kl_panel(ax, kl, "acc")
-        ax.legend(loc="lower left", frameon=False, fontsize="small")
-    line = lambda col, mk=None, ls="-": plt.Line2D([], [], color=col, marker=mk, ms=4.5, ls=ls,
-                                                   mec="white", mew=0.5)
-    bottom.legend([line(C_SHARED, M_SHARED), line(C_TAB, M_TAB), line(C_ALT, M_PERM),
-                   line(C_NULL, ls="--"), line(C_NULL)],
-                  ["Shared", "Per-prompt", r"Shared, $N=16$", rf"$u={u_label(1 / N)}$", r"$u=1$"],
-                  loc="outside lower center", ncol=5, frameon=False)
+        ax.legend(loc="lower right", frameon=False)
+    line = lambda col, mk=None, ls="-": plt.Line2D([], [], color=col, marker=mk, ms=6, ls=ls,
+                                                   mec="white", mew=0.6)
+    bottom_legend(fig, [line(C_SHARED, M_SHARED), line(C_TAB, M_TAB), line(C_ALT, M_PERM),
+                        line(C_NULL, ls="--"), line(C_NULL)],
+                  ["Shared", "Per-prompt", r"Shared, $N=16$", rf"$u={u_label(1 / N)}$", r"$u=1$"])
     save(fig, "fig8_appendix")
 
 
@@ -1193,10 +1196,10 @@ def fig_lr():
     sets = [(k, t, r) for k, t, r in sets if r]
     if not sets:
         print("lr: no data"); return
-    fig, axes = plt.subplots(1, len(sets), figsize=(FIG_W, 1.65), sharey=True, layout="constrained",
-                             width_ratios=[len({r["config"]["lr_neural"] for r in rows})
-                                           for _, _, rows in sets])
-    axes = np.atleast_1d(axes)
+    fig, axes = panel_grid()
+    for ax in axes[1:]:
+        ax.sharey(axes[0])
+        ax.tick_params(labelleft=False)
     table = []
     n_pos_ci, n_lr = 0, 0
     n_sat = 0           # Adam learning rates whose final reward at u = 1 is within the rule's tolerance of the best
@@ -1211,9 +1214,9 @@ def fig_lr():
             xs = np.arange(len(lrs)) + off
             ax.bar(xs, mu, width=0.34, color=col, alpha=0.35, zorder=1)
             for x, lr in zip(xs, lrs):
-                seed_dots(ax, x, st[lr]["slopes"], col, dy=0.008, dx=0.045, s=5)
-            ax.errorbar(xs, mu, yerr=[mu - lo, hi - mu], ls="none", marker=mk, color=col, ms=4.5,
-                        mec="white", mew=0.5, elinewidth=1.0, zorder=4, label=lab)
+                seed_dots(ax, x, st[lr]["slopes"], col)
+            ax.errorbar(xs, mu, yerr=[mu - lo, hi - mu], ls="none", marker=mk, color=col, ms=6,
+                        mec="white", mew=0.6, elinewidth=1.2, zorder=4, label=lab)
             for lr in lrs:
                 e = st[lr]
                 diverged = e["lky_hi"] < 0.9
@@ -1238,6 +1241,7 @@ def fig_lr():
         lrs = sorted({r["config"]["lr_neural"] for r in rows})
         ax.set_xticks(range(len(lrs)), [lr_label(lr) for lr in lrs])
         ax.set_xlabel(f"{title.split()[-1]} learning rate")
+        ax.set_title(title)
         # the settings where the shared arm never reaches the verifier's reward
         st = per_lr_slopes(rows, "neural", "lr_neural")
         for i, lr in enumerate(lrs):
@@ -1303,7 +1307,7 @@ def controls_per_u():
 
 def fig_probe():
     """The threshold probe (E11): predicted against exact instantaneous drift along plain SGD.
-    The u_eff panel of the same experiment is in the main text (fig4_controls)."""
+    The u_eff panel of the same experiment is in the main text (fig3_mechanism)."""
     res = probe_data()
     if not res:
         print("probe: no data"); return
@@ -1311,10 +1315,9 @@ def fig_probe():
     ms1 = sorted({c["m"] for r in res for c in r["E1"]})
     ueff_series()
 
-    fig = plt.figure(figsize=(FIG_W, 4.3), layout="constrained")
-    top, bottom = fig.subfigures(2, 1, height_ratios=[1.05, 1])
-    gs = top.add_gridspec(1, 3, width_ratios=[1, 2.2, 1])
-    ax_sign = top.add_subplot(gs[0, 1])
+    fig, grid = panel_grid(2, top_band=False)
+    ax_sign, legend_cell = grid[0, 0], grid[1, 0]
+    facets = [grid[0, 1], grid[0, 2], grid[1, 1], grid[1, 2]]
 
     # ---- top: sign agreement along SGD, per probed prompt and per condition mean
     agree_pts, agree_lead, resid_share, pts = [], [], [], []
@@ -1356,29 +1359,35 @@ def fig_probe():
     ax.set_ylim(20, 100)
     ax.set_xlabel("SGD step"); ax.set_ylabel("Same sign (%)")
     ax.set_title("Prediction against exact drift")
-    ax.legend(loc="lower right", frameon=False, ncol=1, fontsize="small")
+    legend_cell.axis("off")
+    legend_cell.legend(*ax.get_legend_handles_labels(), loc="center", frameon=False)
 
-    # ---- bottom row: every probed prompt, prediction against exact, one panel per universality.
+    # ---- right block: every probed prompt, prediction against exact, one panel per universality.
     # The shaded quadrants are where the two agree in sign, which is what each title reports.
     P = np.array([(a_, b_) for a_, b_, _, _ in pts])
     M = np.array([m for _, _, m, _ in pts])
     lim = np.nanmax(np.abs(P)) * 1.05 if len(P) else 1.0
-    facets = bottom.subplots(1, len(ms1), sharex=True, sharey=True)
     for ax, m in zip(facets, ms1):
         px, py = P[M == m].T
         ax.fill_between([0, lim], 0, lim, color="0.92", lw=0, zorder=0)
         ax.fill_between([-lim, 0], -lim, 0, color="0.92", lw=0, zorder=0)
         ax.plot([-lim, lim], [-lim, lim], **BASELINE)
-        ax.scatter(px, py, s=6, color=C_SHARED, alpha=0.6, lw=0, zorder=2)
+        ax.scatter(px, py, s=DOT, color=C_SHARED, alpha=0.6, lw=0, zorder=2)
         ax.set_title(rf"$u={u_label(m / N)}$: {100 * np.mean(np.sign(px) == np.sign(py)):.0f}%")
-    ax.set_xscale("symlog", linthresh=1.0); ax.set_yscale("symlog", linthresh=1.0)
-    ax.set_xlim(-lim, lim); ax.set_ylim(-lim, lim)
-    signed = lambda ticks: [f"{t}".replace("-", "\N{MINUS SIGN}") for t in ticks]
-    ax.set_xticks([-100, 0, 100], signed([-100, 0, 100]))
-    ax.set_xticks([-10, -1, 1, 10], minor=True)
-    ax.set_yticks([-100, -10, -1, 0, 1, 10, 100], signed([-100, -10, -1, 0, 1, 10, 100]))
-    facets[0].set_ylabel("Exact cross-prompt drift")
-    bottom.supxlabel("Coherent-kernel prediction", fontsize="medium")
+    ticks = [-100, -10, -1, 0, 1, 10, 100]
+    signed = [f"{t}".replace("-", "\N{MINUS SIGN}") for t in ticks]
+    for ax in facets:
+        ax.set_xscale("symlog", linthresh=1.0); ax.set_yscale("symlog", linthresh=1.0)
+        ax.set_xlim(-lim, lim); ax.set_ylim(-lim, lim)
+        ax.set_xticks(ticks, signed); ax.set_yticks(ticks, signed)
+    for ax in facets[::2]:
+        ax.set_ylabel("Exact cross-prompt drift")
+    for ax in facets[1::2]:
+        ax.tick_params(labelleft=False)
+    for ax in facets[2:]:
+        ax.set_xlabel("Coherent-kernel prediction")
+    for ax in facets[:2]:
+        ax.tick_params(labelbottom=False)
     save(fig, "fig5_probe")
 
     sign_pts = float(np.mean([np.sign(a_) == np.sign(b_) for a_, b_, _, _ in pts])) if pts else float("nan")

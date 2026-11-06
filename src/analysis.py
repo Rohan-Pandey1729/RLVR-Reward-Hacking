@@ -9,7 +9,6 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.transforms import offset_copy
 from PIL import Image
 
 RES = os.path.join(os.path.dirname(__file__), "..", "results")
@@ -17,12 +16,21 @@ FIG = os.path.join(os.path.dirname(__file__), "..", "figures")
 os.makedirs(FIG, exist_ok=True)
 os.makedirs(RES, exist_ok=True)
 
-# Figures keep matplotlib's default style.  They are drawn 25% wider than the paper's 5.5in
-# \linewidth and scaled down by LaTeX, so default 10pt text prints at 8pt, and DPI comes to
-# 600 dots per inch on the page.  With a fixed canvas and constrained layout the printed
-# height of a figure is exactly 0.8 * its figsize height, which is what the page limit needs.
-FIG_W = 6.875
-DPI = 480
+# Figures keep matplotlib's default style.  The canvas is twice the paper's 5.5in \linewidth and
+# LaTeX scales it down, so default 10pt text prints at 5pt, titles at 6pt, and DPI comes to 600
+# dots per inch on the page.  The printed height of a figure is half its canvas height, which is
+# what the page limit needs.
+FIG_W = 11.0
+DPI = 300
+
+# Every data figure is a grid of identical panels, three to a row, placed by panel_grid().  The
+# numbers are inches of canvas.  A one-row figure comes to 3:1 overall and a two-row figure to
+# about 3:2, with text kept small relative to the data.
+MARGIN_L, MARGIN_R, GAP_X = 0.80, 0.06, 0.80      # room for tick labels and a y label
+PANEL_W = (FIG_W - MARGIN_L - MARGIN_R - 2 * GAP_X) / 3
+PANEL_H = 2.54
+TITLE_H, LABEL_H, BAND_H = 0.30, 0.50, 0.33       # above a panel, below it, and a legend band
+DOT = 9                                           # area of a seed dot, in points squared
 
 # Colour roles, from matplotlib's default cycle.  Warm hues are shared-parameter runs and cool
 # hues per-prompt ones.  These four stay distinct under simulated protanopia and deuteranopia;
@@ -35,31 +43,48 @@ C_COPIES = "C9"      # per-prompt copies of the transformer
 C_ALT = "k"          # a second condition of one arm, where no colour role applies
 C_NULL = "C7"        # filter baseline / base model reference, never a data series
 M_SHARED, M_PERM, M_TAB, M_COPIES = "o", "^", "s", "D"
-BASELINE = dict(color=C_NULL, ls=":", lw=1.2, zorder=1)
+BASELINE = dict(color=C_NULL, ls=":", lw=1.4, zorder=1)
+_SEED_DOTS = []      # seed_dots() calls waiting for their axes' final limits
 
 
 def save(fig, name):
     """Write figures/<name>.png.  matplotlib's PNGs carry an alpha channel that pdfLaTeX would
     embed as a separate soft mask; these figures are opaque, so it is dropped."""
+    spread_seed_dots(fig)
     path = os.path.join(FIG, f"{name}.png")
     fig.savefig(path, dpi=DPI)
     plt.close(fig)
     Image.open(path).convert("RGB").save(path, dpi=(DPI, DPI), optimize=True)
 
 
+def panel_grid(rows=1, top_band=True, bottom_band=False, pad_bottom=0.0):
+    """The one layout of every data figure: `rows` rows of three identical panels, placed by hand
+    so that a panel has the same size and shape in every figure, whatever its labels.  The bands
+    are the room for top_legend() and bottom_legend().  Returns the figure and the axes, as a row
+    for one row and as an array of rows otherwise."""
+    pitch = TITLE_H + PANEL_H + LABEL_H
+    height = rows * pitch + BAND_H * (top_band + bottom_band) + pad_bottom
+    fig = plt.figure(figsize=(FIG_W, height))
+    axes = np.empty((rows, 3), dtype=object)
+    for i, j in np.ndindex(rows, 3):
+        left = MARGIN_L + j * (PANEL_W + GAP_X)
+        bottom = height - BAND_H * top_band - i * pitch - TITLE_H - PANEL_H
+        axes[i, j] = fig.add_axes([left / FIG_W, bottom / height, PANEL_W / FIG_W, PANEL_H / height])
+    return fig, axes[0] if rows == 1 else axes
+
+
 def top_legend(fig, handles=None, labels=None, ncol=None, **kw):
-    """One legend for the whole figure, in its own band above the axes."""
+    """One legend for the whole figure, in the band panel_grid() keeps above the panels."""
     if handles is None:
         handles, labels = fig.axes[0].get_legend_handles_labels()
-    return fig.legend(handles, labels, loc="outside upper center", frameon=False,
-                      ncol=ncol or len(handles), **kw)
+    return fig.legend(handles, labels, loc="upper center", bbox_to_anchor=(0.5, 1), frameon=False,
+                      borderaxespad=0.1, ncol=ncol or len(handles), **kw)
 
 
-def under_legend(ax, ncol=2, drop=34, **kw):
-    """A legend for one panel, placed below its x label so that it can never cover data."""
-    below = offset_copy(ax.transAxes, fig=ax.figure, y=-drop, units="points")
-    return ax.legend(loc="upper center", bbox_to_anchor=(0.5, 0), bbox_transform=below,
-                     ncol=ncol, frameon=False, **kw)
+def bottom_legend(fig, handles, labels, ncol=None, **kw):
+    """A second legend, in the band panel_grid() keeps below the panels."""
+    return fig.legend(handles, labels, loc="lower center", bbox_to_anchor=(0.5, 0), frameon=False,
+                      borderaxespad=0.1, ncol=ncol or len(handles), **kw)
 
 
 def u_label(u):
@@ -72,7 +97,7 @@ def u_axis(ax, lo=-6, step=2, label=r"Leak universality $u$"):
     major = list(range(0, lo - 1, -step))[::-1]
     ax.set_xticks(major, [u_label(2.0 ** k) for k in major])
     ax.set_xticks(range(lo, 1), minor=True)
-    ax.set_xlim(lo - 0.65, 0.65)
+    ax.set_xlim(lo - 0.85, 0.85)
     ax.set_xlabel(label)
 
 
@@ -92,16 +117,31 @@ def swarm(values, dy, dx):
     return out
 
 
-def seed_dots(ax, x, values, color, dy, dx=0.1, s=5, marker="o", alpha=0.55):
-    """One small dot per seed at position x, spread sideways so that none hide each other."""
-    ax.scatter(x + swarm(values, dy, dx), values, s=s, color=color, marker=marker, alpha=alpha,
-               linewidths=0, zorder=2)
+def seed_dots(ax, x, values, color, s=DOT, marker="o", alpha=0.55):
+    """One small dot per seed at position x.  save() spreads them sideways once the axes have
+    their final limits, so that none hide each other at any panel size."""
+    v = np.asarray(values, float)
+    dots = ax.scatter(np.full(len(v), float(x)), v, s=s, color=color, marker=marker, alpha=alpha,
+                      linewidths=0, zorder=2)
+    _SEED_DOTS.append((ax, dots, float(x), v, s))
 
 
-def mean_line(ax, x, mu, color, marker, label=None, yerr=None, ms=4.5, ls="-"):
+def spread_seed_dots(fig):
+    """Apply swarm() to every seed_dots() call on this figure, with one dot's size in data units
+    read from the finished axes."""
+    for ax, dots, x, v, s in [d for d in _SEED_DOTS if d[0].figure is fig]:
+        box = ax.get_position()
+        size = np.sqrt(s) / 72                       # a dot's diameter, in inches
+        dx = size * np.ptp(ax.get_xlim()) / (box.width * fig.get_figwidth())
+        dy = size * np.ptp(ax.get_ylim()) / (box.height * fig.get_figheight())
+        dots.set_offsets(np.column_stack([x + swarm(v, dy, dx), v]))
+    _SEED_DOTS[:] = [d for d in _SEED_DOTS if d[0].figure is not fig]
+
+
+def mean_line(ax, x, mu, color, marker, label=None, yerr=None, ms=6, ls="-"):
     """Means joined by a thin line, drawn over the seed dots with a white edge to lift them."""
-    ax.errorbar(x, mu, yerr=yerr, color=color, marker=marker, ms=ms, ls=ls, lw=1.3, mec="white",
-                mew=0.5, elinewidth=1.0, label=label, zorder=4)
+    ax.errorbar(x, mu, yerr=yerr, color=color, marker=marker, ms=ms, ls=ls, lw=1.6, mec="white",
+                mew=0.6, elinewidth=1.2, label=label, zorder=4)
 
 
 def u_colors(us):
