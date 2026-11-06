@@ -1,120 +1,77 @@
-"""Figure 1: the mechanism, drawn.
+"""The mechanism, drawn (Corollary 1).
 
-Corollary 1 is the paper's cleanest theoretical statement and it is currently only
-available to a reader who parses two equations.  It is a picture: with shared parameters
-every prompt's gradient lands on the same weights, so a leak accepted on some prompts and
-rejected on others is pushed in both directions at once and the net depends on how many
-accept it.  With per-prompt parameters the cross-prompt arrows do not exist at all.
+With shared parameters every prompt's gradient lands on the same weights, so a leak accepted on
+some prompts and rejected on others is pushed in both directions at once and the net depends on
+how many accept it.  With per-prompt parameters the cross-prompt arrows do not exist at all.
 """
 from __future__ import annotations
-import os
+
 import numpy as np
-import matplotlib
-matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from matplotlib.patches import FancyBboxPatch, FancyArrowPatch, Circle
-from analysis import FIG, C_SHARED, C_TAB, C_NULL
+from matplotlib.patches import FancyArrowPatch, FancyBboxPatch, Patch
 
-INK   = "#1a1a19"
-MUTED = "#6b6a66"
-FAINT = "#c0bdb5"
+from analysis import FIG_W, save
 
-
-def _prompt_row(ax, y, accepts, w=0.062, h=0.075):
-    """One row of prompt boxes; accepting prompts carry the leak's colour."""
-    xs = np.linspace(0.085, 0.915, len(accepts))
-    for x, acc in zip(xs, accepts):
-        col = C_SHARED if acc else C_TAB
-        ax.add_patch(FancyBboxPatch((x - w / 2, y - h / 2), w, h,
-                                    boxstyle="round,pad=0.006,rounding_size=0.016",
-                                    fc=col, ec="white", lw=1.1, alpha=0.92, zorder=3))
-    return xs
+# Accepting and rejecting a leak are not policies, so they stay off the colours that mean
+# "shared" and "per-prompt" in every other figure, and each box also carries a sign.
+C_ACCEPT = "C2"
+C_REJECT = "C4"
+ACCEPTS = [True, True, False, True, False, False, True, False]
+XS = np.linspace(0.06, 0.94, len(ACCEPTS))
+Y_PROMPT, Y_THETA = 0.86, 0.47
 
 
-def _theta(ax, cx, cy, w, h, label, sub=None):
-    ax.add_patch(FancyBboxPatch((cx - w / 2, cy - h / 2), w, h,
-                                boxstyle="round,pad=0.008,rounding_size=0.02",
-                                fc="white", ec=INK, lw=1.5, zorder=4))
-    ax.text(cx, cy + (0.012 if sub else 0), label, ha="center", va="center",
-            fontsize=10.2, color=INK, zorder=5)
-    if sub:
-        ax.text(cx, cy - 0.030, sub, ha="center", va="center",
-                fontsize=7.9, color=MUTED, zorder=5)
+def box(ax, x, y, w, h, **kw):
+    ax.add_patch(FancyBboxPatch((x - w / 2, y - h / 2), w, h,
+                                boxstyle="round,pad=0,rounding_size=0.02", **kw))
 
 
-def _arrow(ax, p0, p1, col, lw=1.5, rad=0.0, alpha=0.9, ls="-"):
-    ax.add_patch(FancyArrowPatch(p0, p1, connectionstyle=f"arc3,rad={rad}",
-                                 arrowstyle="-|>", mutation_scale=9,
-                                 lw=lw, color=col, alpha=alpha, ls=ls,
-                                 shrinkA=1.5, shrinkB=2.5, zorder=2))
+def arrow(ax, start, end, color):
+    ax.add_patch(FancyArrowPatch(start, end, arrowstyle="-|>", mutation_scale=9, lw=1.3,
+                                 color=color, shrinkA=0, shrinkB=0))
+
+
+def draw(ax, shared):
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    ax.axis("off")
+    for x, accepts in zip(XS, ACCEPTS):
+        box(ax, x, Y_PROMPT, 0.082, 0.15, fc=C_ACCEPT if accepts else C_REJECT, ec="none")
+        ax.text(x, Y_PROMPT, "+" if accepts else "\N{MINUS SIGN}", ha="center", va="center",
+                color="w")
+
+    if shared:
+        ax.set_title("Shared parameters")
+        box(ax, 0.5, Y_THETA, 0.5, 0.17, fc="w", ec="k", lw=1.0)
+        ax.text(0.5, Y_THETA, r"One shared $\theta$", ha="center", va="center")
+        for x, accepts in zip(XS, ACCEPTS):
+            arrow(ax, (x, Y_PROMPT - 0.09), (0.5 + 0.42 * (x - 0.5), Y_THETA + 0.1),
+                  C_ACCEPT if accepts else C_REJECT)
+        ax.text(0.5, 0.22, r"$\frac{d}{dt}\log\pi_\theta(h\mid x)"
+                          r"=\frac{1}{N}\sum_{x'}\mathrm{Cov}[r,K_\theta]$",
+                ha="center", va="center")
+        note = r"The sum runs over every prompt $x'$"
+    else:
+        ax.set_title("Per-prompt parameters")
+        for x, accepts in zip(XS, ACCEPTS):
+            box(ax, x, Y_THETA, 0.082, 0.17, fc="w", ec="k", lw=1.0)
+            ax.text(x, Y_THETA, r"$\theta_x$", ha="center", va="center")
+            arrow(ax, (x, Y_PROMPT - 0.09), (x, Y_THETA + 0.1),
+                  C_ACCEPT if accepts else C_REJECT)
+        ax.text(0.5, 0.22, r"$K_\theta((x,y),(x',y'))=0$ for $x'\neq x$", ha="center", va="center")
+        note = "The cross-prompt term is identically zero"
+    ax.text(0.5, 0.03, note, ha="center", va="center")
 
 
 def main():
-    accepts = [True, True, False, True, False, False, True, False]
-    fig, axes = plt.subplots(1, 2, figsize=(6.7, 2.38))
-
-    for ax, shared in zip(axes, (True, False)):
-        ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.axis("off")
-
-        xs = _prompt_row(ax, 0.775, accepts)
-        ax.text(0.5, 0.888, "Prompts", ha="center", va="center",
-                fontsize=9.1, color=MUTED)
-
-        if shared:
-            _theta(ax, 0.5, 0.500, 0.40, 0.115, r"One Shared $\theta$")
-            for x, acc in zip(xs, accepts):
-                col = C_SHARED if acc else C_TAB
-                _arrow(ax, (x, 0.735), (0.5 + (x - 0.5) * 0.42, 0.560), col,
-                       lw=1.6, rad=0.16 * np.sign(0.5 - x), alpha=0.85)
-            ax.text(0.5, 0.290, r"$\dfrac{d}{dt}\log\pi_\theta(h\mid x)$"
-                                "\n"
-                                r"$=\frac{1}{N}\sum_{x'}\mathrm{Cov}[\,r,\,K_\theta\,]$",
-                    ha="center", va="center", fontsize=8.9, color=INK)
-            ax.text(0.5, 0.045, "Every prompt reaches every other: the sum runs\n"
-                                "over all $x'$, so the net push on $h$ depends\n"
-                                "on how many prompts accept it",
-                    ha="center", va="center", fontsize=8.4, color=MUTED)
-            ax.set_title("Shared Parameters", fontsize=10.3, color=INK, pad=5)
-        else:
-            for x in xs:
-                _theta(ax, x, 0.500, 0.060, 0.085, "")
-                ax.text(x, 0.500, r"$\theta_x$", ha="center", va="center",
-                        fontsize=7.7, color=INK, zorder=5)
-            for x, acc in zip(xs, accepts):
-                col = C_SHARED if acc else C_TAB
-                _arrow(ax, (x, 0.735), (x, 0.550), col, lw=1.6, alpha=0.85)
-            # the channel that does not exist, drawn as struck through
-            for i in range(len(xs) - 1):
-                a, b = xs[i] + 0.033, xs[i + 1] - 0.033
-                ax.plot([a, b], [0.500, 0.500], ls=(0, (2, 2.6)), lw=1.0,
-                        color=FAINT, zorder=1)
-                mx = 0.5 * (a + b)
-                ax.plot([mx - 0.008, mx + 0.008], [0.492, 0.508], lw=1.0,
-                        color=FAINT, zorder=1)
-                ax.plot([mx - 0.008, mx + 0.008], [0.508, 0.492], lw=1.0,
-                        color=FAINT, zorder=1)
-            ax.text(0.5, 0.290, r"$K_\theta\left((x,y),(x',y')\right)=0$"
-                                "\n"
-                                r"for $x'\neq x$",
-                    ha="center", va="center", fontsize=8.9, color=INK)
-            ax.text(0.5, 0.030, "No prompt reaches any other:\n"
-                                "the cross-prompt term is identically\n"
-                                "zero, whatever the leak's breadth",
-                    ha="center", va="center", fontsize=8.4, color=MUTED)
-            ax.set_title("Per-Prompt Parameters", fontsize=10.3, color=INK, pad=5)
-
-    # one legend, placed in empty space, never over a mark
-    axes[0].scatter([], [], marker="s", s=26, color=C_SHARED, label=r"Accepts the Leak $h$")
-    axes[0].scatter([], [], marker="s", s=26, color=C_TAB, label=r"Rejects $h$")
-    axes[0].legend(loc="upper left", bbox_to_anchor=(-0.03, 1.035), fontsize=8.2,
-                   frameon=False, handletextpad=0.4, labelspacing=0.22, ncol=2,
-                   columnspacing=1.2)
-
-    fig.tight_layout(pad=0.35, w_pad=1.6)
-    out = os.path.join(FIG, "fig0_mechanism.pdf")
-    fig.savefig(out, bbox_inches="tight")
-    plt.close(fig)
-    print("wrote", out)
+    fig, axes = plt.subplots(1, 2, figsize=(FIG_W, 2.45), layout="constrained")
+    fig.get_layout_engine().set(wspace=0.06)
+    draw(axes[0], shared=True)
+    draw(axes[1], shared=False)
+    fig.legend(handles=[Patch(color=C_ACCEPT, label=r"Prompt accepts the leak $h$ (pushes it up)"),
+                        Patch(color=C_REJECT, label=r"Prompt rejects $h$ (pushes it down)")],
+               loc="outside lower center", ncol=2, frameon=False)
+    save(fig, "fig0_mechanism")
 
 
 if __name__ == "__main__":

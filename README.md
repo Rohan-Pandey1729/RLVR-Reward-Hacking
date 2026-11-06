@@ -38,17 +38,22 @@ src/exp4_scaling.py        E7: prompt-set size
 src/exp9_maskonly.py       E9 / E9b: frozen base, mask-only controls
 src/exp10_copies.py        E10: per-prompt copies of the same transformer
 src/exp12_threshold.py     E11: u_eff at the base; predicted vs exact drift along SGD
+src/mechfig.py          the mechanism schematic, drawn by figures.py
 src/figures.py          regenerates every figure, paper/numbers.tex and paper/lrtable.tex
+figures/                the figures, as PNG files written by figures.py
 paper/                  LaTeX source
 results/                raw result files (jsonl / json) read by figures.py
+requirements.txt        the Python dependencies, pinned to the versions the paper was built with
 ```
 
 ## Reproducing
 
-Use any Python 3.11 environment with `torch` (CPU build is enough), `numpy` and `matplotlib`:
+Use Python 3.11 in a virtual environment (the CPU build of `torch` is enough):
 
 ```bash
-pip install torch numpy matplotlib
+python -m venv .venv
+source .venv/bin/activate                         # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
 cd src
 python exp2_universality.py --opt adam           # E1, ten seeds, five learning rates
 python exp2_universality.py --opt sgd            # E8
@@ -84,7 +89,8 @@ transcribed by hand.
 `paper/neurips_2026.sty` is the official NeurIPS 2026 style file, unmodified. The paper is set
 with `\usepackage[final,dblblindworkshop]{neurips_2026}` and
 `\workshoptitle{Transitioning from Pre-Training to Post-Training}`, so the camera-ready carries
-author names and the workshop footnote. Build with `PYTHON=/path/to/python bash build.sh`, which
-regenerates every figure and number from the raw results and then runs pdflatex/bibtex. Content
+author names and the workshop footnote. Build with `bash build.sh`, which regenerates every figure
+and number from the raw results and then runs pdflatex/bibtex. It uses `.venv` when that exists;
+set `PYTHON=/path/to/python` to use another interpreter. Content
 ends on page 9, inside the workshop's 9-page long-paper limit, which excludes references and
 appendices.

@@ -4,7 +4,7 @@ set -e
 cd "$(dirname "$0")"
 bash build.sh > /dev/null   # always package a PDF built from the current sources
 rm -rf /tmp/rlvr_pkg && mkdir -p /tmp/rlvr_pkg/rlvr-universality
-cp -r src paper figures results README.md NOTES.md build.sh package.sh /tmp/rlvr_pkg/rlvr-universality/
+cp -r src paper figures results README.md NOTES.md requirements.txt build.sh package.sh /tmp/rlvr_pkg/rlvr-universality/
 cd /tmp/rlvr_pkg/rlvr-universality
 rm -rf src/__pycache__ paper/*.aux paper/*.log paper/*.out paper/*.blg paper/*.fdb_latexmk
 rm -f src/queue*.sh src/prebuild.py results/theory_backup.json

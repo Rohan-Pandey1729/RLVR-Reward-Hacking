@@ -22,7 +22,9 @@ from collections import defaultdict
 import numpy as np
 import matplotlib.pyplot as plt
 
-from analysis import RES, FIG, load, C_SHARED, C_TAB, C_NULL, C_ALT
+from analysis import (RES, load, save, top_legend, under_legend, u_label, u_axis, u_colors, heat,
+                      swarm, seed_dots, mean_line, FIG_W, BASELINE, C_SHARED, C_PERM, C_TAB,
+                      C_COPIES, C_ALT, C_NULL, M_SHARED, M_PERM, M_TAB, M_COPIES)
 
 # The headline sweep (E1/E8) is reported at a fixed, balanced seed budget.  Some cells were
 # run beyond it while a larger budget was being attempted; including those partial cells
@@ -36,7 +38,6 @@ def load_capped(pattern, cap=SEED_CAP):
 
 
 PAPER = os.path.join(os.path.dirname(__file__), "..", "paper")
-C_PERM = "#b5299b"           # shared parameters, randomised block membership
 FLOOR = 1e-30
 LAM_CLIP = 20.0
 NUM = {}
@@ -147,9 +148,14 @@ def series(bycell, which, key, xindex=0):
     return np.array(xs, float), np.array(mus), np.array(sems)
 
 
-def band(ax, x, mu, sem, color, label, marker="o", ls="-"):
-    ax.plot(x, mu, color=color, marker=marker, ls=ls, label=label, zorder=3)
-    ax.fill_between(x, mu - sem, mu + sem, color=color, alpha=0.18, lw=0, zorder=2)
+def seed_values(bycell, which, key, xindex=0):
+    """The per-seed values behind series(): one array per cell, in the same order."""
+    return [np.array([val(rec, which, key) for rec in bycell[cell].values()])
+            for cell in sorted(bycell, key=lambda c: c[xindex])]
+
+
+def lr_label(lr):
+    return f"{lr:g}" if lr >= 0.1 else f"{lr:.0e}".replace("e-0", "e-")
 
 
 def slope_per_doubling(x_m, y):
@@ -182,68 +188,69 @@ def fig1():
     xm, rn, srn = series(bn, "neural", "rho")
     _, dn, sdn = series(bn, "neural", "d_rho")
     _, ln, _ = series(bn, "neural", "d_lam")
-    _, an, san = series(bn, "neural", "acc")
+    _, an, _ = series(bn, "neural", "acc")
     _, brho, _ = series(bn, "neural", "base_rho")
     _, blky, _ = series(bn, "neural", "lky")
-    xt, rt, srt = series(bt, "tabular", "rho")
-    _, dt, sdt = series(bt, "tabular", "d_rho")
+    xt, dt, _ = series(bt, "tabular", "d_rho")
     _, lt, _ = series(bt, "tabular", "d_lam")
-    _, at, sat = series(bt, "tabular", "acc")
+    _, at, _ = series(bt, "tabular", "acc")
     u = xm / N
 
     rows6 = load("exp6_shard*.jsonl")
     have6 = bool(rows6)
     if have6:
         b6 = best_by_reward(rows6, ["m"], "neural")
-        x6, r6, sr6 = series(b6, "neural", "rho")
-        _, d6, sd6 = series(b6, "neural", "d_rho")
-        _, a6, sa6 = series(b6, "neural", "acc")
+        x6, r6, _ = series(b6, "neural", "rho")
+        _, d6, _ = series(b6, "neural", "d_rho")
+        _, a6, _ = series(b6, "neural", "acc")
         u6 = x6 / N
 
     # base pass rate of the base model = predicted leading-order threshold
     base_lky = np.mean([r["base"]["leaky_reward"] for r in rows])
 
-    fig, axes = plt.subplots(1, 3, figsize=(6.7, 1.9))
+    arms = [("Shared", bn, "neural", C_SHARED, M_SHARED)]
+    if have6:
+        arms.append(("Shared, permuted blocks", b6, "neural", C_PERM, M_PERM))
+    arms.append(("Per-prompt", bt, "tabular", C_TAB, M_TAB))
+    dodge = np.linspace(-0.27, 0.27, len(arms))
+
+    fig, axes = plt.subplots(1, 3, figsize=(FIG_W, 1.88), width_ratios=[1, 1.3, 1],
+                             layout="constrained")
+
+    # left: each condition as an arrow from its own base model to where training ended
     ax = axes[0]
-    ax.plot(u, brho, color=C_NULL, ls=":", lw=1.0, marker=".", ms=3, label="Base Model")
-    band(ax, u, rn, srn, C_SHARED, "Shared Params")
-    if have6:
-        band(ax, u6, r6, sr6, C_PERM, "Shared, Permuted Blocks", marker="^", ls="-")
-    band(ax, u, rt, srt, C_TAB, "Per-Prompt Params", marker="s")
-    ax.set_xscale("log", base=2)
-    ax.set_xlabel(r"Leak Universality $u=m/N$")
-    ax.set_ylabel(r"Hack Fraction $\rho$")
-    ax.set_title("Verifier Error Rate Fixed")
+    for (name, by, which, col, mk), off in zip(arms, dodge):
+        x, final, se = series(by, which, "rho")
+        _, start, _ = series(by, which, "base_rho")
+        lx = np.log2(x / N) + off
+        for xi, y0, y1 in zip(lx, start, final):
+            ax.annotate("", xy=(xi, y1), xytext=(xi, y0),
+                        arrowprops=dict(arrowstyle="-|>", color=col, lw=1.2, mutation_scale=7,
+                                        shrinkA=0, shrinkB=0))
+        ax.errorbar(lx, final, yerr=se, ls="none", color=col, elinewidth=0.8, capsize=1.5,
+                    capthick=0.8, zorder=2)
+    ax.plot(np.log2(u), brho, **BASELINE)
+    ax.set_ylim(0, 0.38)
+    ax.yaxis.set_major_locator(plt.MultipleLocator(0.1))
+    ax.set_ylabel(r"Hack fraction $\rho$")
 
-    ax = axes[1]
-    ax.axhline(0.0, color=C_NULL, ls=":", lw=1.1, zorder=1)
-    band(ax, u, dn, sdn, C_SHARED, "Shared Params")
-    if have6:
-        band(ax, u6, d6, sd6, C_PERM, "Permuted Blocks", marker="^")
-    band(ax, u, dt, sdt, C_TAB, "Per-Prompt Params", marker="s")
-    ax.set_xscale("log", base=2)
-    ax.set_xlabel(r"Leak Universality $u=m/N$")
-    ax.set_ylabel(r"Hack-Fraction Drift $\Delta\rho$")
-    ax.set_title("Departure from the Filter")
-    ylo, yhi = ax.get_ylim()
-    ax.text(u[0] * 1.05, 0.04 * (yhi - ylo), "Filter Baseline", fontsize=7.2, color=C_NULL)
-
-    ax = axes[2]
-    band(ax, u, an, san, C_SHARED, "Shared Params")
-    if have6:
-        band(ax, u6, a6, sa6, C_PERM, "Permuted Blocks", marker="^")
-    band(ax, u, at, sat, C_TAB, "Per-Prompt Params", marker="s")
-    ax.set_xscale("log", base=2)
-    ax.set_xlabel(r"Leak Universality $u=m/N$")
-    ax.set_ylabel("True Accuracy")
-    ax.set_title("Cost in Real Capability")
-    # one legend for all three panels, above the axes, so no label sits over a line
-    h, l = axes[0].get_legend_handles_labels()
-    fig.legend(h, l, loc="upper center", bbox_to_anchor=(0.5, 1.005), ncol=4,
-               fontsize=8.4, frameon=False, handletextpad=0.45, columnspacing=1.5)
-    fig.tight_layout(pad=0.35, rect=(0, 0, 1, 0.905))
-    fig.savefig(os.path.join(FIG, "fig1_universality.pdf"), bbox_inches="tight")
-    plt.close(fig)
+    # centre and right: every seed, with the mean over seeds on top
+    for ax, key, dy, ylabel in ((axes[1], "d_rho", 0.03, r"Drift $\Delta\rho$"),
+                                (axes[2], "acc", 0.03, "True accuracy")):
+        for (name, by, which, col, mk), off in zip(arms, dodge):
+            x, mu, se = series(by, which, key)
+            lx = np.log2(x / N) + off
+            for xi, v in zip(lx, seed_values(by, which, key)):
+                seed_dots(ax, xi, v, col, dy=dy, dx=0.075, s=5)
+            mean_line(ax, lx, mu, col, mk, label=name, yerr=se)
+        ax.set_ylabel(ylabel)
+    axes[1].axhline(0, **BASELINE)
+    axes[1].yaxis.set_major_locator(plt.MultipleLocator(0.25))
+    for ax in axes:
+        u_axis(ax)
+    handles, labels = axes[1].get_legend_handles_labels()
+    top_legend(fig, handles + [plt.Line2D([], [], **BASELINE)], labels + ["Base model"])
+    save(fig, "fig1_universality")
 
     num("NEnvN", N); num("NEnvY", 100)
     num("NuTwoLoU", f"{u[0]:.3f}")
@@ -320,37 +327,40 @@ def fig2():
                 G[i, j] = np.mean([val(r, "neural", "d_lam") for r in d.values()])
                 B[i, j] = np.mean([val(r, "neural", "base_rho") for r in d.values()])
 
-    cols = [C_SHARED, C_TAB, C_ALT, C_PERM]
-    fig, axes = plt.subplots(1, 2, figsize=(6.7, 1.95))
-    ax = axes[0]
-    ax.axhline(0, color=C_NULL, ls=":", lw=1.0)
-    for j, k in enumerate(ks):
-        ax.plot(np.array(ms) / N, G[:, j], marker="o", color=cols[j % len(cols)],
-                label=f"FPR {fprs[k]*100:.1f}%")
-    ax.set_xscale("log", base=2); ax.set_xlabel(r"Leak Universality $u$")
-    ax.set_ylabel(r"Log-Odds Drift $\Delta\Lambda$"); ax.set_title("Versus Universality")
-    ax.legend(loc="upper left", fontsize=7.9, ncol=2, columnspacing=1.0,
-              handlelength=1.2, handletextpad=0.4)
+    cells = {c: np.array([val(r, "neural", "d_lam") for r in d.values()]) for c, d in bn.items()}
+    rate_cols = {k: plt.cm.plasma(t) for k, t in zip(ks, np.linspace(0.1, 0.75, len(ks)))}
+    u_cols = u_colors([m / N for m in ms])
 
-    ax = axes[1]
-    ax.axhline(0, color=C_NULL, ls=":", lw=1.0)
-    for i, m in enumerate(ms):
-        ax.plot([fprs[k] * 100 for k in ks], G[i, :], marker="s", color=cols[i % len(cols)],
-                label=f"$u={ms[i]/N:.2f}$")
-    xt = [fprs[k] * 100 for k in ks]
-    _lo, _hi = ax.get_ylim()
-    ax.set_xscale("log"); ax.set_xlabel("Static False-Positive Rate (%)")
-    ax.set_xticks(xt); ax.set_xticklabels([f"{v:.1f}" for v in xt])
-    ax.set_xticks([], minor=True)
-    ax.set_title("Versus Verifier Error Rate")
-    _a, _b = axes[0].get_ylim()
-    ax.set_ylim(_a, _b + 0.62 * (_b - _a)); axes[0].set_ylim(_a, _b + 0.62 * (_b - _a))
-    ax.set_yticklabels([])
-    ax.legend(loc="upper left", fontsize=7.9, ncol=2, columnspacing=1.0,
-              handlelength=1.2, handletextpad=0.4)
-    fig.tight_layout(pad=0.3, w_pad=1.4)
-    fig.savefig(os.path.join(FIG, "fig2_factorial.pdf"), bbox_inches="tight")
-    plt.close(fig)
+    def strips(ax, outer, inner, cell, colour, name, title):
+        """One column of seeds per (outer, inner) level, with a bar at each cell's mean and the
+        means of one inner level joined across the outer levels."""
+        w = 0.8 / len(inner)
+        for j, b in enumerate(inner):
+            xs = np.arange(len(outer)) + (j - (len(inner) - 1) / 2) * w
+            mu = [cells[cell(a, b)].mean() for a in outer]
+            for x, a in zip(xs, outer):
+                seed_dots(ax, x, cells[cell(a, b)], colour(b), dy=0.32, dx=0.028, s=6)
+            ax.plot(xs, mu, color=colour(b), lw=0.8, zorder=3)
+            ax.hlines(mu, xs - 0.4 * w, xs + 0.4 * w, color=colour(b), lw=2.2, zorder=4)
+        ax.axhline(0, **BASELINE)
+        handles = [plt.Line2D([], [], color=colour(b), lw=2.2) for b in inner]
+        under_legend(ax, ncol=len(inner), handles=handles, labels=[name(b) for b in inner],
+                     title=title, columnspacing=1.0, handlelength=1.2, handletextpad=0.5)
+
+    fig, axes = plt.subplots(1, 2, figsize=(FIG_W, 2.8), sharey=True, layout="constrained")
+    strips(axes[0], ms, ks, lambda m, k: (m, k), rate_cols.get, lambda k: f"{fprs[k]*100:.1f}%",
+           "Static false-positive rate")
+    axes[0].set_xticks(range(len(ms)), [u_label(m / N) for m in ms])
+    axes[0].set_xlabel(r"Leak universality $u$")
+    axes[0].set_ylabel(r"Log-odds drift $\Delta\Lambda$")
+    axes[0].yaxis.set_major_locator(plt.MultipleLocator(2))
+    axes[0].set_title("Grouped by universality")
+    strips(axes[1], ks, ms, lambda k, m: (m, k), lambda m: u_cols[m / N],
+           lambda m: u_label(m / N), r"Leak universality $u$")
+    axes[1].set_xticks(range(len(ks)), [f"{fprs[k]*100:.1f}" for k in ks])
+    axes[1].set_xlabel("Static false-positive rate (%)")
+    axes[1].set_title("Grouped by error rate")
+    save(fig, "fig2_factorial")
 
     ys, Ms, Ks, Bs = [], [], [], []
     for (m, k), d in bn.items():
@@ -381,7 +391,7 @@ def fig3():
     if not os.path.exists(path):
         print("fig3: no theory data"); return
     th = json.load(open(path))
-    fig, axes = plt.subplots(1, 3, figsize=(6.7, 2.10))
+    fig, axes = plt.subplots(1, 3, figsize=(FIG_W, 2.2), layout="constrained")
     N = 64.0
 
     d = defaultdict(lambda: defaultdict(list))
@@ -404,55 +414,54 @@ def fig3():
                 np.array([np.std(src[m], ddof=1) / np.sqrt(len(src[m])) if len(src[m]) > 1
                           else 0.0 for m in ms]))
 
-    # ---- panel 1: the cross-prompt term, the only channel universality can act through
+    lu = np.log2(ms / N)
+
+    def seeds(ax, key, off, col, dy):
+        for x, m in zip(lu + off, ms):
+            seed_dots(ax, x, d[key][m], col, dy=dy, dx=0.1, s=7, alpha=0.6)
+
+    # ---- panel 1: the cross-prompt term, the only channel universality can act through.
+    # A lollipop from zero, because zero is the value Corollary 1 predicts without sharing.
     ax = axes[0]
     nc, ncs = mm("n_cross"); tc, _ = mm("t_cross")
-    ax.axhline(0, color=C_NULL, ls=":", lw=1.0)
-    band(ax, ms / N, nc, ncs, C_SHARED, "Shared Params")
-    ax.plot(ms / N, tc, color=C_TAB, marker="s", label="Per-Prompt Params")
-    ax.set_xscale("log", base=2); ax.set_xlabel(r"Universality $u$")
-    ax.set_ylabel(r"Cross-Prompt Drift of $h$")
-    ax.set_title("Lemma 1 and Corollary 1"); ax.legend(loc="upper left", fontsize=7.2)
+    ax.axhline(0, **BASELINE)
+    ax.vlines(lu - 0.13, 0, nc, color=C_SHARED, lw=1.3, zorder=2)
+    seeds(ax, "n_cross", -0.13, C_SHARED, 0.9)
+    mean_line(ax, lu - 0.13, nc, C_SHARED, M_SHARED, "Shared", yerr=ncs, ls="none")
+    mean_line(ax, lu + 0.13, tc, C_TAB, M_TAB, "Per-prompt", ls="none")
+    ax.set_ylim(top=24)
+    ax.set_ylabel(r"Cross-prompt drift of $h$")
+    ax.set_title("Cross-prompt term")
+    ax.legend(loc="upper center", ncol=2, frameon=False, handlelength=0.5, handletextpad=0.3,
+              columnspacing=0.8, borderpad=0.2)
 
     # ---- panel 2: coherence
     ax = axes[1]
     ch, chs = mm("coh_h"); cg, _ = mm("coh_g")
-    ax.axhline(0, color=C_NULL, ls=":", lw=1.0)
-    band(ax, ms / N, ch, chs, C_SHARED, "Leak Response")
-    ax.plot(ms / N, cg, color=C_TAB, marker="s", label="Correct Response")
-    ax.set_xscale("log", base=2); ax.set_xlabel(r"Universality $u$")
-    ax.set_ylabel("Gradient Cosine"); ax.set_title("Coherence (Definition 3)")
-    ax.legend(loc="upper left", fontsize=7.2)
+    ax.axhline(0, **BASELINE)
+    seeds(ax, "coh_h", 0, C_SHARED, 0.014)
+    seeds(ax, "coh_g", 0, C_ALT, 0.014)
+    mean_line(ax, lu, ch, C_SHARED, M_SHARED, "Leak", yerr=chs)
+    mean_line(ax, lu, cg, C_ALT, M_TAB, "Correct")
+    ax.set_ylabel("Gradient cosine")
+    ax.set_title("Coherence")
+    ax.legend(loc="upper left", frameon=False)
 
-    # ---- panel 3: block-structure control, or the prompt-set-size sweep
+    # ---- panel 3: block-structure control
     ax = axes[2]
     rows6 = load("exp6_shard*.jsonl"); rows2 = load_capped("exp2_adam_shard*.jsonl")
-    rows4 = load("exp4_shard*.jsonl")
     if rows6 and rows2:
         b6 = best_by_reward(rows6, ["m"], "neural"); b2 = best_by_reward(rows2, ["m"], "neural")
         x6, d6, s6 = series(b6, "neural", "d_rho"); x2, d2, s2 = series(b2, "neural", "d_rho")
-        ax.axhline(0, color=C_NULL, ls=":", lw=1.0)
-        band(ax, x2 / N, d2, s2, C_SHARED, "Contiguous Blocks")
-        band(ax, x6 / N, d6, s6, C_PERM, "Permuted Blocks", marker="^")
-        ax.set_xscale("log", base=2); ax.set_xlabel(r"Universality $u$")
-        ax.set_ylabel(r"Drift $\Delta\rho$"); ax.set_title("Block-Structure Control")
-        ax.legend(loc="upper left", fontsize=7.2)
-    elif rows4:
-        bn = best_by_reward(rows4, ["N", "m"], "neural")
-        by = defaultdict(dict)
-        for (Nn, m), dd in bn.items():
-            by[Nn][m / Nn] = np.mean([val(r, "neural", "d_rho") for r in dd.values()])
-        for i, Nn in enumerate(sorted(by)):
-            us = sorted(by[Nn])
-            ax.plot(us, [by[Nn][x] for x in us], marker="o",
-                    color=[C_TAB, C_ALT, C_SHARED][i % 3], label=f"$N={int(Nn)}$")
-        ax.axhline(0, color=C_NULL, ls=":", lw=1.0)
-        ax.set_xscale("log", base=2); ax.set_xlabel(r"Universality $u$")
-        ax.set_ylabel(r"Drift $\Delta\rho$"); ax.set_title("Prompt-Set Size")
-        ax.legend(loc="upper left", fontsize=7.2)
-    fig.tight_layout(pad=0.3)
-    fig.savefig(os.path.join(FIG, "fig3_mechanism.pdf"), bbox_inches="tight")
-    plt.close(fig)
+        ax.axhline(0, **BASELINE)
+        mean_line(ax, np.log2(x2 / N) - 0.12, d2, C_SHARED, M_SHARED, "Contiguous", yerr=s2)
+        mean_line(ax, np.log2(x6 / N) + 0.12, d6, C_PERM, M_PERM, "Permuted", yerr=s6)
+        ax.set_ylabel(r"Drift $\Delta\rho$")
+        ax.set_title("Block structure")
+        ax.legend(loc="upper left", frameon=False)
+    for ax in axes:
+        u_axis(ax)
+    save(fig, "fig3_mechanism")
 
     num("MechCrossLo", f"{nc[0]:.1f}"); num("MechCrossHi", f"{nc[-1]:.1f}")
     num("MechCrossLoSem", f"{ncs[0]:.1f}"); num("MechCrossHiSem", f"{ncs[-1]:.1f}")
@@ -484,7 +493,9 @@ def fig3():
 
 
 def fig4():
-    fig, axes = plt.subplots(1, 3, figsize=(6.7, 2.05))
+    fig = plt.figure(figsize=(FIG_W, 4.75), layout="constrained")
+    top, bottom = fig.subfigures(2, 1, height_ratios=[1.1, 1])
+    axes = top.subplots(1, 3)
     r5a = load_capped("exp5a_shard*.jsonl")
     if r5a:
         N = r5a[0]["config"]["N"]
@@ -492,14 +503,19 @@ def fig4():
         bt = best_by_reward(r5a, ["m"], "tabular")
         xm, dn, sn = series(bn, "neural", "d_rho")
         xt, dt, st = series(bt, "tabular", "d_rho")
-        _, rn, srn = series(bn, "neural", "rho")
+        _, rn, _ = series(bn, "neural", "rho")
         ax = axes[0]
-        ax.axhline(0, color=C_NULL, ls=":", lw=1.1)
-        band(ax, xm / N, dn, sn, C_SHARED, "Shared Params")
-        band(ax, xt / N, dt, st, C_TAB, "Per-Prompt Params", marker="s")
-        ax.set_xscale("log", base=2); ax.set_xlabel(r"Universality $u$")
-        ax.set_ylabel(r"Hack-Fraction Drift $\Delta\rho$"); ax.set_title("Sampled GRPO")
-        ax.legend(loc="upper left", fontsize=7.2)
+        ax.axhline(0, **BASELINE)
+        for by, which, x, mu, se, col, mk, lab, off in (
+                (bn, "neural", xm, dn, sn, C_SHARED, M_SHARED, "Shared", -0.14),
+                (bt, "tabular", xt, dt, st, C_TAB, M_TAB, "Per-prompt", 0.14)):
+            lx = np.log2(x / N) + off
+            for xi, v in zip(lx, seed_values(by, which, "d_rho")):
+                seed_dots(ax, xi, v, col, dy=0.035, dx=0.075, s=5)
+            mean_line(ax, lx, mu, col, mk, label=lab, yerr=se)
+        u_axis(ax)
+        ax.set_ylabel(r"Drift $\Delta\rho$")
+        ax.set_title("Sampled GRPO")
         num("NuFiveALo", f"{rn[0]:.3f}"); num("NuFiveAHi", f"{rn[-1]:.3f}")
         num("NuFiveADLo", f"{dn[0]:+.3f}"); num("NuFiveADHi", f"{dn[-1]:+.3f}")
         num("NuFiveADLoSem", f"{sn[0]:.3f}"); num("NuFiveADHiSem", f"{sn[-1]:.3f}")
@@ -508,7 +524,6 @@ def fig4():
 
     r5b = load("exp5b_shard*.jsonl")
     if r5b:
-        ax = axes[1]
         by = defaultdict(lambda: defaultdict(list))
         acc = defaultdict(lambda: defaultdict(list))
         lky = defaultdict(lambda: defaultdict(list))
@@ -522,17 +537,26 @@ def fig4():
             by[c["m"]][c["beta"]].append(val(r, "neural", "d_rho"))
             acc[c["m"]][c["beta"]].append(val(r, "neural", "acc"))
             lky[c["m"]][c["beta"]].append(val(r, "neural", "lky"))
-        for i, m in enumerate(sorted(by)):
-            betas = sorted(by[m])
-            xs = [max(b, 1e-3) for b in betas]
-            ax.plot(xs, [np.mean(by[m][b]) for b in betas], marker="o",
-                    color=[C_TAB, C_SHARED][i % 2], label=f"$u={m/64:.3f}$")
-        ax.axhline(0, color=C_NULL, ls=":", lw=1.1)
-        ax.set_xscale("log"); ax.set_xlabel(r"KL Coefficient $\beta$  ($10^{-3}\!=\!0$)")
-        ax.set_title("KL Restores the Filter")
-        _lo, _hi = ax.get_ylim()
-        ax.set_ylim(_lo - 0.40 * (_hi - _lo), _hi)
-        ax.legend(loc="lower right", fontsize=7.2)
+        # beta = 0 cannot sit on a log axis, so the grid is drawn evenly by its index: its steps
+        # are close to geometric, and no value has to stand in for zero
+        betas = sorted(by[min(by)])
+        u_cols = u_colors([m / 64 for m in by])
+        for ax, src, dy, ylabel, title in ((axes[1], by, 0.03, r"Drift $\Delta\rho$", "Drift under KL"),
+                                           (axes[2], acc, 0.03, "True accuracy", "Accuracy under KL")):
+            if src is by:
+                ax.axhline(0, **BASELINE)
+            for m, mk, off in zip(sorted(src), "v^", (-0.13, 0.13)):
+                xs = np.arange(len(betas)) + off
+                for x, b in zip(xs, betas):
+                    seed_dots(ax, x, src[m][b], u_cols[m / 64], dy=dy, dx=0.06, s=5)
+                mean_line(ax, xs, [np.mean(src[m][b]) for b in betas], u_cols[m / 64], mk,
+                          label=rf"Shared, $u={u_label(m / 64)}$",
+                          yerr=[np.std(src[m][b], ddof=1) / np.sqrt(len(src[m][b])) for b in betas])
+            ax.set_xticks(range(0, len(betas), 2), [f"{b:g}" for b in betas[::2]])
+            ax.set_xticks(range(len(betas)), minor=True)
+            ax.set_xlabel(r"KL coefficient $\beta$")
+            ax.set_ylabel(ylabel)
+            ax.set_title(title)
         hi, lo = max(by), min(by)
         b0, bmax = min(by[hi]), max(by[hi])
         num("NuFiveBNSeeds", f"{len({r['config']['seed'] for r in r5b})}")
@@ -547,10 +571,11 @@ def fig4():
             num(f"NuFiveBLkyNoKL{tag}", f"{np.mean(lky[mm_][b0]):.3f}")
             num(f"NuFiveBLkyKL{tag}", f"{np.mean(lky[mm_][bmax]):.3f}")
 
-    hardening_panel(axes[2])
-    fig.tight_layout(pad=0.3, w_pad=1.4)
-    fig.savefig(os.path.join(FIG, "fig4_practice.pdf"))
-    plt.close(fig)
+    h1, l1 = axes[0].get_legend_handles_labels()
+    h2, l2 = axes[1].get_legend_handles_labels()
+    top.legend(h1 + h2, l1 + l2, loc="outside lower center", ncol=4, frameon=False)
+    hardening_panel(bottom.subplots(1, 3, sharex=True, sharey=True))
+    save(fig, "fig4_practice")
 
 
 def fig5():
@@ -558,47 +583,47 @@ def fig5():
     if not rows:
         return
     N = rows[0]["config"]["N"]
-    fig, axes = plt.subplots(2, 2, figsize=(6.7, 3.55))
-    axes = axes.ravel()
+    fig = plt.figure(figsize=(FIG_W, 4.5), layout="constrained")
+    top, bottom = fig.subfigures(2, 1, height_ratios=[1, 1])
+    heat_axes = top.subplots(1, 2, sharey=True)
+    axes = bottom.subplots(1, 3)
 
-    ax = axes[0]
+    # every learning rate and universality at once, for both arms, as signed fields on one scale
     lrs = sorted({r["config"]["lr_neural"] for r in rows})
-    # learning rate is an ordered magnitude, not an identity, so it gets a single-hue
-    # sequential ramp (light = small step) rather than a categorical palette
-    cols = [plt.get_cmap("Oranges")(t) for t in np.linspace(0.45, 0.98, len(lrs))]
-    for i, lr in enumerate(lrs):
+    ms = sorted({r["config"]["m"] for r in rows})
+    field = {}
+    for arm, lrkey in (("neural", "lr_neural"), ("tabular", "lr_tabular")):
         d = defaultdict(list)
         for r in rows:
-            if r["config"]["lr_neural"] == lr:
-                d[r["config"]["m"]].append(val(r, "neural", "d_rho"))
-        ms = sorted(d)
-        ax.plot([m / N for m in ms], [np.mean(d[m]) for m in ms], marker="o",
-                color=cols[i % len(cols)], label=f"LR {lr:g}")
-    ax.axhline(0, color=C_NULL, ls=":", lw=1.0)
-    ax.set_xscale("log", base=2); ax.set_xlabel(r"Universality $u$")
-    ax.set_ylabel(r"$\Delta\rho$ (Shared Params)"); ax.set_title("Every Learning Rate")
-    ax.legend(loc="upper left", fontsize=7.2, ncol=2, columnspacing=1.0,
-              handlelength=1.2, handletextpad=0.4)
+            d[(r["config"][lrkey], r["config"]["m"])].append(val(r, arm, "d_rho"))
+        field[arm] = np.array([[np.mean(d[(lr, m)]) for m in ms] for lr in lrs])
+    lim = max(np.abs(f).max() for f in field.values())
+    norm = plt.Normalize(-lim, lim)
+    for ax, arm, title in zip(heat_axes, ("neural", "tabular"), ("Shared", "Per-prompt")):
+        im = heat(ax, field[arm], norm, "RdBu_r", fmt="{:.2f}", fontsize=8)
+        ax.set_xticks(range(len(ms)), [u_label(m / N) for m in ms])
+        ax.set_xlabel(r"Leak universality $u$")
+        ax.set_title(title)
+    heat_axes[0].set_yticks(range(len(lrs)), [lr_label(lr) for lr in lrs])
+    heat_axes[0].set_ylabel("Adam learning rate")
+    top.colorbar(im, ax=heat_axes, label=r"Mean drift $\Delta\rho$")
 
-    ax = axes[1]
+    # trajectories: colour is the arm, line style the condition, thin lines the seeds
+    ax = axes[0]
     bn = best_by_reward(rows, ["m"], "neural"); bt = best_by_reward(rows, ["m"], "tabular")
-    for cell, col, lab in [((1,), C_ALT, r"$u=1/N$"), ((N,), C_PERM, r"$u=1$")]:
-        for by, which, ls in [(bn, "neural", "-"), (bt, "tabular", "--")]:
+    for cell, ls in (((1,), "--"), ((N,), "-")):
+        for by, which, col in ((bn, "neural", C_SHARED), (bt, "tabular", C_TAB)):
             if cell in by:
                 recs = list(by[cell].values())
                 steps = [x["step"] for x in recs[0][which]]
-                ys = np.mean([[x["mean_hack_frac"] for x in rc[which]] for rc in recs], axis=0)
-                name = "Shared" if which == "neural" else "Per-Prompt"
-                ax.plot(steps, ys, color=col, ls=ls, label=f"{name} {lab}")
-    ax.set_xlabel("RL Step"); ax.set_ylabel(r"Hack Fraction $\rho$")
-    _lo, _hi = ax.get_ylim()
-    ax.set_ylim(_lo, _hi + 0.62 * (_hi - _lo))
-    ax.set_title("Trajectories"); ax.legend(loc="upper left", fontsize=7.2, ncol=2,
-                                            columnspacing=1.0, handlelength=1.3,
-                                            handletextpad=0.4)
+                ys = np.array([[x["mean_hack_frac"] for x in rc[which]] for rc in recs])
+                ax.plot(steps, ys.T, color=col, ls=ls, lw=0.5, alpha=0.3, zorder=2)
+                ax.plot(steps, ys.mean(0), color=col, ls=ls, lw=1.6, zorder=3)
+    ax.set_xlabel("RL step"); ax.set_ylabel(r"Hack fraction $\rho$")
+    ax.set_title("Trajectories")
 
     # prompt-set-size sweep: does the effect track u or m?
-    ax = axes[2]
+    ax = axes[1]
     rows4 = load("exp4_shard*.jsonl")
     if rows4:
         b4 = best_by_reward(rows4, ["N", "m"], "neural")
@@ -607,16 +632,16 @@ def fig5():
             v = [val(r, "neural", "d_rho") for r in dd.values()]
             by[Nn][m / Nn] = float(np.mean(v))
             sem[Nn][m / Nn] = (float(np.std(v, ddof=1) / np.sqrt(len(v))) if len(v) > 1 else 0.0)
-        cols = {16.0: C_ALT, 64.0: C_SHARED}
-        for Nn in sorted(by):
+        ax.axhline(0, **BASELINE)
+        for Nn, col, mk, off in ((16, C_ALT, M_PERM, -0.13), (64, C_SHARED, M_SHARED, 0.13)):
             us = np.array(sorted(by[Nn]))
-            mu = np.array([by[Nn][x] for x in us]); se = np.array([sem[Nn][x] for x in us])
-            band(ax, us, mu, se, cols.get(Nn, C_TAB), f"$N={int(Nn)}$",
-                 marker="o" if Nn == 64 else "^")
-        ax.axhline(0, color=C_NULL, ls=":", lw=1.0)
-        ax.set_xscale("log", base=2); ax.set_xlabel(r"Universality $u$")
-        ax.set_ylabel(r"Drift $\Delta\rho$"); ax.set_title("Prompt-Set Size")
-        ax.legend(loc="upper left", fontsize=7.2)
+            for x, uu in zip(np.log2(us) + off, us):
+                v = [val(r, "neural", "d_rho") for r in b4[(Nn, round(uu * Nn))].values()]
+                seed_dots(ax, x, v, col, dy=0.009, dx=0.075, s=5)
+            mean_line(ax, np.log2(us) + off, [by[Nn][x] for x in us], col, mk, label=f"$N={Nn}$",
+                      yerr=[sem[Nn][x] for x in us])
+        u_axis(ax)
+        ax.set_ylabel(r"Drift $\Delta\rho$"); ax.set_title("Prompt-set size")
         small, big = min(by), max(by)
         if 1.0 not in by[small] or 1.0 not in by[big] or (small / big) not in by[big]:
             print("fig5: prompt-set sweep incomplete"); small = big = None
@@ -633,18 +658,22 @@ def fig5():
         num("NuFourNShared", f"{len(shared_u)}")
         num("NuFourMatchedGapLo", f"{max(abs(by[small][x] - by[big][x]) for x in shared_u[:3]):.3f}")
 
-    ax = axes[3]
+    ax = axes[2]
     rs = load_capped("exp2_sgd_shard*.jsonl")
     if rs:
         b1 = best_by_reward(rs, ["m"], "neural"); b2 = best_by_reward(rs, ["m"], "tabular")
         xm, dn, sn = series(b1, "neural", "d_rho")
         xt, dt, st = series(b2, "tabular", "d_rho")
-        ax.axhline(0, color=C_NULL, ls=":", lw=1.1)
-        band(ax, xm / N, dn, sn, C_SHARED, "Shared Params")
-        band(ax, xt / N, dt, st, C_TAB, "Per-Prompt Params", marker="s")
-        ax.set_xscale("log", base=2); ax.set_xlabel(r"Universality $u$")
-        ax.set_ylabel(r"Hack-Fraction Drift $\Delta\rho$"); ax.set_title("Plain SGD")
-        ax.legend(loc="upper left", fontsize=7.2)
+        ax.axhline(0, **BASELINE)
+        for by, which, x, mu, se, col, mk, lab, off in (
+                (b1, "neural", xm, dn, sn, C_SHARED, M_SHARED, "Shared", -0.13),
+                (b2, "tabular", xt, dt, st, C_TAB, M_TAB, "Per-prompt", 0.13)):
+            lx = np.log2(x / N) + off
+            for xi, v in zip(lx, seed_values(by, which, "d_rho")):
+                seed_dots(ax, xi, v, col, dy=0.04, dx=0.075, s=5)
+            mean_line(ax, lx, mu, col, mk, label=lab, yerr=se)
+        u_axis(ax)
+        ax.set_ylabel(r"Drift $\Delta\rho$"); ax.set_title("Plain SGD")
         num("NuTwoSgdNeuralHi", f"{dn[-1]:+.3f}"); num("NuTwoSgdNeuralLo", f"{dn[0]:+.3f}")
         num("NuTwoSgdTabHi", f"{dt[-1]:+.3f}"); num("NuTwoSgdTabLo", f"{dt[0]:+.3f}")
         num("NuTwoSgdTabSlope", f"{slope_per_doubling(xt, dt):+.3f}")
@@ -656,9 +685,13 @@ def fig5():
         num("NuTwoSgdNeuralLoAcc", f"{an_[0]:.3f}"); num("NuTwoSgdNeuralHiAcc", f"{an_[-1]:.3f}")
         num("NuTwoSgdTabHiAcc", f"{at_[-1]:.3f}")
         num("NuTwoSgdCrossU", fmt_cross(crossing(xm / N, dn, 0.0)))
-    fig.tight_layout(pad=0.4, w_pad=1.6, h_pad=1.4)
-    fig.savefig(os.path.join(FIG, "fig5_appendix.pdf"), bbox_inches="tight")
-    plt.close(fig)
+    line = lambda col, mk=None, ls="-": plt.Line2D([], [], color=col, marker=mk, ms=4.5, ls=ls,
+                                                   mec="white", mew=0.5)
+    bottom.legend([line(C_SHARED, M_SHARED), line(C_TAB, M_TAB), line(C_ALT, M_PERM),
+                   line(C_NULL, ls="--"), line(C_NULL)],
+                  ["Shared", "Per-prompt", r"Shared, $N=16$", rf"$u={u_label(1 / N)}$", r"$u=1$"],
+                  loc="outside lower center", ncol=5, frameon=False)
+    save(fig, "fig5_appendix")
 
 
 # ======================================================================================
@@ -722,46 +755,34 @@ def fig6():
     s10 = sel(r10, "copies")
     s1 = sel(r1, "neural")
 
-    fig, axes = plt.subplots(1, 3, figsize=(6.7, 2.0))
-    for ax, (sn, st, ms, title, lab_t) in zip(axes, [
-            (s10, s1, MS_10, "Same Net, Sharing Removed", "Per-Prompt Copies"),
-            (s9n, s9t, MS_ALL, "Blind Base, Fixed Error Rate", "Per-Prompt Params"),
-            (s9bn, s9bt, MS_ALL, "Blind Base, Fixed Leak Mass", "Per-Prompt Params")]):
-        ax.axhline(0, color=C_NULL, ls=":", lw=1.0)
-        if lab_t == "Per-Prompt Copies":
-            xs = _np.array(ms) / N
-            a = [_np.mean(dr(sn, "copies", m)) for m in ms]
-            ea = [bootci(dr(sn, "copies", m)) for m in ms]
-            b = [_np.mean(dr(st, "neural", m)) for m in ms]
-            ax.plot(xs, b, "-o", color=C_SHARED, ms=3.4, lw=1.4, label="Shared Params")
-            # the copies arm is a different entity from the tabular arm in the other two
-            # panels, so it gets its own hue and marker rather than reusing theirs
-            ax.errorbar(xs, a, yerr=[[y - lo for y, (lo, _) in zip(a, ea)],
-                                     [hi - y for y, (_, hi) in zip(a, ea)]],
-                        fmt="-D", color=C_ALT, ms=3.2, lw=1.4, capsize=1.5, label=lab_t)
-        else:
-            xs = _np.array(ms) / N
-            a = [_np.mean(dr(sn, "neural", m)) for m in ms]
-            ea = [bootci(dr(sn, "neural", m)) for m in ms]
-            b = [_np.mean(dr(st, "tabular", m)) for m in ms]
-            ax.errorbar(xs, a, yerr=[[y - lo for y, (lo, _) in zip(a, ea)],
-                                     [hi - y for y, (_, hi) in zip(a, ea)]],
-                        fmt="-o", color=C_SHARED, ms=3.4, lw=1.4, capsize=1.5, label="Shared Params")
-            ax.plot(xs, b, "-s", color=C_TAB, ms=3.2, lw=1.4, label=lab_t)
-        ax.set_xscale("log", base=2)
-        ax.set_xlabel(r"Universality $u$")
-        ax.set_title(title, fontsize=9.1)
-    axes[0].set_ylabel(r"Hack-Fraction Drift $\Delta\rho$")
-    hh, ll = axes[0].get_legend_handles_labels()
-    h2, l2 = axes[1].get_legend_handles_labels()
-    for a, b2 in zip(h2, l2):
-        if b2 not in ll:
-            hh.append(a); ll.append(b2)
-    fig.legend(hh, ll, loc="upper center", bbox_to_anchor=(0.5, 1.005), ncol=3,
-               fontsize=8.4, frameon=False, handletextpad=0.45, columnspacing=1.6)
-    fig.tight_layout(pad=0.35, w_pad=2.0, rect=(0, 0, 1, 0.895))
-    fig.savefig(os.path.join(FIG, "fig6_controls.pdf"), bbox_inches="tight")
-    plt.close(fig)
+    shared = lambda s: (s, "neural", C_SHARED, M_SHARED, "Shared")
+    tabular = lambda s: (s, "tabular", C_TAB, M_TAB, "Per-prompt")
+    copies = (s10, "copies", C_COPIES, M_COPIES, "Per-prompt copies")
+    fig, axes = plt.subplots(1, 3, figsize=(FIG_W, 2.0), layout="constrained")
+    for ax, title, ms, arms in zip(axes, ("Sharing removed", "Fixed error rate", "Fixed leak mass"),
+                                   (MS_10, MS_ALL, MS_ALL),
+                                   ((shared(s1), copies), (shared(s9n), tabular(s9t)),
+                                    (shared(s9bn), tabular(s9bt)))):
+        ax.axhline(0, **BASELINE)
+        lu = _np.log2(_np.array(ms) / N)
+        span = max(abs(v) for s_, a_, *_ in arms for m in ms for v in dr(s_, a_, m))
+        for (s_, arm, col, mk, lab), off in zip(arms, (-0.14, 0.14)):
+            vals = [dr(s_, arm, m) for m in ms]
+            mu = _np.array([_np.mean(v) for v in vals])
+            ci = _np.array([bootci(v) for v in vals])
+            for x, v in zip(lu + off, vals):
+                seed_dots(ax, x, v, col, dy=0.035 * span, dx=0.075, s=5)
+            mean_line(ax, lu + off, mu, col, mk, label=lab,
+                      yerr=[mu - ci[:, 0], ci[:, 1] - mu])
+        u_axis(ax)
+        ax.set_title(title)
+        ax.yaxis.set_major_locator(plt.MaxNLocator(nbins=4, steps=[1, 2, 5, 10]))
+    axes[0].set_ylabel(r"Drift $\Delta\rho$")
+    handles = dict(zip(*reversed(axes[0].get_legend_handles_labels())))
+    handles.update(zip(*reversed(axes[1].get_legend_handles_labels())))
+    order = ("Shared", "Per-prompt", "Per-prompt copies")
+    top_legend(fig, [handles[k] for k in order], order)
+    save(fig, "fig6_controls")
 
     m10, c10 = slopeci(s10, "copies", MS_10)
     m1, c1 = slopeci(s1, "neural", MS_10)
@@ -831,7 +852,7 @@ def fig6():
 def fig7():
     """The factorial as a field: the gradient runs along universality, not error rate.
 
-    Two line plots make the reader hold four series in their head and compare slopes.
+    Grouped series make the reader hold four trends in their head and compare slopes.
     One field makes the answer a direction: colour changes going up, and barely changes
     going across.  Marginal means carry the variance decomposition.
     """
@@ -850,76 +871,35 @@ def fig7():
             if d:
                 G[i, j] = np.mean([val(r, "neural", "d_lam") for r in d.values()])
 
-    fig = plt.figure(figsize=(6.7, 2.04))
-    gs = fig.add_gridspec(2, 2, width_ratios=[3.05, 1.0], height_ratios=[3.05, 1.0],
-                          wspace=0.10, hspace=0.12)
-    axH = fig.add_subplot(gs[0, 0])
-    axR = fig.add_subplot(gs[0, 1], sharey=axH)
-    axB = fig.add_subplot(gs[1, 0], sharex=axH)
-    fig.add_subplot(gs[1, 1]).axis("off")
-
-    # sequential ramp, one hue, light to dark: darker means stronger suppression
-    vmin, vmax = np.nanmin(G), np.nanmax(G)
-    im = axH.imshow(G, origin="lower", aspect="auto", cmap="Oranges_r",
-                    vmin=vmin, vmax=vmax)
-    # the field is a matrix, so it keeps a closed frame where the line panels are despined
-    for sp in axH.spines.values():
-        sp.set_visible(True)
-    axH.set_xticks(range(len(ks)))
-    axH.set_xticklabels([f"{fprs[k]*100:.1f}" for k in ks])
-    axH.set_yticks(range(len(ms)))
-    axH.set_yticklabels([f"{m/N:.3f}".rstrip("0").rstrip(".") for m in ms])
-    axH.set_ylabel(r"Leak Universality $u$")
-    axH.tick_params(labelbottom=False, length=0)
-    for sp in axH.spines.values():
-        sp.set_visible(False)
-    # direct labels: white on the dark end, ink on the light end
-    mid = 0.5 * (vmin + vmax)
-    for i in range(len(ms)):
-        for j in range(len(ks)):
-            if np.isnan(G[i, j]):
-                continue
-            axH.text(j, i, f"{G[i, j]:.1f}", ha="center", va="center", fontsize=7.7,
-                     color=("white" if G[i, j] < mid else "#1a1a19"))
-    axH.set_title("Log-Odds Drift off the Filter Baseline",
-                  fontsize=9.8, pad=4)
-
     pct = lambda k: NUM.get(k, "").replace("\\%", "%")
+    vmin, vmax = np.nanmin(G), np.nanmax(G)
+    norm = plt.Normalize(vmin, vmax)
+    rm = np.nanmean(G, axis=1)      # mean over error rate, per universality
+    bm = np.nanmean(G, axis=0)      # mean over universality, per error rate
 
-    # right marginal: mean over error rate, per universality.  A lollipop on the same
-    # scale as the field, so "further left" means "more suppressed" in both.
-    rm = np.nanmean(G, axis=1)
-    for i, v in enumerate(rm):
-        axR.plot([vmin, v], [i, i], color=C_SHARED, lw=1.4, alpha=0.55, zorder=1)
-    axR.plot(rm, range(len(ms)), "o", color=C_SHARED, ms=4.5, zorder=2)
-    axR.set_xlim(vmin - 0.15, vmax + 0.15)
-    axR.tick_params(labelleft=False, labelbottom=False, length=0)
-    for sp in axR.spines.values():
-        sp.set_visible(False)
-    axR.set_title(f"Mean over Rate\n{pct('NuThreeEtaM')} of Variance",
-                  fontsize=8.4, pad=4, color=C_SHARED)
-
-    # bottom marginal: mean over universality, per error rate
-    bm = np.nanmean(G, axis=0)
-    for j, v in enumerate(bm):
-        axB.plot([j, j], [vmin, v], color=C_NULL, lw=1.4, alpha=0.55, zorder=1)
-    axB.plot(range(len(ks)), bm, "s", color=C_NULL, ms=4.0, zorder=2)
-    axB.set_ylim(vmin - 0.15, vmax + 0.15)
-    axB.tick_params(labelleft=False, length=0)
-    axB.set_xlabel("Static Verifier False-Positive Rate (%)")
-    for sp in axB.spines.values():
-        sp.set_visible(False)
-    axB.set_ylabel(f"Mean over $u$\n{pct('NuThreeEtaK')} of Variance",
-                   fontsize=8.4, color=C_NULL, rotation=0, ha="right", va="center",
-                   labelpad=12)
-
-    cb = fig.colorbar(im, ax=[axH, axR, axB], fraction=0.020, pad=0.015)
-    cb.ax.tick_params(labelsize=6.2, length=2)
-    cb.outline.set_visible(False)
-    cb.set_label(r"$\Delta\Lambda$   (Lower = More Suppressed)", fontsize=7.9)
-
-    fig.savefig(os.path.join(FIG, "fig7_field.pdf"), bbox_inches="tight")
-    plt.close(fig)
+    # the marginal means are cells on the same colour scale, so they read exactly like the field
+    fig = plt.figure(figsize=(FIG_W, 2.9), layout="constrained")
+    gs = fig.add_gridspec(2, 2, width_ratios=[len(ks), 1.15], height_ratios=[len(ms), 1.15])
+    axH, axR = fig.add_subplot(gs[0, 0]), fig.add_subplot(gs[0, 1])
+    axB, axC = fig.add_subplot(gs[1, 0]), fig.add_subplot(gs[1, 1])
+    im = heat(axH, G, norm, "viridis")
+    heat(axR, rm[:, None], norm, "viridis")
+    heat(axB, bm[None, :], norm, "viridis")
+    axH.set_xticks([])
+    axH.set_yticks(range(len(ms)), [u_label(m / N) for m in ms])
+    axH.set_ylabel(r"Leak universality $u$")
+    axH.set_title("Each condition")
+    axR.set_xticks([]); axR.set_yticks([])
+    axR.set_title("Mean over rate")
+    axB.set_xticks(range(len(ks)), [f"{fprs[k]*100:.1f}" for k in ks])
+    axB.set_yticks([0], [r"Mean over $u$"])
+    axB.set_xlabel("Static verifier false-positive rate (%)")
+    axC.axis("off")
+    axC.text(0.5, 0.5, f"Share of variance\nuniversality {pct('NuThreeEtaM')}\n"
+                       f"error rate {pct('NuThreeEtaK')}", ha="center", va="center",
+             transform=axC.transAxes)
+    fig.colorbar(im, ax=[axH, axR, axB, axC], label=r"Log-odds drift $\Delta\Lambda$")
+    save(fig, "fig7_field")
     num("FactorialLoU", f"{np.nanmean(G[0, :]):.2f}")
     num("FactorialHiU", f"{np.nanmean(G[-1, :]):.2f}")
 
@@ -949,18 +929,18 @@ def select_run(runs, arm, tol=REWARD_TOL):
     return min(near, key=lambda r: r[lrkey])
 
 
-def hardening_panel(ax):
-    """E6 at ten seeds.  Both patches start from the same checkpoint within a seed, so the
-    base policy is identical across patches and every accuracy difference arises in RL.
-    The shared arm is shown at both learning rates, because both saturate the verifier and
-    the paper's operating rule (the smaller one) decides how large the gap looks."""
+def hardening_panel(axes):
+    """E6 at ten seeds, one panel per arm.  Both patches start from the same checkpoint within a
+    seed, so the base policy is identical across patches and every accuracy difference arises
+    in RL.  The shared arm is shown at both learning rates, because both saturate the verifier
+    and the paper's operating rule (the smaller one) decides how large the gap looks."""
     rows = []
     for p in sorted(glob.glob(os.path.join(RES, "exp5c*.json"))):
         rows += [r for r in json.load(open(p)) if "runs" in r]
     if not rows:
-        print("hardening: no data"); ax.axis("off"); return
+        print("hardening: no data"); return
     modes = ["none", "patchU", "patchI"]
-    labels = ["None", "Universal", "Idio-\nsyncratic"]
+    labels = ["None", "Universal", "Idiosyncratic"]
     by = defaultdict(dict)
     for r in rows:
         by[r["seed"]][r["mode"]] = r
@@ -983,27 +963,32 @@ def hardening_panel(ax):
                 acc[a][m].append(tr[-1]["acc"]); lky[a][m].append(tr[-1]["leaky_reward"])
     mean = {a: [np.mean(acc[a][m]) for m in modes] for a in arms}
     sem = {a: [np.std(acc[a][m], ddof=1) / np.sqrt(len(seeds)) for m in modes] for a in arms}
-    w_ = 0.26; xs = np.arange(3)
-    ax.bar(xs - w_, mean["std"], yerr=sem["std"], color=C_SHARED, width=w_, capsize=1.8,
-           error_kw=dict(lw=0.7), label=f"Shared, LR {lo_lr:g}")
-    ax.bar(xs, mean["hi"], yerr=sem["hi"], color=C_SHARED, alpha=0.5, width=w_, capsize=1.8,
-           error_kw=dict(lw=0.7), label=f"Shared, LR {hi_lr:g}")
-    ax.bar(xs + w_, mean["tab"], yerr=sem["tab"], color=C_TAB, width=w_, capsize=1.8,
-           error_kw=dict(lw=0.7), label="Per-Prompt")
-    ax.axhline(np.mean(base_acc), color=C_NULL, ls=":", lw=1.0)
-    ax.text(2.42, np.mean(base_acc) + 0.02, "Base", fontsize=7.0, color=C_NULL, ha="right")
-    ax.set_xticks(xs); ax.set_xticklabels(labels, fontsize=7.4)
-    ax.set_xlabel("Leak Removed"); ax.set_ylabel("True Accuracy")
-    ax.set_title("Equal Audit Gain")
-    fprs = [np.mean([by[sd][m]["static_fpr"] for sd in seeds]) for m in modes]
-    for i, f_ in enumerate(fprs):
-        top = max(mean[a][i] + sem[a][i] for a in arms)
-        ax.text(i, top + 0.08, f"FPR {f_*100:.1f}%", ha="center", fontsize=7.0)
-    ax.set_ylim(0, max(max(mean[a]) for a in arms) * 1.58)
-    ax.legend(loc="upper center", fontsize=6.9, ncol=1, bbox_to_anchor=(0.5, 1.03),
-              frameon=False, handlelength=1.1, handletextpad=0.4, labelspacing=0.15)
     # paired within-seed differences: the statistic the design supports
     gap = {a: np.array(acc[a]["patchU"]) - np.array(acc[a]["patchI"]) for a in arms}
+    # One line per seed, because each seed runs all three verifiers from a single checkpoint: the
+    # lines show the pairing that a bar over seeds would average away.
+    fprs = [np.mean([by[sd][m]["static_fpr"] for sd in seeds]) for m in modes]
+    ys = np.arange(len(modes))[::-1]
+    for ax, a, col, mk, name in zip(axes, ("std", "hi", "tab"), (C_SHARED, C_SHARED, C_TAB),
+                                    (M_SHARED, M_SHARED, M_TAB),
+                                    (f"Shared, LR {lr_label(lo_lr)}", f"Shared, LR {lr_label(hi_lr)}",
+                                     "Per-prompt")):
+        ax.axvline(np.mean(base_acc), **BASELINE)
+        ax.scatter(acc[a]["none"], ys[0] + swarm(acc[a]["none"], 0.025, 0.06), s=6, color=col,
+                   alpha=0.55, linewidths=0, zorder=2)
+        ax.plot(np.array([acc[a]["patchU"], acc[a]["patchI"]]), ys[1:], color=col, lw=0.7,
+                alpha=0.45, zorder=2)
+        ax.plot(mean[a][1:], ys[1:], color=col, lw=1.8, zorder=3)
+        ax.errorbar(mean[a], ys, xerr=sem[a], ls="none", color=col, marker=mk, ms=6, mec="white",
+                    mew=0.5, elinewidth=1.0, zorder=4)
+        ax.set_title(f"{name}\ngap {100*gap[a].mean():.0f} \N{PLUS-MINUS SIGN} "
+                     f"{100*gap[a].std(ddof=1)/np.sqrt(len(seeds)):.0f} points")
+        ax.set_xlabel("True accuracy")
+    axes[0].text(np.mean(base_acc) - 0.03, ys[1], "Base\nmodel", ha="right", va="center")
+    axes[0].set_xlim(0, 1.04)
+    axes[0].set_ylim(-0.4, len(modes) - 0.6)
+    axes[0].set_yticks(ys, [f"{l}\nFPR {f*100:.1f}%" for l, f in zip(labels, fprs)])
+    axes[0].set_ylabel("Leak removed")
     num("NuFiveCNSeeds", f"{len(seeds)}")
     num("NuFiveCBaseAcc", f"{np.mean(base_acc):.3f}")
     num("NuFiveCLoLr", f"{lo_lr:g}"); num("NuFiveCHiLr", f"{hi_lr:g}")
@@ -1046,7 +1031,7 @@ def per_lr_slopes(rows, arm, lrkey):
             continue
         slopes = [np.polyfit(np.log2(ms), [d[m][sd] for m in ms], 1)[0] for sd in seeds]
         lo_u = [d[ms[0]][sd] for sd in seeds]; hi_u = [d[ms[-1]][sd] for sd in seeds]
-        out[lr] = dict(slope=float(np.mean(slopes)), ci=bootci(slopes), n=len(seeds),
+        out[lr] = dict(slope=float(np.mean(slopes)), ci=bootci(slopes), n=len(seeds), slopes=slopes,
                        lo=float(np.mean(lo_u)), hi=float(np.mean(hi_u)),
                        lo_sem=float(np.std(lo_u, ddof=1) / np.sqrt(len(seeds))),
                        hi_sem=float(np.std(hi_u, ddof=1) / np.sqrt(len(seeds))),
@@ -1064,20 +1049,26 @@ def fig8():
     sets = [(k, t, r) for k, t, r in sets if r]
     if not sets:
         print("fig8: no data"); return
-    fig, axes = plt.subplots(1, len(sets), figsize=(6.7, 2.0))
+    fig, axes = plt.subplots(1, len(sets), figsize=(FIG_W, 1.8), sharey=True, layout="constrained",
+                             width_ratios=[len({r["config"]["lr_neural"] for r in rows})
+                                           for _, _, rows in sets])
     axes = np.atleast_1d(axes)
     table = []
     n_pos_ci, n_lr = 0, 0
     for ax, (key, title, rows) in zip(axes, sets):
-        ax.axhline(0, color=C_NULL, ls=":", lw=1.0)
-        for arm, lrkey, col, mk, lab in (("neural", "lr_neural", C_SHARED, "o", "Shared Params"),
-                                         ("tabular", "lr_tabular", C_TAB, "s", "Per-Prompt Params")):
+        ax.axhline(0, **BASELINE)
+        for arm, lrkey, col, mk, lab, off in (("neural", "lr_neural", C_SHARED, M_SHARED, "Shared", -0.19),
+                                              ("tabular", "lr_tabular", C_TAB, M_TAB, "Per-prompt", 0.19)):
             st = per_lr_slopes(rows, arm, lrkey)
             lrs = sorted(st)
             mu = np.array([st[lr]["slope"] for lr in lrs])
             lo = np.array([st[lr]["ci"][0] for lr in lrs]); hi = np.array([st[lr]["ci"][1] for lr in lrs])
-            ax.errorbar(lrs, mu, yerr=[mu - lo, hi - mu], fmt="-" + mk, color=col, ms=3.6,
-                        lw=1.4, capsize=1.8, label=lab)
+            xs = np.arange(len(lrs)) + off
+            ax.bar(xs, mu, width=0.34, color=col, alpha=0.35, zorder=1)
+            for x, lr in zip(xs, lrs):
+                seed_dots(ax, x, st[lr]["slopes"], col, dy=0.008, dx=0.045, s=5)
+            ax.errorbar(xs, mu, yerr=[mu - lo, hi - mu], ls="none", marker=mk, color=col, ms=4.5,
+                        mec="white", mew=0.5, elinewidth=1.0, zorder=4, label=lab)
             for lr in lrs:
                 e = st[lr]
                 diverged = e["lky_hi"] < 0.9
@@ -1096,17 +1087,17 @@ def fig8():
                     num(f"Lr{tag}NPosHi", f"{e['n_pos_hi']}"); num(f"Lr{tag}NNegLo", f"{e['n_neg_lo']}")
                     num(f"Lr{tag}AccHi", f"{e['acc_hi']:.3f}"); num(f"Lr{tag}AccLo", f"{e['acc_lo']:.3f}")
                     num(f"Lr{tag}LkyHi", f"{e['lky_hi']:.3f}"); num(f"Lr{tag}N", f"{e['n']}")
-        ax.set_xscale("log"); ax.set_xlabel("Learning Rate"); ax.set_title(title)
-        all_lrs = sorted({r["config"]["lr_neural"] for r in rows})
-        ax.set_xticks(all_lrs); ax.set_xticklabels([f"{lr:g}" for lr in all_lrs], fontsize=7.0)
-        ax.set_xticks([], minor=True)
-    axes[0].set_ylabel(r"Slope of $\Delta\rho$ per Doubling of $m$")
-    h, l = axes[0].get_legend_handles_labels()
-    fig.legend(h, l, loc="upper center", bbox_to_anchor=(0.5, 1.005), ncol=2, fontsize=8.4,
-               frameon=False, handletextpad=0.45, columnspacing=1.6)
-    fig.tight_layout(pad=0.35, w_pad=1.6, rect=(0, 0, 1, 0.9))
-    fig.savefig(os.path.join(FIG, "fig8_lr.pdf"), bbox_inches="tight")
-    plt.close(fig)
+        lrs = sorted({r["config"]["lr_neural"] for r in rows})
+        ax.set_xticks(range(len(lrs)), [lr_label(lr) for lr in lrs])
+        ax.set_xlabel(f"{title.split()[-1]} learning rate")
+        # the settings where the shared arm never reaches the verifier's reward
+        st = per_lr_slopes(rows, "neural", "lr_neural")
+        for i, lr in enumerate(lrs):
+            if st[lr]["lky_hi"] < 0.9:
+                ax.text(i - 0.19, max(st[lr]["slopes"]) + 0.012, "diverged", ha="center", va="bottom")
+    axes[0].set_ylabel(r"Slope of $\Delta\rho$")
+    top_legend(fig)
+    save(fig, "fig8_lr")
     num("LrNPosCI", f"{n_pos_ci}"); num("LrNTotal", f"{n_lr}")
     # appendix table body
     lines = []
@@ -1198,16 +1189,25 @@ def fig9():
             ue9[c["m"]].append(cond_mean(c["probes"], "ueff_kernel"))
             um9[c["m"]].append(cond_mean(c["probes"], "ueff_mass"))
     ms1 = sorted(ue1); ms9 = sorted(ue9)
-    fig, axes = plt.subplots(1, 3, figsize=(6.7, 2.1))
-    ax = axes[0]
-    uu = np.array([m / N for m in ms1])
-    ax.plot(uu, uu, color=C_NULL, ls=":", lw=1.0, label=r"$u_{\mathrm{eff}}=u$")
-    ax.plot(uu, [np.mean(um1[m]) for m in ms1], "-o", color=C_SHARED, label="Headline Base, Mass")
-    ax.plot(uu, [np.mean(ue1[m]) for m in ms1], "--^", color=C_SHARED, alpha=0.6, label="Headline Base, Kernel-Weighted")
-    ax.plot([m / N for m in ms9], [np.mean(um9[m]) for m in ms9], "-s", color=C_TAB, label="Blind Base, Mass")
-    ax.set_xscale("log", base=2); ax.set_ylim(0, 1.05)
-    ax.set_xlabel(r"Universality $u$"); ax.set_ylabel(r"$u_{\mathrm{eff}}$ at the Base")
-    ax.set_title("Where the Mass Sits"); ax.legend(loc="upper left", fontsize=6.3)
+    fig = plt.figure(figsize=(FIG_W, 4.75), layout="constrained")
+    top, bottom = fig.subfigures(2, 1, height_ratios=[1.2, 1])
+    ax, ax_sign = top.subplots(1, 2)
+    grid = np.linspace(-6, 0, 100)
+    ax.plot(grid, 2.0 ** grid, **BASELINE, label=r"$u_{\mathrm{eff}}=u$")
+    for src, col, mk, ls, lab in ((um1, C_SHARED, "o", "-", "Headline, mass"),
+                                  (ue1, C_SHARED, "^", "--", "Headline, kernel"),
+                                  (um9, C_ALT, "s", "-", "Blind, mass"),
+                                  (ue9, C_ALT, "D", "--", "Blind, kernel")):
+        ms_ = sorted(src)
+        lx = np.log2(np.array(ms_) / N)
+        for x, m in zip(lx, ms_):
+            seed_dots(ax, x, src[m], col, dy=0.02, dx=0.09, s=5)
+        mean_line(ax, lx, [np.mean(src[m]) for m in ms_], col, mk, label=lab, ls=ls)
+    u_axis(ax)
+    ax.set_ylim(0, 1.05)
+    ax.set_ylabel(r"$u_{\mathrm{eff}}$ at the base")
+    ax.set_title("Where the mass sits")
+    under_legend(ax, ncol=2, columnspacing=1.0, handlelength=1.4)
     for m in ms1:
         tag = {1: "Lo", 4: "Four", 16: "Sixteen", 64: "Hi"}.get(m, f"M{m}")
         num(f"UeffEOne{tag}", f"{np.mean(ue1[m]):.2f}"); num(f"UeffMassEOne{tag}", f"{np.mean(um1[m]):.2f}")
@@ -1216,11 +1216,10 @@ def fig9():
         num(f"UeffENine{tag}", f"{np.mean(ue9[m]):.2f}"); num(f"UeffMassENine{tag}", f"{np.mean(um9[m]):.2f}")
 
     # ---- panel 2: sign agreement along SGD, per probed prompt and per condition mean
-    ax = axes[1]
-    cols = {1: C_TAB, 4: C_ALT, 16: C_PERM, 64: C_SHARED}
     agree_pts, agree_lead, resid_share, pts = [], [], [], []
     steps = res[0]["probe_steps"]
     by_step = {t: {"coh": [], "lead": []} for t in steps}
+    by_run = {t: {"coh": [], "lead": []} for t in steps}    # the same, one value per (seed, u) run
     for m in ms1:
         ex, co, le = [], [], []
         for r in res:
@@ -1235,6 +1234,9 @@ def fig9():
                         pts.append((q["coh_pred"], q["exact_cross_lo"], m, q["lead"] + q["corr"]))
                         by_step[t["step"]]["coh"].append(np.sign(q["coh_pred"]) == np.sign(q["exact_cross_lo"]))
                         by_step[t["step"]]["lead"].append(np.sign(q["lead"] + q["corr"]) == np.sign(q["exact_cross_lo"]))
+                    n_ = len(t["probes"])
+                    by_run[t["step"]]["coh"].append(100 * np.mean(by_step[t["step"]]["coh"][-n_:]))
+                    by_run[t["step"]]["lead"].append(100 * np.mean(by_step[t["step"]]["lead"][-n_:]))
         ex, co, le = np.mean(ex, 0), np.mean(co, 0), np.mean(le, 0)
         for a_, b_ in zip(ex, co):
             agree_pts.append(np.sign(a_) == np.sign(b_))
@@ -1243,32 +1245,40 @@ def fig9():
         for a_, b_ in zip(ex, co):
             if abs(a_) > 1e-9:
                 resid_share.append(abs(a_ - b_) / abs(a_))
-    ax.axhline(0.5, color=C_NULL, ls=":", lw=1.0)
-    ax.plot(steps, [100 * np.mean(by_step[t]["coh"]) for t in steps], "-o", color=C_SHARED, ms=3.2,
-            label="Coherent Channel, Measured Masses")
-    ax.plot(steps, [100 * np.mean(by_step[t]["lead"]) for t in steps], "-s", color=C_TAB, ms=3.2,
-            label=r"Homogeneous Formula, Raw $u$")
-    ax.text(steps[-1], 51.5, "Chance", fontsize=6.8, color=C_NULL, ha="right")
-    ax.set_ylim(0, 100); ax.set_xlabel("SGD Step"); ax.set_ylabel("Sign Agreement (%)")
-    ax.set_title("Prediction vs Exact Drift"); ax.legend(loc="lower left", fontsize=6.3)
+    ax = ax_sign
+    ax.axhline(50, **BASELINE, label="Chance")
+    for key, col, mk, lab in (("coh", C_SHARED, "o", "Coherent channel"),
+                              ("lead", C_ALT, "s", r"Homogeneous, raw $u$")):
+        ci = np.array([bootci(by_run[t][key]) for t in steps])
+        ax.fill_between(steps, ci[:, 0], ci[:, 1], color=col, alpha=0.15, lw=0, zorder=2)
+        mean_line(ax, steps, [100 * np.mean(by_step[t][key]) for t in steps], col, mk, label=lab)
+    ax.set_ylim(20, 100)
+    ax.set_xlabel("SGD step"); ax.set_ylabel("Same sign (%)")
+    ax.set_title("Prediction against exact drift")
+    under_legend(ax, ncol=2, columnspacing=1.0, handlelength=1.4)
 
-    # ---- panel 3: every probed prompt, prediction against exact
-    ax = axes[2]
+    # ---- bottom row: every probed prompt, prediction against exact, one panel per universality.
+    # The shaded quadrants are where the two agree in sign, which is what each title reports.
     P = np.array([(a_, b_) for a_, b_, _, _ in pts])
     M = np.array([m for _, _, m, _ in pts])
-    for m in ms1:
-        sel_ = M == m
-        ax.scatter(P[sel_, 0], P[sel_, 1], s=7, color=cols.get(m, C_NULL), alpha=0.55, lw=0, label=f"$u={m/N:g}$")
     lim = np.nanmax(np.abs(P)) * 1.05 if len(P) else 1.0
-    ax.plot([-lim, lim], [-lim, lim], color=C_NULL, ls=":", lw=1.0)
-    ax.axhline(0, color=C_NULL, lw=0.5); ax.axvline(0, color=C_NULL, lw=0.5)
+    facets = bottom.subplots(1, len(ms1), sharex=True, sharey=True)
+    for ax, m in zip(facets, ms1):
+        px, py = P[M == m].T
+        ax.fill_between([0, lim], 0, lim, color="0.92", lw=0, zorder=0)
+        ax.fill_between([-lim, 0], -lim, 0, color="0.92", lw=0, zorder=0)
+        ax.plot([-lim, lim], [-lim, lim], **BASELINE)
+        ax.scatter(px, py, s=6, color=C_SHARED, alpha=0.6, lw=0, zorder=2)
+        ax.set_title(rf"$u={u_label(m / N)}$: {100 * np.mean(np.sign(px) == np.sign(py)):.0f}%")
     ax.set_xscale("symlog", linthresh=1.0); ax.set_yscale("symlog", linthresh=1.0)
-    ax.legend(loc="upper left", fontsize=6.3, markerscale=1.6)
-    ax.set_xlabel("Coherent-Kernel Prediction"); ax.set_ylabel("Exact Cross-Prompt Drift")
-    ax.set_title("Per Probed Prompt")
-    fig.tight_layout(pad=0.35, w_pad=1.5)
-    fig.savefig(os.path.join(FIG, "fig9_threshold.pdf"), bbox_inches="tight")
-    plt.close(fig)
+    ax.set_xlim(-lim, lim); ax.set_ylim(-lim, lim)
+    signed = lambda ticks: [f"{t}".replace("-", "\N{MINUS SIGN}") for t in ticks]
+    ax.set_xticks([-100, 0, 100], signed([-100, 0, 100]))
+    ax.set_xticks([-10, -1, 1, 10], minor=True)
+    ax.set_yticks([-100, -10, -1, 0, 1, 10, 100], signed([-100, -10, -1, 0, 1, 10, 100]))
+    facets[0].set_ylabel("Exact cross-prompt drift")
+    bottom.supxlabel("Coherent-kernel prediction", fontsize="medium")
+    save(fig, "fig9_threshold")
 
     sign_pts = float(np.mean([np.sign(a_) == np.sign(b_) for a_, b_, _, _ in pts])) if pts else float("nan")
     sign_lead_pts = float(np.mean([np.sign(b_) == np.sign(l_) for _, b_, _, l_ in pts])) if pts else float("nan")

@@ -3,6 +3,7 @@ results/_quarantine/
 graphify-out/
 cache/
 __pycache__/
+.venv/
 
 # LaTeX build products (paper/main.pdf is kept on purpose)
 paper/*.aux

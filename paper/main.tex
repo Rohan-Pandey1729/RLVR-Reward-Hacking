@@ -196,8 +196,8 @@ Exact mirror descent preserves $\rho$ to \NullDriftMirror{} and $\Lambda$ to \Nu
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\linewidth]{../figures/fig1_universality.pdf}
-\caption{At a fixed verifier error rate (one accepted wrong response per prompt everywhere), the number of prompts that share the wrong answer decides whether RLVR suppresses or amplifies it. Left: final hack fraction and the base model. Center: drift from the base model, zero under the filter baseline. Right: true accuracy. \emph{Permuted Blocks} repeats the sweep with randomized block membership. Bands are $\pm1$ s.e.m.\ over ten seeds at the operating point selected by verifier reward.}
+\includegraphics[width=\linewidth]{../figures/fig1_universality.png}
+\caption{At a fixed verifier error rate (one accepted wrong response per prompt everywhere), the number of prompts that share the wrong answer decides whether RLVR suppresses or amplifies it. Left: arrows from base model to mean final hack fraction. Center: drift from the base model, zero under the filter baseline. Right: true accuracy. Dots are the ten seeds, markers their means $\pm1$ s.e.m., at the operating point selected by verifier reward. \emph{Permuted blocks} randomizes block membership.}
 \label{fig:universality}
 \end{figure}
 
@@ -218,8 +218,8 @@ The level is a different matter. Under Adam, all ten seeds suppress the idiosync
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\linewidth]{../figures/fig8_lr.pdf}
-\caption{The universality slope of $\Delta\rho$ (per doubling of $m$) at every learning rate, for the shared-parameter and per-prompt policies under three optimizers. Bars are bootstrap $95\%$ intervals over ten seeds. The shared slope is positive everywhere except where SGD diverges; the per-prompt slope is zero everywhere.}
+\includegraphics[width=\linewidth]{../figures/fig8_lr.png}
+\caption{The universality slope of $\Delta\rho$ (per doubling of $m$) at every learning rate, for the shared-parameter and per-prompt policies under three optimizers. Bars and markers are means over ten seeds, dots are seeds and whiskers bootstrap $95\%$ intervals. The shared slope is positive everywhere except where SGD diverges; the per-prompt slope is zero everywhere.}
 \label{fig:lr}
 \end{figure}
 
@@ -235,8 +235,8 @@ The tabular comparison confounds parameterization with sharing, so the cleanest 
 
 \begin{figure}[tb]
 \centering
-\includegraphics[width=\linewidth]{../figures/fig6_controls.pdf}
-\caption{Left: the shared model replaced by independent per-prompt copies of the identical architecture, same conditions and seeds. Center and right: one frozen base per seed, blind to the acceptance structure, with only the verifier's mask varying; the variants hold either the static false-positive rate or the accepted string's per-prompt base mass fixed. Bars are bootstrap $95\%$ intervals. In both blind variants the shared model sits below the per-prompt policy at every $u<1$ and meets it at $u=1$.}
+\includegraphics[width=\linewidth]{../figures/fig6_controls.png}
+\caption{Left: the shared model replaced by independent per-prompt copies of the identical architecture, same conditions and seeds. Center and right: one frozen base per seed, blind to the acceptance structure, with only the verifier's mask varying; the variants hold either the static false-positive rate or the accepted string's per-prompt base mass fixed. Dots are seeds and whiskers bootstrap $95\%$ intervals. In both blind variants the shared model sits below the per-prompt policy at every $u<1$ and meets it at $u=1$.}
 \label{fig:controls}
 \end{figure}
 

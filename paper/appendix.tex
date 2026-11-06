@@ -113,8 +113,8 @@ Reviewers of the earlier version asked two related questions: whether Propositio
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=\linewidth]{../figures/fig9_threshold.pdf}
-\caption{The threshold probe. Left: the acceptance fraction of Equation~\eqref{eq:ueff} at the base model against raw universality $u$, in its mass-only and kernel-weighted readings for the headline bases and in its mass-only reading for the frozen blind base. Center: along plain SGD, the fraction of probed prompts at which the coherent-channel prediction, and the homogeneous raw-$u$ formula, have the same sign as the exact cross-prompt log-odds drift. Right: the coherent-channel prediction against the exact drift for every probed prompt at every step, on symmetric log axes.}
+\includegraphics[width=\linewidth]{../figures/fig9_threshold.png}
+\caption{The threshold probe. Top left: the acceptance fraction of Equation~\eqref{eq:ueff} at the base model against raw universality $u$, in its mass-only and kernel-weighted readings for the headline and frozen blind bases; small dots are seeds and the dotted line is $\ueff=u$. Top right: along plain SGD, the fraction of probed prompts at which the coherent-channel prediction, and the homogeneous raw-$u$ formula, have the same sign as the exact cross-prompt log-odds drift, with bootstrap $95\%$ bands over the (seed, universality) runs. Bottom: the coherent-channel prediction against the exact drift for every probed prompt at every step, one panel per universality, on symmetric log axes. Shaded quadrants are where the two agree in sign, and each title gives the share of points there.}
 \label{fig:probe}
 \end{figure}
 
@@ -127,22 +127,22 @@ Reviewers of the earlier version asked two related questions: whether Propositio
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=\linewidth]{../figures/fig0_mechanism.pdf}
+\includegraphics[width=\linewidth]{../figures/fig0_mechanism.png}
 \caption{Corollary~\ref{cor:tabular}, drawn. With shared parameters every prompt's gradient lands on the same weights, so a wrong answer accepted on some prompts and rejected on others is pushed both ways at once, and the net depends on how many prompts accept it and on how much mass the model puts on it there. With per-prompt parameters the cross-prompt kernel entries are identically zero, so the channel does not exist.}
 \label{fig:mech}
 \end{figure}
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=\linewidth]{../figures/fig3_mechanism.pdf}
-\caption{Mechanism. Left: the cross-prompt component of the exact drift of $\log\pth(h\mid x)$ at the base model (Lemma~\ref{lem:drift}), identically zero for per-prompt parameters as Corollary~\ref{cor:tabular} requires. Center: mean pairwise cosine between per-prompt gradients of each prompt's own leak string and of its correct answer; at low $u$ the leaks are different strings, so the low value there is partly by construction. Right: contiguous versus randomized block membership.}
+\includegraphics[width=\linewidth]{../figures/fig3_mechanism.png}
+\caption{Mechanism. Left: the cross-prompt component of the exact drift of $\log\pth(h\mid x)$ at the base model (Lemma~\ref{lem:drift}), identically zero for per-prompt parameters as Corollary~\ref{cor:tabular} requires. Center: mean pairwise cosine between per-prompt gradients of each prompt's own leak string and of its correct answer; at low $u$ the leaks are different strings, so the low value there is partly by construction. In both, small dots are the three seeds and markers their means $\pm1$ s.e.m. Right: contiguous versus randomized block membership, with whiskers of $\pm1$ s.e.m.\ over ten seeds.}
 \label{fig:mechanism}
 \end{figure}
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=\linewidth]{../figures/fig4_practice.pdf}
-\caption{Practice. Left: sampled GRPO reproduces the pattern. Center: a KL penalty pulls the policy back toward the filter baseline. Right: two verifier patches that improve the static false-positive rate identically buy very different true accuracy; the dotted line is the shared base accuracy, identical for every patch.}
+\includegraphics[width=\linewidth]{../figures/fig4_practice.png}
+\caption{Practice. Top left: sampled GRPO reproduces the pattern. Top center and right: a KL penalty pulls the policy back toward the filter baseline, at a cost in accuracy. In the top row small dots are seeds and markers their means $\pm1$ s.e.m. Bottom: two verifier patches that improve the static false-positive rate identically buy very different true accuracy. Each line joins one seed's two patched runs, which start from the same checkpoint, markers are means $\pm1$ s.e.m., each title gives the paired gap with its s.e.m., and the dotted line is the shared base accuracy, identical for every patch.}
 \label{fig:practice}
 \end{figure}
 
@@ -155,19 +155,19 @@ Reviewers of the earlier version asked two related questions: whether Propositio
 \label{tab:lr}
 \end{table}
 
-\paragraph{Universality against error rate.} Figure~\ref{fig:field} shows the factorial of Section~\ref{sec:results} as a field, and Figure~\ref{fig:factorial} shows the same data as two line plots on a common scale.
+\paragraph{Universality against error rate.} Figure~\ref{fig:field} shows the factorial of Section~\ref{sec:results} as a field, and Figure~\ref{fig:factorial} shows the same data seed by seed on a common scale.
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=\linewidth]{../figures/fig7_field.pdf}
-\caption{The factorial as a field. Each cell is one (universality, error rate) condition; darker is a leak more strongly suppressed relative to the filter baseline. Total base hack mass is fixed at $\varepsilon$ in every cell, so the horizontal trend reflects the same mass spread over more accepted strings rather than a general property of audits.}
+\includegraphics[width=\linewidth]{../figures/fig7_field.png}
+\caption{The factorial as a field. Each cell is one (universality, error rate) condition; darker is a leak more strongly suppressed relative to the filter baseline. The right column and bottom row are the marginal means on the same color scale. Total base hack mass is fixed at $\varepsilon$ in every cell, so the horizontal trend reflects the same mass spread over more accepted strings rather than a general property of audits.}
 \label{fig:field}
 \end{figure}
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=\linewidth]{../figures/fig2_factorial.pdf}
-\caption{Left: log-odds drift against universality, one line per false-positive rate. Right: the same data against the static false-positive rate, one line per universality, common $y$-scale. Varying the accepted wrong responses per prompt from \NuThreeKRange{} moves the false-positive rate over \NuThreeFprRange{} and the drift from $\NuThreeDLLoK{}$ to $\NuThreeDLHiK{}$; the same eightfold range of universality moves it from $\NuThreeDLLoU{}$ to $\NuThreeDLHiU{}$.}
+\includegraphics[width=\linewidth]{../figures/fig2_factorial.png}
+\caption{The factorial seed by seed, common $y$-scale: dots are seeds, bars cell means, and lines join the means of one color. Left: log-odds drift grouped by universality, one color per false-positive rate. Right: the same data grouped by the static false-positive rate, one color per universality. Varying the accepted wrong responses per prompt from \NuThreeKRange{} moves the false-positive rate over \NuThreeFprRange{} and the drift from $\NuThreeDLLoK{}$ to $\NuThreeDLHiK{}$; the same eightfold range of universality moves it from $\NuThreeDLLoU{}$ to $\NuThreeDLHiU{}$.}
 \label{fig:factorial}
 \end{figure}
 
@@ -177,8 +177,8 @@ Figure~\ref{fig:appendix} collects the remaining robustness views: the universal
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=\linewidth]{../figures/fig5_appendix.pdf}
-\caption{Top left: the universality effect across the whole Adam learning-rate grid; the ramp runs light (smallest step) to dark. Top right: hack-fraction trajectories for the extreme universality conditions, both policy classes. Bottom left: the sweep repeated at two prompt-set sizes, plotted against $u$. Bottom right: the same sweep under plain SGD.}
+\includegraphics[width=\linewidth]{../figures/fig5_appendix.png}
+\caption{Top: the universality effect across the whole Adam learning-rate grid for both policy classes, as the mean drift over ten seeds on one color scale. Bottom left: hack-fraction trajectories for the extreme universality conditions, both policy classes, with thin lines for seeds; the per-prompt curves coincide. Bottom center: the sweep repeated at two prompt-set sizes, plotted against $u$, with $N=64$ in orange. Bottom right: the same sweep under plain SGD. In the bottom center and right panels small dots are seeds and markers their means $\pm1$ s.e.m.}
 \label{fig:appendix}
 \end{figure}
 

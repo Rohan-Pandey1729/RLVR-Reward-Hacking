@@ -1,4 +1,4 @@
-"""Shared plotting style, palette and result loading."""
+"""Shared paths, figure conventions, plotting helpers and result loading."""
 from __future__ import annotations
 
 import glob
@@ -8,59 +8,121 @@ import os
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.transforms import offset_copy
+from PIL import Image
 
 RES = os.path.join(os.path.dirname(__file__), "..", "results")
 FIG = os.path.join(os.path.dirname(__file__), "..", "figures")
 os.makedirs(FIG, exist_ok=True)
 os.makedirs(RES, exist_ok=True)
 
-# Colour-blind-safe categorical slots, checked with the palette validator:
-# all inside the lightness band, above the chroma floor, worst adjacent-pair CVD
-# separation dE 9.1 (protan) / 27.0 (tritan), normal-vision dE 22.9.
-C_SHARED = "#eb6834"     # shared-parameter (transformer) policy
-C_TAB = "#2a78d6"        # per-prompt (tabular) policy
-C_ALT = "#1baf7a"
-C_NULL = "#6b6a66"       # filter baseline / base model reference
+# Figures keep matplotlib's default style.  They are drawn 25% wider than the paper's 5.5in
+# \linewidth and scaled down by LaTeX, so default 10pt text prints at 8pt, and DPI comes to
+# 600 dots per inch on the page.  With a fixed canvas and constrained layout the printed
+# height of a figure is exactly 0.8 * its figsize height, which is what the page limit needs.
+FIG_W = 6.875
+DPI = 480
 
-plt.rcParams.update({
-    "font.family": "serif",
-    "font.serif": ["Times New Roman", "DejaVu Serif"],
-    "font.size": 9.6,
-    "axes.labelsize": 9.0,
-    "axes.titlesize": 9.6,
-    "legend.fontsize": 7.8,
-    "xtick.labelsize": 7.8,
-    "ytick.labelsize": 7.8,
-    "axes.linewidth": 0.6,
-    "xtick.major.width": 0.6,
-    "ytick.major.width": 0.6,
-    "lines.linewidth": 1.5,
-    "lines.markersize": 4.0,
-    "axes.grid": True,
-    "grid.alpha": 0.22,
-    "grid.linewidth": 0.4,
-    # Print polish: open frames, grid behind the data, soft ink rather than pure black.
-    "axes.spines.top": False,
-    "axes.spines.right": False,
-    "axes.axisbelow": True,
-    "axes.edgecolor": "#8d8b85",
-    "axes.labelcolor": "#1a1a19",
-    "text.color": "#1a1a19",
-    "grid.color": "#575652",
-    "xtick.color": "#575652",
-    "ytick.color": "#575652",
-    "xtick.labelcolor": "#1a1a19",
-    "ytick.labelcolor": "#1a1a19",
-    "xtick.direction": "out",
-    "ytick.direction": "out",
-    "xtick.major.size": 2.6,
-    "ytick.major.size": 2.6,
-    "axes.titlepad": 4.5,
-    "figure.dpi": 200,
-    "savefig.bbox": "tight",
-    "savefig.pad_inches": 0.01,
-    "legend.frameon": False,
-})
+# Colour roles, from matplotlib's default cycle.  Warm hues are shared-parameter runs and cool
+# hues per-prompt ones.  These four stay distinct under simulated protanopia and deuteranopia;
+# the default green and purple do not (green collapses onto orange, purple onto blue), and
+# every series also carries its own marker.
+C_SHARED = "C1"      # shared-parameter (transformer) policy
+C_PERM = "C3"        # shared parameters, randomised block membership
+C_TAB = "C0"         # per-prompt (tabular) policy
+C_COPIES = "C9"      # per-prompt copies of the transformer
+C_ALT = "k"          # a second condition of one arm, where no colour role applies
+C_NULL = "C7"        # filter baseline / base model reference, never a data series
+M_SHARED, M_PERM, M_TAB, M_COPIES = "o", "^", "s", "D"
+BASELINE = dict(color=C_NULL, ls=":", lw=1.2, zorder=1)
+
+
+def save(fig, name):
+    """Write figures/<name>.png.  matplotlib's PNGs carry an alpha channel that pdfLaTeX would
+    embed as a separate soft mask; these figures are opaque, so it is dropped."""
+    path = os.path.join(FIG, f"{name}.png")
+    fig.savefig(path, dpi=DPI)
+    plt.close(fig)
+    Image.open(path).convert("RGB").save(path, dpi=(DPI, DPI), optimize=True)
+
+
+def top_legend(fig, handles=None, labels=None, ncol=None, **kw):
+    """One legend for the whole figure, in its own band above the axes."""
+    if handles is None:
+        handles, labels = fig.axes[0].get_legend_handles_labels()
+    return fig.legend(handles, labels, loc="outside upper center", frameon=False,
+                      ncol=ncol or len(handles), **kw)
+
+
+def under_legend(ax, ncol=2, drop=34, **kw):
+    """A legend for one panel, placed below its x label so that it can never cover data."""
+    below = offset_copy(ax.transAxes, fig=ax.figure, y=-drop, units="points")
+    return ax.legend(loc="upper center", bbox_to_anchor=(0.5, 0), bbox_transform=below,
+                     ncol=ncol, frameon=False, **kw)
+
+
+def u_label(u):
+    return "1" if u == 1 else f"1/{round(1 / u)}"
+
+
+def u_axis(ax, lo=-6, step=2, label=r"Leak universality $u$"):
+    """Universality on a log2 axis.  The data are plotted at log2(u) on a linear axis, so
+    series can be dodged by a constant offset, and the ticks read as the fractions in the text."""
+    major = list(range(0, lo - 1, -step))[::-1]
+    ax.set_xticks(major, [u_label(2.0 ** k) for k in major])
+    ax.set_xticks(range(lo, 1), minor=True)
+    ax.set_xlim(lo - 0.65, 0.65)
+    ax.set_xlabel(label)
+
+
+def swarm(values, dy, dx):
+    """Horizontal offsets that stop dots of similar value from overlapping (a deterministic
+    beeswarm).  `dy` and `dx` are one dot's height and width in data units.  Per-seed values
+    often coincide exactly here, because a metric averaged over 64 prompts moves in steps."""
+    v = np.asarray(values, float)
+    placed, out = [], np.zeros(len(v))
+    for i in np.argsort(v, kind="stable"):
+        for k in range(2 * len(v) + 1):
+            off = (k + 1) // 2 * (1 if k % 2 else -1) * dx
+            if all(((off - o) / dx) ** 2 + ((v[i] - y) / dy) ** 2 >= 1.0 for o, y in placed):
+                break
+        placed.append((off, v[i]))
+        out[i] = off
+    return out
+
+
+def seed_dots(ax, x, values, color, dy, dx=0.1, s=5, marker="o", alpha=0.55):
+    """One small dot per seed at position x, spread sideways so that none hide each other."""
+    ax.scatter(x + swarm(values, dy, dx), values, s=s, color=color, marker=marker, alpha=alpha,
+               linewidths=0, zorder=2)
+
+
+def mean_line(ax, x, mu, color, marker, label=None, yerr=None, ms=4.5, ls="-"):
+    """Means joined by a thin line, drawn over the seed dots with a white edge to lift them."""
+    ax.errorbar(x, mu, yerr=yerr, color=color, marker=marker, ms=ms, ls=ls, lw=1.3, mec="white",
+                mew=0.5, elinewidth=1.0, label=label, zorder=4)
+
+
+def u_colors(us):
+    """Ordered levels of u take steps of matplotlib's default colormap, stopping short of its
+    palest yellow.  A value of u has the same colour in every figure."""
+    return {u: plt.cm.viridis(0.8 * (1 + np.log2(u) / 6)) for u in us}
+
+
+def heat(ax, values, norm, cmap, fmt="{:.1f}", **text):
+    """A matrix of coloured cells, each printed with its value in ink that contrasts with it."""
+    im = ax.imshow(values, origin="lower", aspect="auto", norm=norm, cmap=cmap)
+    ax.tick_params(length=0)
+    for (i, j), v in np.ndenumerate(values):
+        r, g, b, _ = plt.get_cmap(cmap)(norm(v))
+        ink = "k" if 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.42 else "w"
+        label = fmt.format(v)
+        if not label.strip("-0."):      # a signed zero is a rounding artefact
+            label = label.lstrip("-")
+        ax.text(j, i, label.replace("-", "\N{MINUS SIGN}"), ha="center", va="center", color=ink,
+                **text)
+    return im
 
 
 def load(pattern):

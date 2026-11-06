@@ -1,8 +1,13 @@
 #!/bin/bash
 # Regenerate every figure and number from the raw results, then rebuild the PDF.
 set -e
-PY="${PYTHON:-python3}"   # set PYTHON to an interpreter that has torch, numpy and matplotlib
-cd "$(dirname "$0")/src" && "$PY" figures.py > /dev/null
+ROOT="$(cd "$(dirname "$0")" && pwd)"
+# Prefer the project's virtual environment; set PYTHON to use another interpreter.
+for candidate in "$ROOT/.venv/bin/python" "$ROOT/.venv/Scripts/python.exe"; do
+    if [ -z "$PYTHON" ] && [ -x "$candidate" ]; then PYTHON="$candidate"; fi
+done
+PY="${PYTHON:-python3}"
+cd "$ROOT/src" && "$PY" figures.py > /dev/null
 cd ../paper
 pdflatex -interaction=nonstopmode main.tex > /dev/null 2>&1 || true
 bibtex main > /dev/null 2>&1 || true

@@ -1,0 +1,9 @@
+# Direct dependencies, pinned to the versions the paper was built with.
+# Install into a virtual environment: pip install -r requirements.txt
+#
+# Everything runs on CPU.  On Linux, the default torch wheel bundles CUDA; to skip that download,
+# add --index-url https://download.pytorch.org/whl/cpu when installing torch.
+torch==2.15.0
+numpy==2.4.6
+matplotlib==3.11.2
+pillow==13.0.0
