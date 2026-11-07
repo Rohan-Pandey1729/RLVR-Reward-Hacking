@@ -408,7 +408,7 @@ def fig_factorial():
     u_handles = strips(axes[1], ks, ms, lambda k, m: (m, k), lambda m: u_cols[m / N])
     axes[1].set_xticks(range(len(ks)), [f"{fprs[k]*100:.1f}" for k in ks])
     axes[1].set_xlabel("Static false-positive rate (%)")
-    axes[1].set_title("Grouped by error rate")
+    axes[1].set_title("Grouped by false-positive rate")
     axes[1].sharey(axes[0])
     axes[1].tick_params(labelleft=False)
     axes[2].axis("off")
@@ -490,7 +490,7 @@ def fig_field():
     axB.set_xlabel("Static verifier false-positive rate (%)")
     axC.axis("off")
     axC.text(0.5, 0.5, f"Share of variance\nuniversality {pct('NuThreeEtaM')}\n"
-                       f"error rate {pct('NuThreeEtaK')}", ha="center", va="center",
+                       f"false-positive rate {pct('NuThreeEtaK')}", ha="center", va="center",
              transform=axC.transAxes)
     fig.colorbar(im, ax=[axH, axR, axB, axC], label=r"Log-odds drift $\Delta\Lambda$")
     save(fig, "fig6_field")
@@ -817,7 +817,7 @@ def controls_panels(axes):
     if not ctl:
         return None
     N = ctl["N"]
-    control_panel(axes[0], "Fixed error rate", ctl["MS_ALL"],
+    control_panel(axes[0], "Fixed false-positive rate", ctl["MS_ALL"],
                   ((ctl["s9n"], "neural", C_SHARED, M_SHARED, "Shared"),
                    (ctl["s9t"], "tabular", C_TAB, M_TAB, "Per-prompt")), N)
     control_panel(axes[1], "Fixed leak mass", ctl["MS_ALL"],
@@ -1425,6 +1425,9 @@ def fig_probe():
     if e1lo:
         num("RepEOneLoCoh", f"{rep(e1lo, 'coh_h'):+.3f}")
         num("RepEOneLoPhOut", f"{rep(e1lo, 'p_h_out'):.4f}"); num("RepEOneLoPh", f"{rep(e1lo, 'p_h'):.4f}")
+    e9lo = [c for r in res for c in r["E9"] if c["m"] == 1]
+    if e9lo:
+        num("RepENineLoCoh", f"{rep(e9lo, 'coh_h'):+.3f}")
     # the step at which Vbar first exceeds 0.9 for the universal leak, under SGD
     v64 = [[t["Vbar"] for t in c["traj"]] for c in e1hi]
     if v64:
