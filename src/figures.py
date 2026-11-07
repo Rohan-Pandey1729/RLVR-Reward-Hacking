@@ -623,6 +623,14 @@ def controls_numbers(ctl):
     num("CopiesHiDR", f"{np.mean(dr(s10,'copies',64)):+.3f}")
     num("CopiesHiAcc", f"{np.mean([s10[k]['copies'][-1]['acc'] for k in s10 if k[0]==64]):.3f}")
     num("CopiesLoDR", f"{np.mean(dr(s10,'copies',1)):+.3f}")
+    # The hack fraction saturates at low u, where both arms sit at the floor set by the few
+    # prompts the leak wins, so the paired log-odds drift is what shows what sharing adds there.
+    for m, tag in ((1, "Lo"), (64, "Hi")):
+        dl = np.array([val(s1[k], "neural", "d_lam") - val(s10[k], "copies", "d_lam")
+                       for k in sorted(s10) if k[0] == m and k in s1])
+        lo, hi = bootci(dl)
+        num(f"CopiesPairedDL{tag}", f"{dl.mean():+.2f}")
+        num(f"CopiesPairedDL{tag}CI", f"[{lo:+.2f}, {hi:+.2f}]")
     num("MaskFprBaseLo", f"{np.mean([s9n[k]['base']['hack_mass'] for k in s9n if k[0]==1]):.4f}")
     num("MaskFprBaseHi", f"{np.mean([s9n[k]['base']['hack_mass'] for k in s9n if k[0]==64]):.4f}")
     num("MaskMassHiDR", f"{np.mean(dr(s9bn,'neural',64)):+.4f}")
@@ -1256,13 +1264,13 @@ def fig_lr():
     lines = []
     for title, arm, lr, e, diverged in table:
         name = "shared" if arm == "neural" else "per-prompt"
-        note = " (diverged)" if diverged else ""
+        note = " (diverged)" if diverged and arm == "neural" else ""
         lines.append(f"{title} & {name} & ${lr:g}$ & ${e['slope']:+.4f}$ & $[{e['ci'][0]:+.4f}, {e['ci'][1]:+.4f}]$ & "
                      f"${e['lo']:+.3f}$ & ${e['hi']:+.3f}$ & {e['n_neg_lo']}/{e['n']} & {e['n_pos_hi']}/{e['n']} & "
                      f"{e['lky_hi']:.3f}{note} \\\\")
     head = ("\\scriptsize\\setlength{\\tabcolsep}{2pt}\n"
             "\\begin{tabular}{llrrrrrrrl}\n\\toprule\n"
-            "optimizer & arm & LR & slope & $95\\%$ CI & $\\Delta\\rho(\\nicefrac1{64})$ & "
+            "setup & arm & LR & slope & $95\\%$ CI & $\\Delta\\rho(\\nicefrac1{64})$ & "
             "$\\Delta\\rho(1)$ & neg.\\ at $\\nicefrac1{64}$ & pos.\\ at $1$ & reward at $1$ \\\\\n\\midrule\n")
     tail = "\\bottomrule\n\\end{tabular}%\n"
     open(os.path.join(PAPER, "lrtable.tex"), "w").write(head + "\n".join(lines) + "\n" + tail)
