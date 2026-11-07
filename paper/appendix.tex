@@ -53,7 +53,7 @@ which with the correct answer's own term is the homogeneous form quoted in the p
 
 \paragraph{Reading the threshold.} $\bar V$ is the policy's verifier pass rate, observable during training without ground truth, and $\ueff$ depends only on the policy and the verifier's mask. A coherent wrong answer is pushed up by the same-string channel when the share of the policy's kernel-weighted mass on it that sits on accepting prompts exceeds the policy's current pass rate. The statement is directional and first-order; it identifies the sign of one channel and the quantity controlling it, not an exact boundary in a model whose kernel is only approximately coherent.
 
-\section{Environment, model and training details}
+\section{Environment, Model, and Training}
 \label{app:details}
 
 \paragraph{Task.} Prompts are all $(a,b)$ with $a,b\in\{2,\dots,9\}$ ($N=64$); the correct response is the two-digit decimal string of $ab$ (all products lie in $[4,81]$). The response space is all $100$ two-digit strings. Reducing the operand set to $\{2,\dots,5\}$ gives $N=16$ for the prompt-set-size sweep. The correct answers are not perfectly prompt-specific ($2\times6$ and $3\times4$ both give $12$), so they carry a universality of their own, $u_g=\NGoldU{}$. Under Definition~\ref{def:coherent} what matters is measured coherence rather than string identity, and we find the correct responses to be near-incoherent across prompts (\CohGold{}) while a universal leak is not.
@@ -106,7 +106,7 @@ E11 & threshold probe                  & 3 & SGD $0.3$ & exact vs.\ coherent dri
 \label{tab:protocol}
 \end{table}
 
-\section{The threshold probe}
+\section{The Threshold Probe}
 \label{app:probe}
 
 Two questions remain open after Section~\ref{sec:theory}: whether Proposition~\ref{prop:threshold} predicts anything about the sweeps, given that with raw $u$ it predicts suppression below $u\approx\bar V\geq0.44$, and whether the instantaneous prediction can be compared with the exact drift before the verifier pass rate saturates. Figure~\ref{fig:mechanism} (bottom right), Figure~\ref{fig:probe} and the numbers below answer both.
@@ -122,7 +122,7 @@ Two questions remain open after Section~\ref{sec:theory}: whether Proposition~\r
 
 \paragraph{Predicted against exact drift.} Along SGD the verifier pass rate of the universal-leak condition reaches \ProbeVbarHiLast{} by step \ProbeVbarStepLast{}, while the idiosyncratic condition is still at \ProbeVbarLoLast{}, so the window in which $\ueff-\bar V$ changes sign is short at high $u$ and long at low $u$. Over all probed (condition, step) means the coherent-channel prediction agrees in sign with the exact cross-prompt log-odds drift at \ProbeSignAgreeCond{} of points (\ProbeNCond{} points), and the homogeneous leading-order formula with its $1/N$ correction at \ProbeSignAgreeLeadCond{}; per probed prompt the agreement is \ProbeSignAgreePts{} and \ProbeSignAgreeLeadPts{} over \ProbeNPts{} prompts. The median ratio of the residual to the exact drift is \ProbeResidShareMedian{}. The channel the proposition isolates is therefore real, in the sense that its sign and the sign of the exact cross-prompt drift agree well above chance at the level of condition means and above chance per prompt, while the raw-$u$ formula is at chance per prompt. But it is not the whole cross-prompt drift: the residual $R$ of Definition~\ref{def:coherent}, dominated by the shared machinery that raises the correct answers on every prompt, is of the same order as the channel itself. We present the proposition accordingly, as a statement about one channel and the quantity that sets its sign, and we use its heterogeneous form only to interpret the difference between the headline sweep and the blind-base controls.
 
-\section{Additional results}
+\section{Additional Results}
 \label{app:extra}
 
 \paragraph{Every learning rate.} Table~\ref{tab:lr} lists, for each optimizer, learning rate and arm, the slope of $\Delta\rho$ per doubling of $m$ with its bootstrap interval, the drift at the two ends of the sweep, the number of seeds in which the idiosyncratic leak is suppressed and the universal leak amplified, and the final verifier reward at $u=1$.
@@ -170,7 +170,7 @@ Three levels of reproduction apply. From an archived base checkpoint, on the sam
 
 Provenance for the camera-ready: E1, E4, E8, E9, E9b and E10 are the archived runs of the accepted version. E2, E3, E5, E6 and E7, which the accepted version reported at three seeds, were re-run from scratch at ten seeds (E6 with the paper's standard operating rule and both learning rates stored; E2 without the learning rate $3\times10^{-2}$, which diverged in every seed of the earlier version and was never selected), and E11 is new; these use base models regenerated with the released code, and the E6 base models of the earlier version were not retained. Seeds $0$--$4$ of E1 come from an earlier revision whose configuration records carry fewer logging fields, with no training setting differing; their stored base models are bit-identical and the current code reproduces that half to $10^{-8}$. The $m=1$ condition of E1 ran past the reported seed budget during an attempt to raise the budget for every condition; the figure code caps every load at ten seeds, uniformly and independently of results, so the design is balanced and the excess runs enter no reported statistic.
 
-\section{Additional related work}
+\section{Additional Related Work}
 \label{app:related}
 
 \paragraph{RLVR as filtering.} The KL-regularized optimum as an exponential tilt of the reference model is well established \citep{korbak2022bayesian, gai2025smoothing, kruszewski2026filtering, dymetman2026binary, lochab2026ucpo, rafailov2023dpo, yue2025rlincentivize}. That literature reads the invariance as a statement about diversity among correct answers; we read it as a constraint on the composition of the accepted set and use it as our null model, with the rich-get-richer behavior of softmax policy gradient among tied responses \citep{mei2020global, lochab2026ucpo} as a control.
