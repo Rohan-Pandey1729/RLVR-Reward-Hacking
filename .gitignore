@@ -17,3 +17,6 @@ paper/*.synctex.gz
 paper/*.toc
 paper/*.nav
 paper/*.snm
+
+# Our own idiosyncratic build products
+arxiv-submission.zip
