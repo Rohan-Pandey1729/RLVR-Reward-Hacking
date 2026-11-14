@@ -104,7 +104,9 @@ def e5c(steps=400, out=None, seeds=(0, 1, 2), lrs=(1e-3, 3e-3)):
                            steps=steps, lr=lr * 30, opt_name="adam", seed=seed, log_every=50)
                 runs[f"{lr:g}"] = dict(lr_neural=lr, lr_tabular=lr * 30, neural=hn, tabular=ht)
             rows.append(dict(seed=seed, mode=mode, static_fpr=v.static_false_positive_rate(),
-                             base=b, runs=runs, steps=steps, code_version=6))
+                             base=b, runs=runs, steps=steps, code_version=6,
+                             threads=torch.get_num_threads(),
+                             base_threads=torch.get_num_threads()))    # base built above, here
             summ = " ".join(f"lr={k}: N acc={r['neural'][-1]['acc']:.3f} "
                             f"lky={r['neural'][-1]['leaky_reward']:.3f} "
                             f"T acc={r['tabular'][-1]['acc']:.3f}" for k, r in runs.items())

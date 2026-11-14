@@ -90,7 +90,8 @@ def main():
                               static_fpr=ver.static_false_positive_rate(),
                               algo="pg", norm="mean", steps=a.steps, lr_neural=lr,
                               lr_tabular=lr, opt="adam", beta=0.0, G=8, eps=0.03,
-                              n_operands=8, exp="copies", code_version=5),
+                              n_operands=8, exp="copies", threads=torch.get_num_threads(),
+                              base_threads=pol.base_threads, code_version=5),
                "base": base, "copies": traj}
         f.write(json.dumps(rec) + "\n"); f.flush()
         print(f"[{i+1}/{len(jobs)}] m={m} u={ver.u:.3f} seed={s} lr={lr:g} "

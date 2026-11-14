@@ -186,14 +186,14 @@ def main():
     ms = [int(x) for x in a.ms.split(",")]
     steps = [int(x) for x in a.probe_steps.split(",")]
     res = {"seed": a.seed, "E1": [], "E9": [], "sgd_lr": SGD_LR, "probe_steps": steps,
-           "cap": a.cap}
+           "cap": a.cap, "threads": torch.get_num_threads()}
     t0 = time.time()
 
     # (1) + (2): headline bases, probed at the base and along SGD
     for m in ms:
         prompts, ver, lam, pol, lp0 = get_base(m=m, k=1, seed=a.seed)
         traj = sgd_trajectory(pol, ver, SGD_LR, steps, a.seed, a.cap)
-        res["E1"].append(dict(m=m, u=ver.u, traj=traj))
+        res["E1"].append(dict(m=m, u=ver.u, traj=traj, base_threads=pol.base_threads))
         b = traj[0]["probes"]
         print(f"E1 m={m:>2} seed={a.seed} base: Vbar={traj[0]['Vbar']:.3f} "
               f"ueff(kernel)={_summary(b,'ueff_kernel'):.3f} ueff(mass)={_summary(b,'ueff_mass'):.3f} "
@@ -213,7 +213,8 @@ def main():
         pr = probe(pol9, ver9, ver9.accept, ver9.is_hack, cap=a.cap, seed=a.seed)
         with torch.no_grad():
             mm = measure(lp9, ver9)
-        pr.update(m=m, u=ver9.u, rho=mm["mean_hack_frac"], acc=mm["acc"], lky=mm["leaky_reward"])
+        pr.update(m=m, u=ver9.u, rho=mm["mean_hack_frac"], acc=mm["acc"], lky=mm["leaky_reward"],
+                  base_threads=pol9.base_threads)
         res["E9"].append(pr)
         b = pr["probes"]
         print(f"E9 m={m:>2} seed={a.seed} base: Vbar={pr['Vbar']:.3f} "

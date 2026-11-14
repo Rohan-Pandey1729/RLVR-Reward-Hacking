@@ -26,7 +26,10 @@ def _key(**kw) -> str:
 
 def get_base(*, m, k, seed, n_operands=8, eps=0.03, sft_steps=600, d=64, layers=2,
              heads=4, lr=3e-3, lam_seed=12345, block_perm=False, clean_floor=False):
-    """Build (or load) the base transformer and the identically-initialised tabular policy."""
+    """Build (or load) the base transformer and the identically-initialised tabular policy.
+
+    A base is bit-reproducible only at the torch thread count that built it, so the policy
+    carries that count as `base_threads`, and new cache files store it."""
     key = _key(m=m, k=k, seed=seed, n_operands=n_operands, eps=eps, sft_steps=sft_steps,
                d=d, layers=layers, heads=heads, lr=lr, lam_seed=lam_seed, v=3,
                **({'bp': 1} if block_perm else {}),
@@ -40,12 +43,14 @@ def get_base(*, m, k, seed, n_operands=8, eps=0.03, sft_steps=600, d=64, layers=
         pol = TransformerPolicy(prompts, d=d, layers=layers, heads=heads, seed=seed)
         pol.load_state_dict(blob["sd"])
         lp0 = blob["lp0"]
+        pol.base_threads = blob.get("threads")     # None if cached before this was recorded
     else:
         pol, lp0, _ = build_base(prompts, ver, eps=eps, lam=lam, sft_steps=sft_steps,
                                  lr=lr, seed=seed, d=d, layers=layers, heads=heads,
                                  clean_floor=clean_floor)
         tmp = path + f".tmp{os.getpid()}"
-        torch.save({"sd": pol.state_dict(), "lp0": lp0}, tmp)
+        pol.base_threads = torch.get_num_threads()
+        torch.save({"sd": pol.state_dict(), "lp0": lp0, "threads": pol.base_threads}, tmp)
         os.replace(tmp, path)
     return prompts, ver, lam, pol, lp0
 
@@ -68,6 +73,7 @@ def run_cell(*, m, k, seed, n_operands=8, algo="pg", norm="mean", steps=600,
                           eps=eps, n_operands=n_operands, block_perm=block_perm,
                           clean_floor=clean_floor,
                           sft_steps=sft_steps, d=d, layers=layers, heads=heads,
+                          threads=torch.get_num_threads(), base_threads=pol.base_threads,
                           code_version=4),
            "base": base}
     out["neural"] = train(copy.deepcopy(pol), ver, algo=algo, norm=norm, steps=steps,
@@ -150,12 +156,14 @@ def get_base_maskonly(*, seed, n_operands=8, eps=0.03, sft_steps=600, d=64, laye
         pol = TransformerPolicy(prompts, d=d, layers=layers, heads=heads, seed=seed)
         pol.load_state_dict(blob["sd"])
         lp0 = blob["lp0"]
+        pol.base_threads = blob.get("threads")     # None if cached before this was recorded
     else:
         pol, lp0, _ = build_base(prompts, ver_any, eps=eps, lam=lam, sft_steps=sft_steps,
                                  lr=lr, seed=seed, d=d, layers=layers, heads=heads,
                                  clean_floor=True, contam=ver_any.base_contam)
         tmp = path + f".tmp{os.getpid()}"
-        torch.save({"sd": pol.state_dict(), "lp0": lp0}, tmp)
+        pol.base_threads = torch.get_num_threads()
+        torch.save({"sd": pol.state_dict(), "lp0": lp0, "threads": pol.base_threads}, tmp)
         os.replace(tmp, path)
     return prompts, lam, pol, lp0
 
@@ -195,7 +203,9 @@ def run_cell_maskonly(*, m, seed, n_operands=8, algo="pg", norm="mean", steps=40
                           algo=algo, norm=norm, steps=steps, lr_neural=lr_neural,
                           lr_tabular=lr_tabular, opt=opt_name, beta=beta, G=G, eps=eps,
                           n_operands=n_operands, sft_steps=sft_steps, d=d, layers=layers,
-                          heads=heads, exp="maskonly", mode=mode, code_version=5),
+                          heads=heads, exp="maskonly", mode=mode,
+                          threads=torch.get_num_threads(), base_threads=pol.base_threads,
+                          code_version=5),
            "base": base}
     for arm, policy, lr in (("neural", copy.deepcopy(pol), lr_neural),
                             ("tabular", matched_tabular(lp0, len(prompts)), lr_tabular)):

@@ -490,5 +490,7 @@
  "NGrpoG": 8,
  "NParams": "101,706",
  "NGoldU": "0.037",
- "CensorFrac": "0.0\\%"
+ "CensorFrac": "1.6\\%",
+ "LamClip": "20",
+ "LamClipChecked": "$20$, $40$, $60$, and $200$"
 }

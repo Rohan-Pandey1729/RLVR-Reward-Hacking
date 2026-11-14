@@ -75,8 +75,17 @@ python figures.py                                 # figures, numbers.tex, lrtabl
 
 Every script takes `--shard i --nshards n` to split its jobs across `n` worker processes, and
 `--seeds 0,1,...` to choose seeds; scripts skip cells that already exist in `results/`. Base
-models are cached in `cache/` (not versioned), so re-runs are cheap. One base model takes about
-20 s to build and one 400-step RL run about 10 s on a single core.
+models are cached in `cache/` (not versioned), so re-runs are cheap. On one core of a laptop CPU
+(Intel Core i7-1360P), one base model takes 30 to 100 s to build and one 400-step run of both
+policies 20 to 60 s.
+
+Results are bit-for-bit reproducible only at the torch thread count that produced them, for base
+models and RL runs alike. The experiment scripts run single-threaded unless given `--threads`,
+and everything in `results/` was produced single-threaded wherever we checked, except two seed-0
+base models built with two threads: the headline configuration's base at `m=64`, which E5, E7
+and E11 load from `cache/`, and the blind base, which E11 loads. Rebuilt single-threaded, these
+two come out slightly different, and so do the results that use them. New result records also
+store the thread counts of the run and of its base model (`threads`, `base_threads`).
 
 ## Measurement
 

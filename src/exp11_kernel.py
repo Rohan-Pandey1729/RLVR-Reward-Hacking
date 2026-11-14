@@ -28,7 +28,7 @@ SEEDS = [0, 1, 2]
 
 
 def main():
-    torch.set_num_threads(2)
+    torch.set_num_threads(1)    # like every other script: the bases built here go into the shared cache
     rows = []
     for m in MS:
         for s in SEEDS:

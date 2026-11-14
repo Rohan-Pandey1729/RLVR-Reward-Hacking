@@ -55,7 +55,6 @@ PAPER = os.path.join(os.path.dirname(__file__), "..", "paper")
 FLOOR = 1e-30
 LAM_CLIP = 20.0
 NUM = {}
-CENSOR = []
 
 
 def num(k, v):
@@ -88,16 +87,22 @@ def write_numbers():
 # --------------------------------------------------------------------------------------
 # exact recomputation from stored per-prompt masses
 # --------------------------------------------------------------------------------------
-def stats(entry):
-    """(rho, Lambda) in float64 from a metric record carrying per-prompt masses."""
+def log_odds(entry):
+    """Per-prompt log pi(H(x)|x) - log pi(gold(x)|x) in float64, before clipping."""
+    g = np.asarray(entry["per_prompt_gold"], dtype=np.float64)
+    h = np.asarray(entry["per_prompt_hack"], dtype=np.float64)
+    return np.log(h + FLOOR) - np.log(g + FLOOR)
+
+
+def stats(entry, clip=LAM_CLIP):
+    """(rho, Lambda) in float64 from a metric record carrying per-prompt masses, with the
+    per-prompt log-odds clipped to +-clip before averaging."""
     if "per_prompt_gold" not in entry:
         return entry["mean_hack_frac"], entry["mean_log_odds"]
     g = np.asarray(entry["per_prompt_gold"], dtype=np.float64)
     h = np.asarray(entry["per_prompt_hack"], dtype=np.float64)
     rho = float(np.mean(h / (h + g + FLOOR)))
-    raw = np.log(h + FLOOR) - np.log(g + FLOOR)
-    CENSOR.append(float(np.mean(np.abs(raw) > LAM_CLIP)))
-    lam = float(np.mean(np.clip(raw, -LAM_CLIP, LAM_CLIP)))
+    lam = float(np.mean(np.clip(log_odds(entry), -clip, clip)))
     return rho, lam
 
 
@@ -110,20 +115,20 @@ def flipped_frac(rec, which, thresh=0.5):
     return float(np.mean(h / (h + g + FLOOR) > thresh))
 
 
-def val(rec, which, key):
-    """key in {rho, lam, d_rho, d_lam, acc, lky, base_rho, base_lam}"""
+def val(rec, which, key, clip=LAM_CLIP):
+    """key in {rho, lam, d_rho, d_lam, acc, lky, base_rho, base_lam}; `clip` is the log-odds clip"""
     if key == "acc":
         return rec[which][-1]["acc"]
     if key == "lky":
         return rec[which][-1]["leaky_reward"]
-    br, bl = stats(rec["base"])
+    br, bl = stats(rec["base"], clip)
     if key == "base_rho":
         return br
     if key == "base_lam":
         return bl
     if key == "flip":
         return flipped_frac(rec, which)
-    fr, fl = stats(rec[which][-1])
+    fr, fl = stats(rec[which][-1], clip)
     return {"rho": fr, "lam": fl, "d_rho": fr - br, "d_lam": fl - bl}[key]
 
 
@@ -1438,6 +1443,70 @@ def fig_probe():
         num("ProbeVbarLoLast", f"{v1[-1]:.3f}")
 
 
+# ======================================================================================
+# the clipping diagnostics of Appendix B, computed rather than quoted
+# ======================================================================================
+CLIP_CHECKS = (20.0, 40.0, 60.0, 200.0)     # thresholds at which no reported ordering may change
+
+
+def clipping():
+    """How often the clip on per-prompt log-odds binds at the headline operating point, and that
+    no reported Lambda series changes order at any threshold in CLIP_CHECKS.  Two values whose
+    difference is within its standard error over seeds are a tie and may swap; any other swap
+    stops the build."""
+    rows = load_capped("exp2_adam_shard*.jsonl")
+    if not rows:
+        print("clipping: no data"); return
+    e1 = best_by_reward(rows, ["m"], "neural")
+    finals = [r["neural"][-1] for d in e1.values() for r in d.values()]
+    num("CensorFrac", f"{100 * np.median([np.mean(np.abs(log_odds(e)) > LAM_CLIP) for e in finals]):.1f}\\%")
+    num("LamClip", f"{LAM_CLIP:g}")
+    ts = [f"${t:g}$" for t in CLIP_CHECKS]
+    num("LamClipChecked", ", ".join(ts[:-1]) + ", and " + ts[-1])
+
+    e3 = best_by_reward(load("exp3cf_shard*.jsonl"), ["m", "k"], "neural")
+    ms, ks = sorted({c[0] for c in e3}), sorted({c[1] for c in e3})
+    ctl = controls_data()
+
+    def mean_se(v):
+        v = np.asarray(v, dtype=np.float64)
+        return v.mean(), v.std(ddof=1) / np.sqrt(len(v))
+
+    def reported(clip):
+        """Every Lambda series the paper reports, at this clip: {name: [(mean, s.e.) per value]}."""
+        dl = lambda by, c: [val(r, "neural", "d_lam", clip) for r in by[c].values()]
+        cell = {(m, k): mean_se(dl(e3, (m, k))) for m in ms for k in ks}
+        pool = lambda cs: (np.mean([c[0] for c in cs]), np.sqrt(sum(c[1] ** 2 for c in cs)) / len(cs))
+        out = {"E1 shared": [mean_se(dl(e1, c)) for c in sorted(e1)],
+               "E3 mean over k": [pool([cell[(m, k)] for k in ks]) for m in ms],
+               "E3 mean over u": [pool([cell[(m, k)] for m in ms]) for k in ks]}
+        out.update({f"E3 m={m}": [cell[(m, k)] for k in ks] for m in ms})
+        out.update({f"E3 k={k}": [cell[(m, k)] for m in ms] for k in ks})
+        if ctl:
+            s1, s10 = ctl["s1"], ctl["s10"]
+            out["E10 shared minus copies"] = [
+                mean_se([val(s1[c], "neural", "d_lam", clip) - val(s10[c], "copies", "d_lam", clip)
+                         for c in sorted(s10) if c[0] == m and c in s1]) for m in (1, 64)]
+        return out
+
+    ref, tied = reported(LAM_CLIP), set()
+    for t in CLIP_CHECKS:
+        alt = reported(t)
+        for name, vs in ref.items():
+            ws = alt[name]
+            for i in range(len(vs)):
+                for j in range(i + 1, len(vs)):
+                    d0, d1 = vs[i][0] - vs[j][0], ws[i][0] - ws[j][0]
+                    if np.sign(d0) == np.sign(d1):
+                        continue
+                    assert (abs(d0) <= np.hypot(vs[i][1], vs[j][1])
+                            and abs(d1) <= np.hypot(ws[i][1], ws[j][1])), \
+                        f"clipping at {t:g} reorders {name}, values {i} and {j}"
+                    tied.add((name, i, j))
+    print(f"clipping: no reported Lambda series changes order at {CLIP_CHECKS}; "
+          f"tied pairs that swap: {sorted(tied) or 'none'}")
+
+
 if __name__ == "__main__":
     import torch
     from policies import TransformerPolicy
@@ -1448,7 +1517,6 @@ if __name__ == "__main__":
     num("NSteps", 400); num("NEps", "0.03"); num("NGrpoG", 8)
     num("NParams", f"{sum(p.numel() for p in TransformerPolicy(build_prompts(8)).parameters()):,}")
     num("NGoldU", f"{gold_universality(build_prompts(8)):.3f}")
-    if CENSOR:
-        num("CensorFrac", f"{100*float(np.median(CENSOR)):.1f}\\%")
+    clipping()
     write_numbers()
     print(json.dumps(NUM, indent=1))
